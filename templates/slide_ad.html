@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}水平 Slide 廣告建立{% endblock %}
+
+{% block page_title %}建立水平 Slide 廣告{% endblock %}
+
+{% block additional_styles %}
+<style>
+    .slide-controls {
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .slide-item {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+    .clear-form-btn {
+        background-color: #f44336;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 15px;
+    }
+    .clear-form-btn:hover {
+        background-color: #d32f2f;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<button type="button" id="clear-form-button" class="clear-form-btn">清除所有內容</button>
+
+<form action="{{ url_for('create_slide_ad') }}" method="post" id="ad-form">
+    <div class="field-group">
+        <h3>廣告資訊</h3>
+        <table>
+            <tr>
+                <th width="30%">欄位名稱</th>
+                <th>內容</th>
+            </tr>
+            <tr>
+                <td><label for="adset_id">Adset ID <span class="required">*</span></label></td>
+                <td><input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required>
+                    <div class="help-text">廣告組ID，必填，例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7</div>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="display_name">廣告單元顯示名稱</label></td>
+                <td><input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}">
+                    <div class="help-text">僅顯示於後台，可選</div>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="advertiser">廣告商 <span class="required">*</span></label></td>
+                <td><input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required>
+                    <div class="help-text">廣告主名稱，必填</div>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="main_title">主標題 <span class="required">*</span></label></td>
+                <td><input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required>
+                    <div class="help-text">廣告主標題，必填</div>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="subtitle">副標題</label></td>
+                <td><input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}">
+                    <div class="help-text">廣告副標題，可選</div>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="landing_page">到達頁面網址 <span class="required">*</span></label></td>
+                <td><input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" value="{{ landing_page or '' }}" required>
+                    <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="call_to_action">行動呼籲按鈕文字</label></td>
+                <td><input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '立即了解' }}">
+                    <div class="help-text">CTA按鈕文字，預設為「立即了解」</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="field-group">
+        <h3>廣告素材 <span class="required">*</span></h3>
+        <p>所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。</p>
+        
+        <div class="form-row">
+            <label for="image_path_m">圖片 1200x628 <span class="required">*</span></label>
+            <div class="file-upload-container">
+                <input type="text" id="image_path_m" name="image_path_m" placeholder="/path/to/your/image_1200x628.jpg" value="{{ image_path_m or '' }}" required>
+                <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                <div class="preview-container">
+                    <label class="custom-file-upload">
+                        上傳圖片
+                        <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
+                    </label>
+                    <img id="preview_m" class="upload-preview" style="display: none;">
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <label for="image_path_s">圖片 300x300 <span class="required">*</span></label>
+            <div class="file-upload-container">
+                <input type="text" id="image_path_s" name="image_path_s" placeholder="/path/to/your/image_300x300.jpg" value="{{ image_path_s or '' }}" required>
+                <div class="help-text">方形圖片，尺寸300x300像素</div>
+                <div class="preview-container">
+                    <label class="custom-file-upload">
+                        上傳圖片
+                        <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
+                    </label>
+                    <img id="preview_s" class="upload-preview" style="display: none;">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <label for="background_image">遊戲套件預設背景 <span class="required">*</span></label>
+            <input type="text" id="background_image" name="background_image" placeholder="請輸入背景圖片網址" value="{{ background_image or '' }}" required>
+            <div class="help-text">遊戲套件預設背景圖片網址</div>
+        </div>
+    </div>
+
+    <div class="field-group">
+        <h3>滑動廣告設定 <span class="required">*</span></h3>
+        <div id="slide-items-container">
+            <!-- 默認顯示一個滑動項目，將由 JavaScript 動態填充 -->
+        </div>
+        <div class="slide-controls">
+            <button type="button" id="add-slide-item" class="button nav-button">新增滑動項目</button>
+            <button type="button" id="remove-slide-item" class="button" style="background-color: #d9534f;">移除最後一個項目</button>
+        </div>
+        <input type="hidden" id="payload_game_widget" name="payload_game_widget">
+    </div>
+    
+    <input type="submit" value="建立水平 Slide 廣告">
+</form>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+    // 水平 Slide 廣告特有的 JavaScript
+    let slideItemCount = 0;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化滑動項目
+        initializeSlideItems();
+        
+        // 添加清除表單按鈕的事件監聽器
+        document.getElementById('clear-form-button').addEventListener('click', function() {
+            if(confirm('確定要清除所有填寫的內容嗎？')) {
+                clearFormInputs();
+            }
+        });
+    });
+    
+    // 清除表單所有輸入欄位的函數
+    function clearFormInputs() {
+        // 清除文本輸入、URL、數字輸入
+        document.querySelectorAll('input[type="text"], input[type="url"], input[type="number"]').forEach(input => {
+            input.value = '';
+        });
+        
+        // 清除預覽圖片
+        document.querySelectorAll('.upload-preview').forEach(img => {
+            img.style.display = 'none';
+            img.src = '';
+        });
+        
+        // 清空滑動項目容器
+        const container = document.getElementById('slide-items-container');
+        container.innerHTML = '';
+        slideItemCount = 0;
+        
+        // 重新初始化一個滑動項目
+        initializeSlideItems();
+        
+        // 清空 payload
+        document.getElementById('payload_game_widget').value = '';
+    }
+    
+    function initializeSlideItems() {
+        // 如果沒有項目，添加一個
+        if (slideItemCount === 0) {
+            addSlideItem();
+        }
+    }
+    
+    function addSlideItem() {
+        slideItemCount++;
+        const container = document.getElementById('slide-items-container');
+        const newItem = document.createElement('div');
+        newItem.className = 'slide-item';
+        newItem.setAttribute('data-index', slideItemCount - 1);
+        
+        const index = slideItemCount - 1;
+        newItem.innerHTML = `
+            <h4>滑動項目 #${slideItemCount}</h4>
+            <div class="form-row">
+                <label for="image_url_${index}">圖片網址 <span class="required">*</span></label>
+                <input type="url" id="image_url_${index}" name="image_url_${index}" class="slide-image-url" 
+                       placeholder="https://example.com/image${slideItemCount}.jpg" value="" required>
+                <div class="help-text">滑動廣告圖片的URL，必填</div>
+            </div>
+            <div class="form-row">
+                <label for="target_url_${index}">目標網址 <span class="required">*</span></label>
+                <input type="url" id="target_url_${index}" name="target_url_${index}" class="slide-target-url"
+                       placeholder="https://example.com/page${slideItemCount}" value="" required>
+                <div class="help-text">點擊圖片後跳轉的目標網址，必填</div>
+            </div>
+        `;
+        
+        container.appendChild(newItem);
+
+        // 為新添加的輸入欄位綁定 change 事件以更新 payload
+        newItem.querySelectorAll('.slide-image-url, .slide-target-url').forEach(input => {
+            input.addEventListener('change', () => updatePayload());
+        });
+        updatePayload(); // 添加新項目後更新 payload
+    }
+    
+    function removeSlideItem() {
+        const container = document.getElementById('slide-items-container');
+        if (slideItemCount > 1) {
+            // 保留至少一個項目
+            container.removeChild(container.lastChild);
+            slideItemCount--;
+            updatePayload();
+        }
+    }
+    
+    function updatePayload() {
+        const imageUrlsInputs = document.querySelectorAll('.slide-image-url');
+        const targetUrlsInputs = document.querySelectorAll('.slide-target-url');
+        
+        const slides = [];
+        const invokes = [];
+        
+        for (let i = 0; i < imageUrlsInputs.length; i++) {
+            const imageUrl = imageUrlsInputs[i].value;
+            const targetUrl = targetUrlsInputs[i].value;
+            
+            if (imageUrl && imageUrl.trim() !== '') {
+                slides.push(imageUrl);
+                if (targetUrl && targetUrl.trim() !== '') {
+                    invokes.push({
+                        action: "OPEN_EXTERNAL_BROWSER",
+                        payload: {
+                            url: targetUrl
+                        }
+                    });
+                }
+            }
+        }
+        
+        const payload = {
+            type: "SLIDE",
+            data: {
+                slides: slides // Array of image URLs
+            },
+            invokes: invokes // Array of invoke objects
+        };
+        
+        document.getElementById('payload_game_widget').value = JSON.stringify(payload, null, 2);
+    }
+    
+    // 添加事件監聽器給按鈕
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('add-slide-item').addEventListener('click', addSlideItem);
+        document.getElementById('remove-slide-item').addEventListener('click', removeSlideItem);
+    });
+    
+    function parseInfoText(inputText) {
+        // 解析廣告主
+        let advertiserMatch = inputText.match(/-廣告主：(.*?)($|\n)/);
+        if (advertiserMatch && advertiserMatch[1]) {
+            document.getElementById('advertiser').value = advertiserMatch[1].trim();
+        }
+        
+        // 解析標題
+        let titleMatch = inputText.match(/-\s*標題：(.*?)($|\n)/);
+        if (titleMatch && titleMatch[1]) {
+            document.getElementById('main_title').value = titleMatch[1].trim();
+        }
+        
+        // 解析導連
+        let landingMatch = inputText.match(/導連：(https?:\/\/[^\s]+)/);
+        if (landingMatch && landingMatch[1]) {
+            document.getElementById('landing_page').value = landingMatch[1].trim();
+            
+            // 同時填入第一個滑動項目的目標URL
+            const firstTargetUrlInput = document.querySelector('.slide-target-url');
+            if (firstTargetUrlInput) {
+                firstTargetUrlInput.value = landingMatch[1].trim();
+            }
+        }
+        
+        // 解析 CTA
+        let ctaMatch = inputText.match(/-\s*CTA：(.*?)($|\n)/);
+        if (ctaMatch && ctaMatch[1]) {
+            document.getElementById('call_to_action').value = ctaMatch[1].trim();
+        }
+        
+        // 解析素材，作為背景圖片和第一個滑動項目的圖片
+        let materialMatch = inputText.match(/素材：(https?:\/\/[^\s]+)/);
+        if (materialMatch && materialMatch[1]) {
+            document.getElementById('background_image').value = materialMatch[1].trim();
+            
+            // 填入第一個滑動項目的圖片URL
+            const firstImageUrlInput = document.querySelector('.slide-image-url');
+            if (firstImageUrlInput) {
+                firstImageUrlInput.value = materialMatch[1].trim();
+            }
+            
+            updatePayload();
+        }
+    }
+</script>
+{% endblock %} 

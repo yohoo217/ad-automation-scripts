@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批量建立廣告</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); max-width: 1200px; margin: 0 auto; }
+        h1, h2 { color: #333; text-align: center; }
+        label { font-weight: bold; }
+        input[type="text"], input[type="url"] {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 13px;
+        }
+        button, input[type="submit"], .button {
+            background-color: #5cb85c;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        button:hover, input[type="submit"]:hover, .button:hover { background-color: #4cae4c; }
+        .flash-messages { list-style-type: none; padding: 0; margin-bottom: 20px; }
+        .flash-messages li { padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .flash-success { background-color: #dff0d8; color: #3c763d; border: 1px solid #d6e9c6; }
+        .flash-error { background-color: #f2dede; color: #a94442; border: 1px solid #ebccd1; }
+        .flash-warning { background-color: #fcf8e3; color: #8a6d3b; border: 1px solid #faebcc; }
+        .required { color: red; }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .nav-button {
+            background-color: #337ab7;
+        }
+        .nav-button:hover { background-color: #286090; }
+        
+        .ad-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .ad-table th, .ad-table td {
+            border: 1px solid #ddd;
+            padding: 4px;
+            vertical-align: middle;
+        }
+        .ad-table th {
+            background-color: #f8f8f8;
+            font-weight: bold;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .ad-table-container {
+            max-height: 80vh;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .table-actions {
+            margin: 15px 0;
+            text-align: center;
+        }
+        .row-number {
+            background-color: #f0f0f0;
+            text-align: center;
+            font-weight: bold;
+        }
+        .small-header {
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .field-group th {
+            border-top: 2px solid #999;
+        }
+        .required-header::after {
+            content: " *";
+            color: red;
+        }
+        .file-upload-container {
+            position: relative;
+            margin-bottom: 10px;
+        }
+        .custom-file-upload {
+            display: block;
+            padding: 4px 8px;
+            cursor: pointer;
+            background-color: #f8f8f8;
+            text-align: center;
+            border: 1px dashed #ccc;
+            font-size: 12px;
+        }
+        .custom-file-upload:hover {
+            background-color: #f0f0f0;
+        }
+        .file-input {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        .upload-preview {
+            max-width: 50px;
+            max-height: 50px;
+            margin-top: 5px;
+            display: block;
+        }
+        .help-text {
+            font-size: 11px;
+            color: #666;
+            margin-top: 3px;
+        }
+        .image-cell {
+            position: relative;
+        }
+        .image-input-container {
+            display: flex;
+            flex-direction: column;
+        }
+        .preview-container {
+            display: flex;
+            align-items: center;
+            margin-top: 3px;
+        }
+        .batch-controls {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        .batch-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .clear-form-btn {
+            background-color: #f44336;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+        .clear-form-btn:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-buttons">
+            <a href="{{ url_for('index') }}" class="button nav-button">單一廣告創建</a>
+        </div>
+        
+        <h1>批量建立廣告</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flash-messages">
+                {% for category, message in messages %}
+                    <li class="flash-{{ category }}">{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <button type="button" id="clear-form-button" class="clear-form-btn">清除所有內容</button>
+
+        <form id="batch-form" action="{{ url_for('create_batch_ads') }}" method="post">
+            <input type="hidden" id="ads_count" name="ads_count" value="10">
+            
+            <div class="table-actions">
+                <button type="button" id="add-row" class="add-row">+ 新增一列廣告</button>
+                <button type="button" id="remove-all" class="nav-button" style="background-color: #d9534f;">清空所有列</button>
+                <input type="submit" value="建立所有廣告">
+            </div>
+            
+            <div class="ad-table-container">
+                <table class="ad-table" id="ad-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" style="width: 40px;">編號</th>
+                            <th colspan="8" class="field-group">基本資料</th>
+                            <th colspan="4" class="field-group">圖片路徑</th>
+                            <th rowspan="2" style="width: 60px;">操作</th>
+                        </tr>
+                        <tr>
+                            <th class="required-header" style="width: 160px;">Adset ID</th>
+                            <th style="width: 120px;">顯示名稱</th>
+                            <th class="required-header" style="width: 130px;">廣告商</th>
+                            <th class="required-header" style="width: 130px;">主標題</th>
+                            <th style="width: 130px;">副標題</th>
+                            <th class="required-header" style="width: 160px;">到達頁面網址</th>
+                            <th style="width: 120px;">按鈕文字</th>
+                            <th style="width: 130px;">追蹤URL</th>
+                            <th class="required-header" style="width: 160px;">1200x628</th>
+                            <th class="required-header" style="width: 160px;">336x280</th>
+                            <th class="required-header" style="width: 160px;">640x100</th>
+                            <th class="required-header" style="width: 160px;">300x300</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ad-table-body">
+                        <!-- 行將通過JavaScript動態添加 -->
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // 批量廣告特有的 JavaScript
+        let adCount = 0;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const tableBody = document.getElementById('ad-table-body');
+            const adsCountInput = document.getElementById('ads_count');
+            const addRowBtn = document.getElementById('add-row');
+            const removeAllBtn = document.getElementById('remove-all');
+            
+            let rowCount = 0;
+            
+            // 保存表單數據到 localStorage
+            function saveFormData() {
+                const formData = {};
+                const rows = tableBody.querySelectorAll('tr');
+                rows.forEach((row, index) => {
+                    const rowData = {};
+                    row.querySelectorAll('input').forEach(input => {
+                        if (input.type !== 'file') {  // 不保存文件輸入
+                            rowData[input.name.split('_').slice(1).join('_')] = input.value;
+                        }
+                    });
+                    formData[index + 1] = rowData;
+                });
+                localStorage.setItem('batchFormData', JSON.stringify(formData));
+            }
+
+            // 從 localStorage 恢復表單數據
+            function restoreFormData() {
+                const savedData = localStorage.getItem('batchFormData');
+                if (savedData) {
+                    const formData = JSON.parse(savedData);
+                    Object.keys(formData).forEach(rowIndex => {
+                        if (rowIndex > rowCount) {
+                            addRow();
+                        }
+                        const rowData = formData[rowIndex];
+                        Object.keys(rowData).forEach(field => {
+                            const inputId = `ad${rowIndex}_${field}`;
+                            const input = document.getElementById(inputId);
+                            if (input) {
+                                input.value = rowData[field];
+                            }
+                        });
+                    });
+                }
+            }
+
+            // 在表單提交時保存數據
+            document.getElementById('batch-form').addEventListener('submit', function() {
+                saveFormData();
+            });
+
+            // 在頁面載入時恢復數據
+            window.addEventListener('load', function() {
+                restoreFormData();
+            });
+
+            // 在輸入值改變時保存數據
+            tableBody.addEventListener('input', function() {
+                saveFormData();
+            });
+            
+            // 處理文件上傳
+            function setupFileUpload(fileInput) {
+                fileInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const rowId = this.getAttribute('data-row');
+                    const fieldName = this.getAttribute('data-field');
+                    const targetInputId = `ad${rowId}_${fieldName}`;
+                    const previewId = `preview_${rowId}_${fieldName.split('_').pop()}`;
+                    const preview = document.getElementById(previewId);
+                    
+                    // 創建FormData並添加文件
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    // 顯示上傳中視覺回饋
+                    preview.style.display = 'block';
+                    preview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDNi40NzcgMiAyIDYuNDc3IDIgMTJDMiAxNy41MjMgNi40NzcgMjIgMTIgMjJDMTcuNTIzIDIyIDIyIDE3LjUyMyAyMiAxMkMyMiA2LjQ3NyAxNy41MjMgMiAxMiAyWk0xMiA2QzEzLjEwNSA2IDE0IDYuODk1IDE0IDhDMTQgOS4xMDUgMTMuMTA1IDEwIDEyIDEwQzEwLjg5NSAxMCAxMCA5LjEwNSAxMCA4QzEwIDYuODk1IDEwLjg5NSA2IDEyIDZaTTE4LjQwNiAxNC43MThDMTguNTYgMTQuODI3IDE4LjQwNiAxNSAxOC4yNSAxNUg1Ljc2QzUuNjA0IDE1IDUuNDUgMTQuODI3IDUuNzE2IDE0LjcxOEM3LjY2OCAxMy42NDIgOS41ODcgMTMgMTIgMTNDMTQuMzgxIDEzIDE2LjI2NyAxMy42NDIgMTguNDA2IDE0LjcxOFoiIGZpbGw9IiM1Y2I4NWMiLz4KPC9zdmc+Cg==';
+                    
+                    // 發送上傳請求
+                    fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // 更新文件路徑
+                            document.getElementById(targetInputId).value = data.file_path;
+                            
+                            // 顯示圖片預覽
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                preview.src = e.target.result;
+                            };
+                            reader.readAsDataURL(file);
+                        } else {
+                            alert('上傳失敗: ' + data.error);
+                            preview.style.display = 'none';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('上傳過程中發生錯誤');
+                        preview.style.display = 'none';
+                    });
+                });
+            }
+            
+            // 添加一行
+            function addRow() {
+                rowCount++;
+                adsCountInput.value = rowCount;
+                
+                // 主表行
+                const row = document.createElement('tr');
+                row.id = `row-${rowCount}`;
+                
+                row.innerHTML = `
+                    <td class="row-number">${rowCount}</td>
+                    <td><input type="text" id="ad${rowCount}_adset_id" name="ad${rowCount}_adset_id" required></td>
+                    <td><input type="text" id="ad${rowCount}_display_name" name="ad${rowCount}_display_name"></td>
+                    <td><input type="text" id="ad${rowCount}_advertiser" name="ad${rowCount}_advertiser" required></td>
+                    <td><input type="text" id="ad${rowCount}_main_title" name="ad${rowCount}_main_title" required></td>
+                    <td><input type="text" id="ad${rowCount}_subtitle" name="ad${rowCount}_subtitle"></td>
+                    <td><input type="url" id="ad${rowCount}_landing_page" name="ad${rowCount}_landing_page" required></td>
+                    <td><input type="text" id="ad${rowCount}_call_to_action" name="ad${rowCount}_call_to_action" value="瞭解詳情"></td>
+                    <td><input type="url" id="ad${rowCount}_tracking_url" name="ad${rowCount}_tracking_url"></td>
+                    <td class="image-cell">
+                        <div class="image-input-container">
+                            <input type="text" id="ad${rowCount}_image_path_m" name="ad${rowCount}_image_path_m" required>
+                            <div class="preview-container">
+                                <label class="custom-file-upload">
+                                    上傳圖片
+                                    <input type="file" class="file-input" data-row="${rowCount}" data-field="image_path_m" accept="image/*">
+                                </label>
+                                <img id="preview_${rowCount}_m" class="upload-preview" style="display: none;">
+                            </div>
+                        </div>
+                    </td>
+                    <td class="image-cell">
+                        <div class="image-input-container">
+                            <input type="text" id="ad${rowCount}_image_path_p" name="ad${rowCount}_image_path_p" required>
+                            <div class="preview-container">
+                                <label class="custom-file-upload">
+                                    上傳圖片
+                                    <input type="file" class="file-input" data-row="${rowCount}" data-field="image_path_p" accept="image/*">
+                                </label>
+                                <img id="preview_${rowCount}_p" class="upload-preview" style="display: none;">
+                            </div>
+                        </div>
+                    </td>
+                    <td class="image-cell">
+                        <div class="image-input-container">
+                            <input type="text" id="ad${rowCount}_image_path_o" name="ad${rowCount}_image_path_o" required>
+                            <div class="preview-container">
+                                <label class="custom-file-upload">
+                                    上傳圖片
+                                    <input type="file" class="file-input" data-row="${rowCount}" data-field="image_path_o" accept="image/*">
+                                </label>
+                                <img id="preview_${rowCount}_o" class="upload-preview" style="display: none;">
+                            </div>
+                        </div>
+                    </td>
+                    <td class="image-cell">
+                        <div class="image-input-container">
+                            <input type="text" id="ad${rowCount}_image_path_s" name="ad${rowCount}_image_path_s" required>
+                            <div class="preview-container">
+                                <label class="custom-file-upload">
+                                    上傳圖片
+                                    <input type="file" class="file-input" data-row="${rowCount}" data-field="image_path_s" accept="image/*">
+                                </label>
+                                <img id="preview_${rowCount}_s" class="upload-preview" style="display: none;">
+                            </div>
+                        </div>
+                    </td>
+                    <td><button type="button" class="delete-row" data-row="${rowCount}" style="padding: 2px 8px; font-size: 12px; background-color: #d9534f;">移除</button></td>
+                `;
+                
+                tableBody.appendChild(row);
+                
+                // 設置圖片上傳
+                const fileInputs = row.querySelectorAll('.file-input');
+                fileInputs.forEach(input => {
+                    setupFileUpload(input);
+                });
+                
+                // 綁定刪除按鈕
+                const deleteBtn = row.querySelector('.delete-row');
+                deleteBtn.addEventListener('click', function() {
+                    const rowId = this.getAttribute('data-row');
+                    deleteRow(rowId);
+                });
+            }
+            
+            // 刪除一行
+            function deleteRow(rowId) {
+                const row = document.getElementById(`row-${rowId}`);
+                
+                if (row) row.remove();
+                
+                // 重新計算並更新編號
+                updateRowNumbers();
+            }
+            
+            // 清空所有行
+            function removeAllRows() {
+                if (confirm('確定要刪除所有廣告列嗎？此操作無法恢復。')) {
+                    tableBody.innerHTML = '';
+                    rowCount = 0;
+                    adsCountInput.value = 0;
+                }
+            }
+            
+            // 更新行編號
+            function updateRowNumbers() {
+                const rows = tableBody.querySelectorAll('tr');
+                
+                rowCount = rows.length;
+                adsCountInput.value = rowCount;
+                
+                rows.forEach((row, index) => {
+                    const newIndex = index + 1;
+                    row.querySelector('.row-number').textContent = newIndex;
+                    row.id = `row-${newIndex}`;
+                    
+                    // 更新刪除按鈕的data-row屬性
+                    const deleteBtn = row.querySelector('.delete-row');
+                    deleteBtn.setAttribute('data-row', newIndex);
+                    
+                    // 更新文件上傳按鈕的data-row屬性
+                    const fileInputs = row.querySelectorAll('.file-input');
+                    fileInputs.forEach(input => {
+                        input.setAttribute('data-row', newIndex);
+                    });
+                    
+                    // 更新所有輸入欄位的ID和name屬性
+                    row.querySelectorAll('input').forEach(input => {
+                        const oldId = input.id;
+                        const fieldName = oldId.split('_').slice(1).join('_');
+                        
+                        const newId = `ad${newIndex}_${fieldName}`;
+                        input.id = newId;
+                        input.name = newId;
+                    });
+                    
+                    // 更新預覽圖片的ID
+                    row.querySelectorAll('.upload-preview').forEach(img => {
+                        const oldId = img.id;
+                        const suffix = oldId.split('_').pop();
+                        img.id = `preview_${newIndex}_${suffix}`;
+                    });
+                });
+            }
+            
+            // 表單驗證
+            document.getElementById('batch-form').addEventListener('submit', function(e) {
+                if (rowCount === 0) {
+                    e.preventDefault();
+                    alert('請至少添加一行廣告');
+                    return;
+                }
+                
+                const requiredFields = ['adset_id', 'advertiser', 'main_title', 'landing_page', 
+                                        'image_path_m', 'image_path_p', 'image_path_o', 'image_path_s'];
+                let hasError = false;
+                
+                for (let i = 1; i <= rowCount; i++) {
+                    for (const field of requiredFields) {
+                        const inputId = `ad${i}_${field}`;
+                        const input = document.getElementById(inputId);
+                        
+                        if (!input || !input.value.trim()) {
+                            if (input) input.style.borderColor = 'red';
+                            hasError = true;
+                        } else {
+                            input.style.borderColor = '';
+                        }
+                    }
+                }
+                
+                if (hasError) {
+                    e.preventDefault();
+                    alert('請檢查並填寫所有必填欄位');
+                    
+                    // 滾動到第一個錯誤
+                    const firstErrorInput = document.querySelector('input[style*="border-color: red"]');
+                    if (firstErrorInput) {
+                        firstErrorInput.scrollIntoView({behavior: 'smooth', block: 'center'});
+                    }
+                }
+            });
+            
+            // 添加事件監聽器
+            addRowBtn.addEventListener('click', addRow);
+            removeAllBtn.addEventListener('click', removeAllRows);
+            
+            // 預先添加2行
+            for (let i = 0; i < 2; i++) {
+                addRow();
+            }
+
+            // 添加清除表單按鈕的事件監聽器
+            document.getElementById('clear-form-button').addEventListener('click', function() {
+                if(confirm('確定要清除所有填寫的內容嗎？')) {
+                    clearFormInputs();
+                }
+            });
+        });
+
+        // 清除表單所有輸入欄位的函數
+        function clearFormInputs() {
+            // 清除文本輸入、URL、數字輸入
+            document.querySelectorAll('input[type="text"], input[type="url"], input[type="number"]').forEach(input => {
+                input.value = '';
+            });
+            
+            // 清除預覽圖片
+            document.querySelectorAll('.upload-preview').forEach(img => {
+                img.style.display = 'none';
+                img.src = '';
+            });
+            
+            // 清空廣告項目容器
+            const container = document.getElementById('ads-container');
+            container.innerHTML = '';
+            adCount = 0;
+            
+            // 重新初始化一個廣告項目
+            initializeAds();
+        }
+    </script>
+</body>
+</html> 

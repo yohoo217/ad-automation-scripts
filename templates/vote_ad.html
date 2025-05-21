@@ -1,0 +1,486 @@
+{% extends "base.html" %}
+
+{% block title %}投票廣告建立{% endblock %}
+
+{% block page_title %}建立投票廣告{% endblock %}
+
+{% block additional_styles %}
+<style>
+    .vote-options-container {
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .vote-option {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+    .color-picker {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border: none;
+        cursor: pointer;
+    }
+    .clear-form-btn {
+        background-color: #f44336;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 15px;
+    }
+    .clear-form-btn:hover {
+        background-color: #d32f2f;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<button type="button" id="clear-form-button" class="clear-form-btn">清除所有內容</button>
+
+<form action="{{ url_for('create_vote_ad') }}" method="post" id="ad-form">
+    <div class="field-group">
+        <h3>廣告資訊</h3>
+        <table>
+            <tr>
+                <th width="30%">欄位名稱</th>
+                <th>內容</th>
+            </tr>
+            <tr>
+                <td><label for="adset_id">Adset ID <span class="required">*</span></label></td>
+                <td><input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required>
+                    <div class="help-text">廣告組ID，必填，例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7</div>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="display_name">廣告單元顯示名稱</label></td>
+                <td><input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}">
+                    <div class="help-text">僅顯示於後台，可選</div>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="advertiser">廣告商 <span class="required">*</span></label></td>
+                <td><input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required>
+                    <div class="help-text">廣告主名稱，必填</div>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="main_title">主標題 <span class="required">*</span></label></td>
+                <td><input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required>
+                    <div class="help-text">廣告主標題，必填</div>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="vote_title">投票標題 <span class="required">*</span></label></td>
+                <td><input type="text" id="vote_title" name="vote_title" value="{{ vote_title or '' }}" required>
+                    <div class="help-text">投票區塊的標題，必填</div>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="subtitle">副標題</label></td>
+                <td><input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}">
+                    <div class="help-text">廣告副標題，可選</div>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="landing_page">到達頁面網址 <span class="required">*</span></label></td>
+                <td><input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" value="{{ landing_page or '' }}" required>
+                    <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="call_to_action">行動呼籲按鈕文字</label></td>
+                <td><input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '立即了解' }}">
+                    <div class="help-text">CTA按鈕文字，預設為「立即了解」</div>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="vote_id">Vote ID <span class="required">*</span></label></td>
+                <td><input type="text" id="vote_id" name="vote_id" value="{{ vote_id or 'myVoteId' }}" required>
+                    <div class="help-text">投票識別碼，必填</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="field-group">
+        <h3>廣告素材 <span class="required">*</span></h3>
+        <p>所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。</p>
+        
+        <div class="form-row">
+            <label for="image_path_m">圖片 1200x628 <span class="required">*</span></label>
+            <div class="file-upload-container">
+                <input type="text" id="image_path_m" name="image_path_m" placeholder="/path/to/your/image_1200x628.jpg" value="{{ image_path_m or '' }}" required>
+                <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                <div class="preview-container">
+                    <label class="custom-file-upload">
+                        上傳圖片
+                        <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
+                    </label>
+                    <img id="preview_m" class="upload-preview" style="display: none;">
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <label for="image_path_s">圖片 300x300 <span class="required">*</span></label>
+            <div class="file-upload-container">
+                <input type="text" id="image_path_s" name="image_path_s" placeholder="/path/to/your/image_300x300.jpg" value="{{ image_path_s or '' }}" required>
+                <div class="help-text">方形圖片，尺寸300x300像素</div>
+                <div class="preview-container">
+                    <label class="custom-file-upload">
+                        上傳圖片
+                        <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
+                    </label>
+                    <img id="preview_s" class="upload-preview" style="display: none;">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <label for="background_image">遊戲套件預設背景 <span class="required">*</span></label>
+            <input type="text" id="background_image" name="background_image" placeholder="請輸入背景圖片網址" value="{{ background_image or '' }}" required>
+            <div class="help-text">遊戲套件預設背景圖片網址</div>
+        </div>
+    </div>
+
+    <div class="field-group">
+        <h3>投票廣告設定 <span class="required">*</span></h3>
+        
+        <div class="form-row">
+            <label for="vote_image">投票圖片網址 <span class="required">*</span></label>
+            <div class="file-upload-container">
+                <input type="url" id="vote_image" name="vote_image" placeholder="請輸入投票圖片網址" value="{{ vote_image or '' }}" required>
+                <div class="help-text">投票區塊顯示的圖片URL</div>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <label for="divider_color">分隔線顏色</label>
+            <input type="color" id="divider_color" name="divider_color" class="color-picker" value="{{ divider_color or '#ff0000' }}">
+            <div class="help-text">投票選項的分隔線顏色</div>
+        </div>
+        
+        <div class="form-row">
+            <label for="vote_width">投票區塊寬度</label>
+            <input type="text" id="vote_width" name="vote_width" value="{{ vote_width or '80%' }}">
+            <div class="help-text">投票區塊的寬度，例如: 80%</div>
+        </div>
+        
+        <div class="form-row">
+            <label for="bg_color">背景顏色</label>
+            <input type="color" id="bg_color" name="bg_color" class="color-picker" value="{{ bg_color or '#ffffff' }}">
+            <div class="help-text">投票區塊的背景顏色</div>
+        </div>
+        
+        <div class="form-row">
+            <label for="vote_position">投票位置</label>
+            <select id="vote_position" name="vote_position">
+                <option value="top" {% if vote_position == 'top' %}selected{% endif %}>頂部</option>
+                <option value="middle" {% if vote_position == 'middle' %}selected{% endif %}>中間</option>
+                <option value="bottom" {% if vote_position == 'bottom' or vote_position is not defined %}selected{% endif %}>底部</option>
+            </select>
+            <div class="help-text">投票區塊在畫面中的位置</div>
+        </div>
+        
+        <div class="form-row">
+            <label for="min_position">最小位置 (%)</label>
+            <input type="number" id="min_position" name="min_position" value="{{ min_position or 50 }}" min="0" max="100">
+            <div class="help-text">投票區塊顯示的最小位置百分比</div>
+        </div>
+        
+        <div class="form-row">
+            <label for="max_position">最大位置 (%)</label>
+            <input type="number" id="max_position" name="max_position" value="{{ max_position or 70 }}" min="0" max="100">
+            <div class="help-text">投票區塊顯示的最大位置百分比</div>
+        </div>
+        
+        <div class="form-row">
+            <label for="timeout">顯示超時 (毫秒)</label>
+            <input type="number" id="timeout" name="timeout" value="{{ timeout or 2000 }}">
+            <div class="help-text">投票區塊顯示的超時時間，單位毫秒</div>
+        </div>
+        
+        <div class="form-row">
+            <label>顯示動畫</label>
+            <div class="checkbox-group">
+                <input type="checkbox" id="animation_fade" name="display_animation" value="fade" checked>
+                <label for="animation_fade">淡入淡出</label>
+                
+                <input type="checkbox" id="animation_slide" name="display_animation" value="slide" checked>
+                <label for="animation_slide">滑動</label>
+            </div>
+            <div class="help-text">投票區塊顯示時的動畫效果</div>
+        </div>
+        
+        <h4>獲勝者樣式</h4>
+        <div class="form-row">
+            <label for="winner_bg_color">背景顏色</label>
+            <input type="color" id="winner_bg_color" name="winner_bg_color" class="color-picker" value="{{ winner_bg_color or '#26D07C' }}">
+        </div>
+        
+        <div class="form-row">
+            <label for="winner_text_color">文字顏色</label>
+            <input type="color" id="winner_text_color" name="winner_text_color" class="color-picker" value="{{ winner_text_color or '#ffffff' }}">
+        </div>
+        
+        <h4>失敗者樣式</h4>
+        <div class="form-row">
+            <label for="loser_bg_color">背景顏色</label>
+            <input type="color" id="loser_bg_color" name="loser_bg_color" class="color-picker" value="{{ loser_bg_color or '#000000' }}">
+        </div>
+        
+        <div class="form-row">
+            <label for="loser_text_color">文字顏色</label>
+            <input type="color" id="loser_text_color" name="loser_text_color" class="color-picker" value="{{ loser_text_color or '#ffffff' }}">
+        </div>
+        
+        <h3>投票選項</h3>
+        <div id="vote-options-container">
+            <!-- 默認顯示兩個投票選項，將由 JavaScript 動態填充 -->
+        </div>
+        <div class="vote-controls">
+            <button type="button" id="add-vote-option" class="button nav-button">新增投票選項</button>
+            <button type="button" id="remove-vote-option" class="button" style="background-color: #d9534f;">移除最後一個選項</button>
+        </div>
+        <input type="hidden" id="payload_game_widget" name="payload_game_widget">
+    </div>
+    
+    <input type="submit" value="建立投票廣告">
+</form>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+    // 投票廣告特有的 JavaScript
+    let voteOptionCount = 0;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化投票選項
+        initializeVoteOptions();
+        
+        // 為所有表單元素添加 change 事件監聽器，以便更新 payload
+        document.querySelectorAll('input, select').forEach(input => {
+            input.addEventListener('change', () => updatePayload());
+        });
+        
+        // 添加清除表單按鈕的事件監聽器
+        document.getElementById('clear-form-button').addEventListener('click', function() {
+            if(confirm('確定要清除所有填寫的內容嗎？')) {
+                clearFormInputs();
+            }
+        });
+    });
+    
+    // 清除表單所有輸入欄位的函數
+    function clearFormInputs() {
+        // 清除文本輸入、URL、數字輸入
+        document.querySelectorAll('input[type="text"], input[type="url"], input[type="number"]').forEach(input => {
+            input.value = '';
+        });
+        
+        // 重置選擇欄位到默認值
+        document.querySelectorAll('select').forEach(select => {
+            select.selectedIndex = 0;
+        });
+        
+        // 重置顏色選擇器到默認值
+        document.getElementById('divider_color').value = '#ff0000';
+        document.getElementById('bg_color').value = '#ffffff';
+        document.getElementById('winner_bg_color').value = '#26D07C';
+        document.getElementById('winner_text_color').value = '#ffffff';
+        document.getElementById('loser_bg_color').value = '#000000';
+        document.getElementById('loser_text_color').value = '#ffffff';
+        
+        // 清除投票選項
+        const container = document.getElementById('vote-options-container');
+        container.innerHTML = '';
+        voteOptionCount = 0;
+        
+        // 重新初始化兩個默認選項
+        initializeVoteOptions();
+        
+        // 更新 payload
+        updatePayload();
+    }
+    
+    function initializeVoteOptions() {
+        // 添加默認的兩個選項
+        addVoteOption("文章更自由", "#207AED", "#E7F3FF");
+        addVoteOption("推廣教育服務", "#207AED", "#E7F3FF");
+    }
+    
+    function addVoteOption(title = "", textColor = "#207AED", bgColor = "#E7F3FF") {
+        voteOptionCount++;
+        const container = document.getElementById('vote-options-container');
+        const newItem = document.createElement('div');
+        newItem.className = 'vote-option';
+        newItem.setAttribute('data-index', voteOptionCount - 1);
+        
+        const index = voteOptionCount - 1;
+        newItem.innerHTML = `
+            <h4>選項 #${voteOptionCount}</h4>
+            <div class="form-row">
+                <label for="option_title_${index}">選項標題 <span class="required">*</span></label>
+                <input type="text" id="option_title_${index}" name="option_title_${index}" class="vote-option-title" 
+                       placeholder="投票選項${voteOptionCount}" value="${title}" required>
+            </div>
+            <div class="form-row">
+                <label for="option_text_color_${index}">文字顏色</label>
+                <input type="color" id="option_text_color_${index}" name="option_text_color_${index}" class="color-picker vote-option-text-color" 
+                       value="${textColor}">
+            </div>
+            <div class="form-row">
+                <label for="option_bg_color_${index}">背景顏色</label>
+                <input type="color" id="option_bg_color_${index}" name="option_bg_color_${index}" class="color-picker vote-option-bg-color" 
+                       value="${bgColor}">
+            </div>
+            <div class="form-row">
+                <label for="option_target_url_${index}">點擊網址</label>
+                <input type="url" id="option_target_url_${index}" name="option_target_url_${index}" class="vote-option-target-url"
+                       placeholder="https://example.com/page${voteOptionCount}" value="">
+                <div class="help-text">點擊此選項後跳轉的目標網址，可選</div>
+            </div>
+        `;
+        
+        container.appendChild(newItem);
+
+        // 為新添加的輸入欄位綁定 change 事件以更新 payload
+        newItem.querySelectorAll('input').forEach(input => {
+            input.addEventListener('change', () => updatePayload());
+        });
+        updatePayload(); // 添加新選項後更新 payload
+    }
+    
+    function removeVoteOption() {
+        const container = document.getElementById('vote-options-container');
+        if (voteOptionCount > 2) {
+            // 保留至少兩個選項
+            container.removeChild(container.lastChild);
+            voteOptionCount--;
+            updatePayload();
+        }
+    }
+    
+    function updatePayload() {
+        const titleInputs = document.querySelectorAll('.vote-option-title');
+        const textColorInputs = document.querySelectorAll('.vote-option-text-color');
+        const bgColorInputs = document.querySelectorAll('.vote-option-bg-color');
+        const targetUrlInputs = document.querySelectorAll('.vote-option-target-url');
+        
+        const options = [];
+        
+        for (let i = 0; i < titleInputs.length; i++) {
+            const title = titleInputs[i].value;
+            const textColor = textColorInputs[i].value;
+            const bgColor = bgColorInputs[i].value;
+            const targetUrl = targetUrlInputs[i].value;
+            
+            const option = {
+                title: title,
+                textColor: textColor,
+                bgColor: bgColor,
+                invokes: []
+            };
+            
+            // 如果有目標URL，添加到invokes
+            if (targetUrl && targetUrl.trim() !== '') {
+                option.invokes.push({
+                    action: "OPEN_EXTERNAL_BROWSER",
+                    payload: {
+                        url: targetUrl
+                    }
+                });
+            }
+            
+            options.push(option);
+        }
+        
+        // 獲取動畫選項
+        const displayAnimations = [];
+        if (document.getElementById('animation_fade').checked) {
+            displayAnimations.push('fade');
+        }
+        if (document.getElementById('animation_slide').checked) {
+            displayAnimations.push('slide');
+        }
+        
+        const payload = {
+            type: "PURE_VOTE",
+            assets: {
+                dividerColor: document.getElementById('divider_color').value,
+                voteId: document.getElementById('vote_id').value,
+                title: document.getElementById('vote_title').value,
+                image: document.getElementById('vote_image').value,
+                width: document.getElementById('vote_width').value,
+                bgColor: document.getElementById('bg_color').value,
+                votePosition: document.getElementById('vote_position').value,
+                display: {
+                    minPosition: parseInt(document.getElementById('min_position').value),
+                    maxPosition: parseInt(document.getElementById('max_position').value),
+                    timeout: parseInt(document.getElementById('timeout').value)
+                },
+                displayAnimation: displayAnimations,
+                options: options,
+                winner: {
+                    bgColor: document.getElementById('winner_bg_color').value,
+                    textColor: document.getElementById('winner_text_color').value
+                },
+                loser: {
+                    bgColor: document.getElementById('loser_bg_color').value,
+                    textColor: document.getElementById('loser_text_color').value
+                }
+            }
+        };
+        
+        document.getElementById('payload_game_widget').value = JSON.stringify(payload, null, 2);
+    }
+    
+    // 添加事件監聽器給按鈕
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('add-vote-option').addEventListener('click', () => addVoteOption());
+        document.getElementById('remove-vote-option').addEventListener('click', removeVoteOption);
+    });
+    
+    function parseInfoText(inputText) {
+        // 解析廣告主
+        let advertiserMatch = inputText.match(/-廣告主：(.*?)($|\n)/);
+        if (advertiserMatch && advertiserMatch[1]) {
+            document.getElementById('advertiser').value = advertiserMatch[1].trim();
+        }
+        
+        // 解析標題
+        let titleMatch = inputText.match(/-\s*標題：(.*?)($|\n)/);
+        if (titleMatch && titleMatch[1]) {
+            document.getElementById('main_title').value = titleMatch[1].trim();
+            // 同時也設為投票標題
+            document.getElementById('vote_title').value = titleMatch[1].trim();
+        }
+        
+        // 解析導連
+        let landingMatch = inputText.match(/導連：(https?:\/\/[^\s]+)/);
+        if (landingMatch && landingMatch[1]) {
+            document.getElementById('landing_page').value = landingMatch[1].trim();
+        }
+        
+        // 解析 CTA
+        let ctaMatch = inputText.match(/-\s*CTA：(.*?)($|\n)/);
+        if (ctaMatch && ctaMatch[1]) {
+            document.getElementById('call_to_action').value = ctaMatch[1].trim();
+        }
+        
+        // 解析素材，作為投票圖片
+        let materialMatch = inputText.match(/素材：(https?:\/\/[^\s]+)/);
+        if (materialMatch && materialMatch[1]) {
+            document.getElementById('vote_image').value = materialMatch[1].trim();
+            // 同時也設為遊戲套件預設背景
+            document.getElementById('background_image').value = materialMatch[1].trim();
+            updatePayload();
+        }
+    }
+</script>
+{% endblock %} 

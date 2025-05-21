@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}建立廣告{% endblock %}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); max-width: 1200px; margin: 80px auto 0; }
+        h1 { color: #333; text-align: center; }
+        label { font-weight: bold; }
+        input[type="text"], input[type="url"], textarea, .custom-file-upload {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 13px;
+        }
+        textarea {
+            height: 300px;
+            font-family: monospace;
+        }
+        button, input[type="submit"], .button {
+            background-color: #5cb85c;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        button:hover, input[type="submit"]:hover, .button:hover { background-color: #4cae4c; }
+        .flash-messages { list-style-type: none; padding: 0; margin-bottom: 20px; }
+        .flash-messages li { padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .flash-success { background-color: #dff0d8; color: #3c763d; border: 1px solid #d6e9c6; }
+        .flash-error { background-color: #f2dede; color: #a94442; border: 1px solid #ebccd1; }
+        .required { color: red; }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: #fff;
+            padding: 10px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .nav-button {
+            background-color: #337ab7;
+            margin: 0 5px;
+        }
+        .nav-button:hover { background-color: #286090; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+            padding: 4px;
+            vertical-align: middle;
+        }
+        th {
+            background-color: #f8f8f8;
+            font-weight: bold;
+            text-align: center;
+        }
+        .file-upload-container {
+            position: relative;
+            margin-bottom: 10px;
+        }
+        .custom-file-upload {
+            display: block;
+            padding: 4px 8px;
+            cursor: pointer;
+            background-color: #f8f8f8;
+            text-align: center;
+            border: 1px dashed #ccc;
+            font-size: 12px;
+        }
+        .custom-file-upload:hover {
+            background-color: #f0f0f0;
+        }
+        .file-input {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        .upload-preview {
+            max-width: 50px;
+            max-height: 50px;
+            margin-top: 5px;
+            display: block;
+        }
+        .field-group {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .field-group h3 {
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .form-row {
+            margin-bottom: 15px;
+        }
+        .help-text {
+            font-size: 11px;
+            color: #666;
+            margin-top: 3px;
+        }
+        .image-cell {
+            position: relative;
+        }
+        .image-input-container {
+            display: flex;
+            flex-direction: column;
+        }
+        .preview-container {
+            display: flex;
+            align-items: center;
+            margin-top: 3px;
+        }
+        .quick-input-section {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 25px;
+            display: none; /* 預設隱藏 */
+        }
+        .quick-input-section.expanded {
+            display: block;
+        }
+        .quick-input-toggle {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 25px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .quick-input-toggle:hover {
+            background-color: #f0f0f0;
+        }
+        .quick-input-toggle::after {
+            content: '▼';
+            font-size: 12px;
+            transition: transform 0.3s ease;
+        }
+        .quick-input-toggle.collapsed::after {
+            transform: rotate(-90deg);
+        }
+    </style>
+    {% block additional_styles %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <div class="nav-buttons">
+            <a href="{{ url_for('batch') }}" class="button nav-button">批量廣告創建</a>
+            <div>
+                <a href="{{ url_for('native_ad') }}" class="button nav-button">原生廣告</a>
+                <a href="{{ url_for('gif_ad') }}" class="button nav-button">GIF 廣告</a>
+                <a href="{{ url_for('slide_ad') }}" class="button nav-button">水平 Slide 廣告</a>
+                <a href="{{ url_for('vertical_slide_ad') }}" class="button nav-button">垂直 Slide 廣告</a>
+                <a href="{{ url_for('vertical_cube_slide_ad') }}" class="button nav-button">垂直 Cube Slide 廣告</a>
+                <a href="{{ url_for('vote_ad') }}" class="button nav-button">投票廣告</a>
+            </div>
+        </div>
+        
+        <h1>{% block page_title %}建立廣告{% endblock %}</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flash-messages">
+                {% for category, message in messages %}
+                    <li class="flash-{{ category }}">{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <!-- 快速輸入區塊 -->
+        <div class="quick-input-toggle collapsed">
+            <span>快速資訊輸入</span>
+        </div>
+        <div class="quick-input-section">
+            <p>將格式化文案貼到下方文字區，然後點擊「解析資訊」按鈕自動填入表單</p>
+            <textarea id="bulk-info-input" placeholder="請貼上格式化的廣告資訊，例如：
+廣告資訊
+-廣告主：和德昌股份有限公司
+-代理商：香港商陽獅銳奇股份有限公司台灣分公司星傳媒體事業處
+-活動名稱：電豹_麥當勞_Meaty Angus 5月宣傳活動
+-活動走期：2025/5/21 ~ 2025/6/3
+-投放版位：電豹原生影音廣告
+-總預算：NT$150,000(未稅) 
+-計價方式：CPV $0.4
+
+廣告素材
+l   素材：https://lion.box.com/s/g3zngprm41ckr9hmlid5nvcg9s1m1sy8
+
+l   導連：https://www.mcdonalds.com/tw/zh-tw/whats-hot/0521meatyangus.html?utm_source=ptt&utm_medium=paid-video&utm_campaign=cp~np-meaty-angus_sd~2025-05-21&utm_content=at~pnta_cv~tvc20s-5s-acg　
+
+l   文案：
+
+-  標題：傳說中的辣個美味！電動追番必吃「辣味四盎司牛肉堡」
+
+-   CTA：吃飽再戰"></textarea>
+            <button type="button" id="parse-info" class="nav-button" style="margin-top: 10px;">解析資訊</button>
+        </div>
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- 共用的 JavaScript -->
+    <script>
+        // 圖片上傳功能
+        document.addEventListener('DOMContentLoaded', function() {
+            // 處理快速資訊輸入區塊的收合功能
+            const quickInputToggle = document.querySelector('.quick-input-toggle');
+            const quickInputSection = document.querySelector('.quick-input-section');
+            
+            quickInputToggle.addEventListener('click', function() {
+                this.classList.toggle('collapsed');
+                quickInputSection.classList.toggle('expanded');
+            });
+
+            // 處理圖片上傳功能
+            function setupFileUploads() {
+                document.querySelectorAll('.file-input').forEach(function(input) {
+                    input.addEventListener('change', function(e) {
+                        const targetField = this.dataset.target;
+                        const targetInput = document.getElementById(targetField);
+                        
+                        // 找到對應的預覽圖元素
+                        let previewImgId = 'preview_' + targetField.split('_').pop();
+                        if (targetField.includes('_')) {
+                            const parts = targetField.split('_');
+                            const prefix = parts.slice(0, -1).join('_');
+                            const suffix = parts[parts.length - 1];
+                            previewImgId = 'preview_' + prefix + '_' + suffix;
+                        }
+                        const previewImg = document.getElementById(previewImgId);
+                        
+                        if (this.files && this.files[0]) {
+                            const file = this.files[0];
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            
+                            // 顯示上傳中的提示
+                            if (targetInput) targetInput.value = '上傳中...';
+                            
+                            // 發送上傳請求
+                            fetch('/upload', {
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    // 更新輸入框的值為文件路徑
+                                    if (targetInput) targetInput.value = data.file_path;
+                                    
+                                    // 顯示圖片預覽
+                                    if (previewImg) {
+                                        previewImg.src = URL.createObjectURL(file);
+                                        previewImg.style.display = 'block';
+                                    }
+                                } else {
+                                    alert('上傳失敗: ' + data.error);
+                                    if (targetInput) targetInput.value = '';
+                                }
+                            })
+                            .catch(error => {
+                                console.error('上傳錯誤:', error);
+                                alert('上傳過程中發生錯誤');
+                                if (targetInput) targetInput.value = '';
+                            });
+                        }
+                    });
+                });
+            }
+            
+            // 初始化文件上傳
+            setupFileUploads();
+            
+            // 快速填充功能
+            document.getElementById('parse-info').addEventListener('click', function() {
+                const inputText = document.getElementById('bulk-info-input').value;
+                // 此函數需要由每個特定廣告類型的頁面實現
+                if (typeof parseInfoText === 'function') {
+                    parseInfoText(inputText);
+                } else {
+                    console.warn('parseInfoText 函數未定義');
+                }
+            });
+        });
+    </script>
+    {% block additional_scripts %}{% endblock %}
+</body>
+</html> 

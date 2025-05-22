@@ -21,9 +21,11 @@ def log_message(message: str):
     """記錄訊息到日誌"""
     logger.info(message)
 
-def slow_down(page: Page, min_delay: float = 0.5, max_delay: float = 1.5):
-    """隨機延遲，模擬人類操作"""
-    delay = min_delay + (max_delay - min_delay) * random.random()  # 使用 random.random() 替代 time.random()
+def slow_down(page: Page, min_delay: float = 0.3, max_delay: float = 0.8):
+    """隨機延遲，模擬人類操作
+    減少延遲時間以降低超時風險，但仍保持一定的間隔
+    """
+    delay = min_delay + (max_delay - min_delay) * random.random()
     time.sleep(delay)
 
 def extract_last_36_chars_from_url(page: Page) -> str:
@@ -31,66 +33,128 @@ def extract_last_36_chars_from_url(page: Page) -> str:
     current_url = page.url
     return current_url[-36:]
 
-def run(playwright: Playwright, ad_data: dict) -> bool:
+def run(playwright: Playwright, ad_data: dict, ad_type: str = 'gif') -> bool:
     """
-    執行廣告創建流程，支援 GIF 廣告和水平滑動廣告
+    執行廣告創建流程，支援多種互動廣告類型
     
     Args:
         playwright: Playwright 實例
         ad_data: 包含廣告數據的字典
+        ad_type: 廣告類型 (gif, slide, countdown等)
     
     Returns:
         bool: 操作是否成功
     """
+    # 強制使用傳入的 ad_type 參數，確保不會被覆蓋
+    actual_ad_type = ad_type
+    # 將 ad_type 存入 ad_data 中，以便後續使用
+    ad_data['ad_type'] = actual_ad_type
+        
+    log_message(f"開始創建 {actual_ad_type} 類型廣告 - 接收到資料: {str(ad_data)}")
+    
     try:
-        browser = playwright.chromium.launch(headless=False)
-        context = browser.new_context()
+        log_message("啟動瀏覽器")
+        # 使用 headless 模式並添加額外的啟動參數以提高穩定性
+        browser = playwright.chromium.launch(
+            headless=True,  # 改為 headless 模式
+            args=[
+                '--disable-dev-shm-usage',  # 禁用 /dev/shm 使用，在某些系統上更穩定
+                '--no-sandbox',  # 禁用沙箱模式
+                '--disable-setuid-sandbox',  # 禁用 setuid 沙箱
+                '--disable-gpu',  # 禁用 GPU 加速
+                '--disable-software-rasterizer'  # 禁用軟件光柵化
+            ]
+        )
+        # 增加超時時間並忽略 HTTPS 錯誤
+        context = browser.new_context(
+            ignore_https_errors=True,
+            viewport={'width': 1280, 'height': 800}
+        )
+        log_message("瀏覽器上下文創建成功")
         page = context.new_page()
+        log_message("新頁面創建成功")
         
         # 登入流程
-        log_message("Navigating to login page")
-        page.goto("https://account.aotter.net/login?r=https%3A%2F%2Ftrek.aotter.net%2Fme")
-        slow_down(page)
+        log_message("導航到登入頁面")
+        try:
+            # 增加超時設置，確保頁面完全加載
+            page.goto("https://account.aotter.net/login?r=https%3A%2F%2Ftrek.aotter.net%2Fme", 
+                      timeout=60000,  # 60秒超時
+                      wait_until="networkidle")  # 等待網絡空閒
+            log_message("登入頁面加載完成")
+        except Exception as nav_error:
+            log_message(f"頁面導航錯誤: {str(nav_error)}")
+            return False
 
-        log_message("Filling login form")
-        page.get_by_placeholder("Email 帳號").click()
-        page.get_by_placeholder("Email 帳號").fill(config.EMAIL)
-        page.get_by_placeholder("Email 帳號").press("Tab")
-        page.get_by_placeholder("密碼").fill(config.PASSWORD)
-        page.get_by_placeholder("密碼").press("Enter")
-        slow_down(page)
+        # 確保表單元素存在
+        try:
+            log_message("等待登入表單出現")
+            page.wait_for_selector('input[placeholder="Email 帳號"]', state="visible", timeout=20000)
+            log_message("登入表單已出現")
+        except Exception as wait_error:
+            log_message(f"等待表單元素錯誤: {str(wait_error)}")
+            return False
+            
+        # 嘗試填寫表單
+        try:
+            log_message("填寫登入表單")
+            page.get_by_placeholder("Email 帳號").fill(config.EMAIL)
+            log_message(f"已填寫郵箱: {config.EMAIL}")
+            page.get_by_placeholder("密碼").fill(config.PASSWORD)
+            log_message("已填寫密碼")
+            
+            # 點擊登入按鈕而不是按 Enter 鍵，更穩定
+            page.get_by_role("button", name="登入").click()
+            log_message("已點擊登入按鈕")
+            
+            # 等待登入成功
+            page.wait_for_load_state("networkidle", timeout=30000)
+            log_message("登入流程完成")
+        except Exception as login_error:
+            log_message(f"登入過程錯誤: {str(login_error)}")
+            return False
         
         # 導航到 Suprad 建立頁面
         page.get_by_role("button", name="ian.chen").click()
         slow_down(page)
         page.get_by_role("link", name="電豹股份有限公司").click()
         slow_down(page)
+        log_message(f"導航到廣告組頁面，adset_id: {ad_data['adset_id']}")
         page.goto(f"https://trek.aotter.net/advertiser/show/adset?setId={ad_data['adset_id']}")
+        log_message("成功到達廣告組頁面")
 
+        log_message("點擊「建立互動廣告單元」按鈕")
         page.get_by_role("link", name="+  建立互動廣告單元").click()
+        log_message("已點擊建立按鈕")
 
+        log_message("等待頁面載入")
         page.wait_for_load_state("domcontentloaded")
         page.wait_for_load_state("networkidle")
+        log_message("頁面已完全載入")
         
         # 廣告單元-廣告商
-        log_message("Filling ad unit information")
+        log_message("開始填寫廣告單元資訊")
+        log_message(f"填寫廣告商名稱: {ad_data['advertiser']}")
         page.locator("input[name=\"advertiserName\"]").fill(ad_data['advertiser'])
         slow_down(page)
         page.locator("input[name=\"title\"]").click()
         
         # 廣告單元-主標題
+        log_message(f"填寫廣告主標題: {ad_data['main_title']}")
         page.locator("input[name=\"title\"]").fill(ad_data['main_title'])
         slow_down(page)
         page.get_by_placeholder("Mobile loading page for Ad").click()
         
         # 選擇 1200x628 圖片
-        log_message("Selecting 1200x628 image button")
+        log_message("準備上傳 1200x628 圖片")
         absolute_image_path_1 = ad_data['image_path_m']
-        log_message(f"Setting input file for first image: {absolute_image_path_1}")
+        log_message(f"1200x628 圖片路徑: {absolute_image_path_1}")
         
         if not os.path.exists(absolute_image_path_1):
-            log_message(f"警告：圖片文件不存在: {absolute_image_path_1}")
+            log_message(f"錯誤: 1200x628 圖片文件不存在: {absolute_image_path_1}")
             return False
+        
+        log_message("檢查圖片路徑存在，開始上傳")
         
         page.set_input_files('input[type="file"]', absolute_image_path_1)
         slow_down(page)
@@ -182,49 +246,102 @@ def run(playwright: Playwright, ad_data: dict) -> bool:
         page.get_by_placeholder("urlInteractivePopup: url to").fill(urlInteractivePopups)
         slow_down(page)
         page.locator("textarea[name=\"payload_gameWidgetJson\"]").click()
-        page.locator("textarea[name=\"payload_gameWidgetJson\"]").press("ControlOrMeta+a")
         
         # payload_gameWidget
         page.locator("textarea[name=\"payload_gameWidgetJson\"]").fill(ad_data['payload_game_widget'])
+
         slow_down(page)
         page.wait_for_timeout(2000)
 
+        log_message("點擊「新增」按鈕")
         page.get_by_role("button", name="新增").click()
+        log_message("已點擊「新增」按鈕")
         slow_down(page)
+        
+        log_message("等待確認對話框出現")
         page.get_by_role("button", name="OK").wait_for(state="visible")
         page.wait_for_timeout(2000)
+        log_message("點擊「OK」按鈕確認")
         page.get_by_role("button", name="OK").click()
+        log_message("已點擊「OK」按鈕")
         slow_down(page)
 
+        log_message("等待互動廣告編輯連結出現")
         page.wait_for_timeout(2000)
-        page.get_by_role("link", name="  互動廣告編輯").wait_for(state="visible")
+        page.get_by_role("link", name="  互動廣告編輯").wait_for(state="visible", timeout=60000)
+        log_message("點擊「互動廣告編輯」連結")
         page.get_by_role("link", name="  互動廣告編輯").click()
+        log_message("已點擊「互動廣告編輯」連結")
         slow_down(page)
 
+        log_message("等待頁面載入完成")
         page.wait_for_load_state('networkidle')
         slow_down(page)
             
+        log_message("從 URL 提取 ID")
         last_36_chars = extract_last_36_chars_from_url(page)
+        log_message(f"提取到的 ID: {last_36_chars}")
 
         # 獲取並更新 popup URL
+        log_message("更新 popup URL")
         target_placeholder = page.get_by_placeholder("urlInteractivePopup: url to")
         current_value = target_placeholder.input_value()
         new_value = current_value + last_36_chars
+        log_message(f"更新後的 URL: {new_value}")
         target_placeholder.fill(new_value)
+        log_message("已填入更新後的 URL")
         slow_down(page)
 
-        page.get_by_role("button", name="修改").wait_for(state="visible")
+        log_message("等待「修改」按鈕出現")
+        page.get_by_role("button", name="修改").wait_for(state="visible", timeout=60000)
+        log_message("點擊「修改」按鈕")
         page.get_by_role("button", name="修改").click()
+        log_message("已點擊「修改」按鈕")
         slow_down(page)
 
+        log_message("等待頁面載入完成")
         page.wait_for_load_state('networkidle')
         
-        log_message("Successfully created GIF ad")
+        # 使用函數參數中指定的廣告類型，這才是準確的
+        log_message(f"成功創建 {ad_type} 廣告，顯示名稱: {ad_data.get('display_name', '無名稱')}")
         return True
 
     except Exception as e:
-        log_message(f"Error creating GIF ad: {str(e)}")
+        log_message(f"創建 {ad_type} 廣告時發生錯誤: {str(e)}")
+        # 記錄堆疊跟踪以獲取更多信息
+        import traceback
+        log_message(f"錯誤詳情：\n{traceback.format_exc()}")
         return False
     finally:
-        if 'browser' in locals():
-            browser.close() 
+        log_message("執行結束，準備關閉資源")
+        try:
+            # 先關閉頁面
+            if 'page' in locals() and page:
+                try:
+                    log_message("關閉頁面")
+                    page.close(run_before_unload=False)
+                    log_message("頁面關閉成功")
+                except Exception as page_close_error:
+                    log_message(f"關閉頁面時出錯 (忽略): {str(page_close_error)}")
+            
+            # 再關閉上下文
+            if 'context' in locals() and context:
+                try:
+                    log_message("關閉瀏覽器上下文")
+                    context.close()
+                    log_message("瀏覽器上下文關閉成功")
+                except Exception as context_close_error:
+                    log_message(f"關閉上下文時出錯 (忽略): {str(context_close_error)}")
+            
+            # 最後關閉瀏覽器
+            if 'browser' in locals() and browser:
+                try:
+                    log_message("關閉瀏覽器")
+                    browser.close()
+                    log_message("瀏覽器關閉成功")
+                except Exception as browser_close_error:
+                    log_message(f"關閉瀏覽器時出錯 (忽略): {str(browser_close_error)}")
+            
+            log_message("所有資源已關閉")
+        except Exception as final_error:
+            log_message(f"最終資源清理過程中發生錯誤 (忽略): {str(final_error)}") 

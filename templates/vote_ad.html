@@ -57,12 +57,6 @@
                 </td>
             </tr>
             <tr>
-                <td><label for="display_name">廣告單元顯示名稱</label></td>
-                <td><input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}">
-                    <div class="help-text">僅顯示於後台，可選</div>
-                </td>
-            </tr>
-            <tr>
                 <td><label for="advertiser">廣告商 <span class="required">*</span></label></td>
                 <td><input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required>
                     <div class="help-text">廣告主名稱，必填</div>
@@ -247,7 +241,7 @@
             <button type="button" id="add-vote-option" class="button nav-button">新增投票選項</button>
             <button type="button" id="remove-vote-option" class="button" style="background-color: #d9534f;">移除最後一個選項</button>
         </div>
-        <input type="hidden" id="payload_game_widget" name="payload_game_widget">
+        <input type="hidden" id="payload_vote_widget" name="payload_vote_widget">
     </div>
     
     <input type="submit" value="建立投票廣告">
@@ -274,6 +268,15 @@
                 clearFormInputs();
             }
         });
+        
+        // 表單提交前確保更新 payload
+        document.getElementById('ad-form').addEventListener('submit', function(e) {
+            // 先更新 payload 再提交
+            updatePayload();
+        });
+        
+        // 初始更新一次 payload
+        updatePayload();
     });
     
     // 清除表單所有輸入欄位的函數
@@ -437,7 +440,8 @@
             }
         };
         
-        document.getElementById('payload_game_widget').value = JSON.stringify(payload, null, 2);
+        document.getElementById('payload_vote_widget').value = JSON.stringify(payload, null, 2);
+        console.log('Payload 更新為:', document.getElementById('payload_vote_widget').value);
     }
     
     // 添加事件監聽器給按鈕

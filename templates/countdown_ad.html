@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}GIF 廣告建立{% endblock %}
+{% block title %}倒數廣告建立{% endblock %}
 
-{% block page_title %}建立 GIF 廣告{% endblock %}
+{% block page_title %}建立倒數廣告{% endblock %}
 
 {% block additional_styles %}
 <style>
@@ -24,7 +24,7 @@
 {% block content %}
 <button type="button" id="clear-form-button" class="clear-form-btn">清除所有內容</button>
 
-<form action="{{ url_for('create_gif_ad') }}" method="post" id="ad-form">
+<form action="{{ url_for('create_countdown_ad') }}" method="post" id="ad-form">
     <div class="field-group">
         <h3>廣告資訊</h3>
         <table>
@@ -124,23 +124,116 @@
             <input type="url" id="target_url" name="target_url" placeholder="https://example.com" value="{{ target_url or '' }}" required>
             <div class="help-text">點擊後跳轉的目標網址，必填</div>
         </div>
+        
+        <h4>倒數計時器設定</h4>
+        <div class="form-row">
+            <label for="description_text">描述文字</label>
+            <input type="text" id="description_text" name="description_text" value="活動截止倒數">
+            <div class="help-text">倒數計時器上方顯示的描述文字</div>
+        </div>
+        
+        <div class="form-row">
+            <label for="position">顯示位置</label>
+            <select id="position" name="position">
+                <option value="1">左上</option>
+                <option value="2">右上</option>
+                <option value="3" selected>中間</option>
+                <option value="4">左下</option>
+                <option value="5">右下</option>
+            </select>
+            <div class="help-text">倒數計時器在圖片上的顯示位置</div>
+        </div>
+        
+        <h4>顏色設定</h4>
+        <div class="form-row">
+            <label for="date_number_color">日期數字顏色</label>
+            <input type="color" id="date_number_color" name="date_number_color" value="#FFFFFF">
+            <div class="help-text">數字的顏色</div>
+        </div>
+        
+        <div class="form-row">
+            <label for="description_color">描述文字顏色</label>
+            <input type="color" id="description_color" name="description_color" value="#FFFFFF">
+            <div class="help-text">描述文字的顏色</div>
+        </div>
+        
+        <div class="form-row">
+            <label for="date_word_color">日期單位顏色</label>
+            <input type="color" id="date_word_color" name="date_word_color" value="#FFFFFF">
+            <div class="help-text">「天」「時」「分」「秒」等單位的顏色</div>
+        </div>
+        
+        <h4>字體大小設定</h4>
+        <div class="form-row">
+            <label for="date_number_size">數字大小</label>
+            <select id="date_number_size" name="date_number_size">
+                <option value="1">超小</option>
+                <option value="2">小</option>
+                <option value="3">中</option>
+                <option value="4" selected>大</option>
+                <option value="5">超大</option>
+            </select>
+        </div>
+        
+        <div class="form-row">
+            <label for="description_size">描述文字大小</label>
+            <select id="description_size" name="description_size">
+                <option value="1">超小</option>
+                <option value="2">小</option>
+                <option value="3">中</option>
+                <option value="4" selected>大</option>
+                <option value="5">超大</option>
+            </select>
+        </div>
+        
+        <div class="form-row">
+            <label for="date_word_size">單位文字大小</label>
+            <select id="date_word_size" name="date_word_size">
+                <option value="1">超小</option>
+                <option value="2">小</option>
+                <option value="3">中</option>
+                <option value="4" selected>大</option>
+                <option value="5">超大</option>
+            </select>
+        </div>
+        
+        <h4>顯示選項</h4>
+        <div class="form-row checkbox-group">
+            <label><input type="checkbox" id="show_day" name="show_day" checked> 顯示天數</label>
+            <label><input type="checkbox" id="show_hour" name="show_hour" checked> 顯示小時</label>
+            <label><input type="checkbox" id="show_min" name="show_min" checked> 顯示分鐘</label>
+            <label><input type="checkbox" id="show_sec" name="show_sec" checked> 顯示秒數</label>
+        </div>
+        
         <input type="hidden" id="payload_game_widget" name="payload_game_widget">
     </div>
     
-    <input type="submit" value="建立 GIF 廣告">
+    <input type="submit" value="建立倒數廣告">
 </form>
 {% endblock %}
 
 {% block additional_scripts %}
 <script>
-    // GIF 廣告特有的 JavaScript 函數
+    // 倒數計時廣告特有的 JavaScript 函數
     document.addEventListener('DOMContentLoaded', function() {
         // 在頁面加載完成後更新 payload
         updateGameWidgetPayload();
 
         // 添加事件監聽器，當相關輸入改變時更新 payload
-        document.getElementById('background_url').addEventListener('input', updateGameWidgetPayload);
-        document.getElementById('target_url').addEventListener('input', updateGameWidgetPayload);
+        const payloadInputs = [
+            'background_url', 'target_url', 'description_text', 'position',
+            'date_number_color', 'description_color', 'date_word_color',
+            'date_number_size', 'description_size', 'date_word_size',
+            'show_day', 'show_hour', 'show_min', 'show_sec'
+        ];
+        
+        payloadInputs.forEach(inputId => {
+            const element = document.getElementById(inputId);
+            if (element) {
+                element.addEventListener('input', updateGameWidgetPayload);
+                element.addEventListener('change', updateGameWidgetPayload);
+            }
+        });
         
         // 添加清除表單按鈕的事件監聽器
         document.getElementById('clear-form-button').addEventListener('click', function() {
@@ -163,6 +256,26 @@
             img.src = '';
         });
         
+        // 重設顏色選擇器到預設值
+        document.getElementById('date_number_color').value = '#FFFFFF';
+        document.getElementById('description_color').value = '#FFFFFF';
+        document.getElementById('date_word_color').value = '#FFFFFF';
+        
+        // 重設選擇器到預設值
+        document.getElementById('position').value = '3';
+        document.getElementById('date_number_size').value = '4';
+        document.getElementById('description_size').value = '4';
+        document.getElementById('date_word_size').value = '4';
+        
+        // 重設勾選框
+        document.getElementById('show_day').checked = true;
+        document.getElementById('show_hour').checked = true;
+        document.getElementById('show_min').checked = true;
+        document.getElementById('show_sec').checked = true;
+        
+        // 重設描述文字
+        document.getElementById('description_text').value = '活動截止倒數';
+        
         // 清空 payload
         document.getElementById('payload_game_widget').value = '';
     }
@@ -173,10 +286,42 @@
 
         if (!backgroundUrl || !targetUrl) return; // 如果必要的輸入缺失，不更新
 
+        // 計算當前時間加一天的時間戳 (毫秒)
+        const now = new Date();
+        const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        const targetTimestamp = oneDayLater.getTime();
+        
+        // 獲取使用者設定的值
+        const descriptionText = document.getElementById('description_text').value;
+        const position = document.getElementById('position').value;
+        const dateNumberColor = document.getElementById('date_number_color').value;
+        const descriptionColor = document.getElementById('description_color').value;
+        const dateWordColor = document.getElementById('date_word_color').value;
+        const dateNumberSize = document.getElementById('date_number_size').value;
+        const descriptionSize = document.getElementById('description_size').value;
+        const dateWordSize = document.getElementById('date_word_size').value;
+        const showDay = document.getElementById('show_day').checked;
+        const showHour = document.getElementById('show_hour').checked;
+        const showMin = document.getElementById('show_min').checked;
+        const showSec = document.getElementById('show_sec').checked;
+
         const payload = {
-            "type": "SUPER_GIF",
-            "data": {
-                "background_url": backgroundUrl
+            "type": "COUNTDOWN",
+            "imgProperty": {
+                "endDate": targetTimestamp,
+                "backgroundImage": backgroundUrl,
+                "descriptionText": descriptionText,
+                "position": parseInt(position),
+                "dateNumberColor": dateNumberColor,
+                "descriptionColor": descriptionColor,
+                "dateWordColor": dateWordColor,
+                "dateNumberSize": dateNumberSize,
+                "descriptionSize": descriptionSize,
+                "dateWordSize": dateWordSize,
+                "showDay": showDay,
+                "showHour": showHour,
+                "showMin": showMin,
+                "showSec": showSec
             },
             "invokes": [
                 {

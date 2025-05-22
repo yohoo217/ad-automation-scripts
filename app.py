@@ -256,6 +256,26 @@ def vertical_cube_slide_ad():
     form_data['slide_items'] = slide_items
     return render_template('vertical_cube_slide_ad.html', **form_data)
 
+# 倒數廣告頁面
+@app.route('/countdown_ad')
+def countdown_ad():
+    # 從 session 獲取之前填寫的表單數據
+    form_data = {
+        'adset_id': session.get('countdown_adset_id', ''),
+        'display_name': session.get('countdown_display_name', ''),
+        'advertiser': session.get('countdown_advertiser', ''),
+        'main_title': session.get('countdown_main_title', ''),
+        'subtitle': session.get('countdown_subtitle', ''),
+        'landing_page': session.get('countdown_landing_page', ''),
+        'call_to_action': session.get('countdown_call_to_action', '立即購買'),
+        'image_path_m': session.get('countdown_image_path_m', ''),
+        'image_path_s': session.get('countdown_image_path_s', ''),
+        'background_image': session.get('countdown_background_image', ''),
+        'background_url': session.get('countdown_background_url', ''),
+        'target_url': session.get('countdown_target_url', '')
+    }
+    return render_template('countdown_ad.html', **form_data)
+
 # 批量廣告頁面
 @app.route('/batch')
 def batch():
@@ -332,6 +352,8 @@ def create_gif_ad():
         'image_path_m': request.form.get('image_path_m', ''),
         'image_path_s': request.form.get('image_path_s', ''),
         'background_image': request.form.get('background_image', ''),
+        'background_url': request.form.get('background_url', ''),
+        'target_url': request.form.get('target_url', ''),
         'payload_game_widget': request.form.get('payload_game_widget', '')
     }
     
@@ -342,13 +364,31 @@ def create_gif_ad():
     if missing_fields:
         logger.error(f"缺少必填欄位: {missing_fields}")
         flash(f"以下為必填欄位，不得為空： {', '.join(missing_fields)}", 'error')
-        return render_template('gif_ad.html', **ad_data), 400
+        return redirect(url_for('gif_ad')), 400
     
+    playwright_instance = None
     try:
         logger.info("開始執行GIF廣告創建")
-        with sync_playwright() as playwright:
-            success = run_suprad(playwright, ad_data)
-            logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
+        logger.info(f"廣告數據: {str(ad_data)}")
+        
+        # 檢查 payload_game_widget 是否正確設置
+        if not ad_data.get('payload_game_widget'):
+            logger.error("payload_game_widget 為空或不存在")
+            flash("payload_game_widget 為空，請確保正確填寫所有必要欄位", 'error')
+            return redirect(url_for('gif_ad')), 400
+            
+        # 記錄 payload 內容
+        logger.info(f"Payload 內容預覽: {ad_data.get('payload_game_widget')[:100]}...")
+        
+        # 初始化 Playwright
+        logger.info("初始化 Playwright")
+        playwright_instance = sync_playwright().start()
+        logger.info("Playwright 初始化成功")
+        
+        # 使用 'gif' 作為廣告類型
+        ad_data['ad_type'] = 'gif'
+        success = run_suprad(playwright_instance, ad_data, ad_type='gif')
+        logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
         
         if success:
             flash(f"GIF廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 已成功創建！", 'success')
@@ -357,8 +397,20 @@ def create_gif_ad():
             flash(f"創建GIF廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 失敗。請查看日誌獲取更多信息。", 'error')
             logger.error(f"創建GIF廣告失敗: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
     except Exception as e:
-        logger.error(f"創建廣告時發生意外錯誤: {str(e)}")
-        flash(f"創建廣告時發生意外錯誤: {str(e)}", 'error')
+        import traceback
+        error_detail = traceback.format_exc()
+        logger.error(f"創建GIF廣告時發生意外錯誤: {str(e)}")
+        logger.error(f"錯誤詳情：\n{error_detail}")
+        flash(f"創建GIF廣告時發生意外錯誤: {str(e)}", 'error')
+    finally:
+        # 確保資源正確釋放
+        if playwright_instance:
+            try:
+                logger.info("關閉 Playwright 實例")
+                playwright_instance.stop()
+                logger.info("Playwright 實例已關閉")
+            except Exception as close_error:
+                logger.error(f"關閉 Playwright 時出錯 (忽略): {str(close_error)}")
     
     return redirect(url_for('gif_ad'))
 
@@ -397,13 +449,57 @@ def create_slide_ad():
     if missing_fields:
         logger.error(f"缺少必填欄位: {missing_fields}")
         flash(f"以下為必填欄位，不得為空： {', '.join(missing_fields)}", 'error')
-        return render_template('slide_ad.html', **ad_data), 400
+        return redirect(url_for('slide_ad')), 400
     
+    # 嘗試從表單中提取滑動項目
+    slide_items = []
+    index = 0
+    while True:
+        image_url_key = f'image_url_{index}'
+        target_url_key = f'target_url_{index}'
+        
+        if image_url_key not in request.form or target_url_key not in request.form:
+            break
+        
+        slide_items.append({
+            'index': index,
+            'image_url': request.form.get(image_url_key, ''),
+            'target_url': request.form.get(target_url_key, '')
+        })
+        index += 1
+    
+    # 將滑動項目添加到廣告數據中
+    ad_data['slide_items'] = slide_items
+    
+    # 確保至少有兩個滑動項目
+    if len(slide_items) < 2:
+        logger.error("水平Slide廣告至少需要兩個滑動項目")
+        flash("水平Slide廣告至少需要兩個滑動項目", 'error')
+        return redirect(url_for('slide_ad')), 400
+    
+    playwright_instance = None
     try:
         logger.info("開始執行水平Slide廣告創建")
-        with sync_playwright() as playwright:
-            success = run_suprad(playwright, ad_data)
-            logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
+        logger.info(f"廣告數據: {str(ad_data)}")
+        
+        # 檢查 payload_game_widget 是否正確設置
+        if not ad_data.get('payload_game_widget'):
+            logger.error("payload_game_widget 為空或不存在")
+            flash("payload_game_widget 為空，請確保正確填寫所有必要欄位", 'error')
+            return redirect(url_for('slide_ad')), 400
+            
+        # 記錄 payload 內容
+        logger.info(f"Payload 內容預覽: {ad_data.get('payload_game_widget')[:100]}...")
+        
+        # 初始化 Playwright
+        logger.info("初始化 Playwright")
+        playwright_instance = sync_playwright().start()
+        logger.info("Playwright 初始化成功")
+        
+        # 使用 'slide' 作為廣告類型
+        ad_data['ad_type'] = 'slide'
+        success = run_suprad(playwright_instance, ad_data, ad_type='slide')
+        logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
         
         if success:
             flash(f"水平Slide廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 已成功創建！", 'success')
@@ -412,8 +508,20 @@ def create_slide_ad():
             flash(f"創建水平Slide廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 失敗。請查看日誌獲取更多信息。", 'error')
             logger.error(f"創建水平Slide廣告失敗: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
     except Exception as e:
-        logger.error(f"創建廣告時發生意外錯誤: {str(e)}")
-        flash(f"創建廣告時發生意外錯誤: {str(e)}", 'error')
+        import traceback
+        error_detail = traceback.format_exc()
+        logger.error(f"創建水平Slide廣告時發生意外錯誤: {str(e)}")
+        logger.error(f"錯誤詳情：\n{error_detail}")
+        flash(f"創建水平Slide廣告時發生意外錯誤: {str(e)}", 'error')
+    finally:
+        # 確保資源正確釋放
+        if playwright_instance:
+            try:
+                logger.info("關閉 Playwright 實例")
+                playwright_instance.stop()
+                logger.info("Playwright 實例已關閉")
+            except Exception as close_error:
+                logger.error(f"關閉 Playwright 時出錯 (忽略): {str(close_error)}")
     
     return redirect(url_for('slide_ad'))
 
@@ -452,13 +560,57 @@ def create_vertical_slide_ad():
     if missing_fields:
         logger.error(f"缺少必填欄位: {missing_fields}")
         flash(f"以下為必填欄位，不得為空： {', '.join(missing_fields)}", 'error')
-        return render_template('vertical_slide_ad.html', **ad_data), 400
+        return redirect(url_for('vertical_slide_ad')), 400
     
+    # 嘗試從表單中提取滑動項目
+    slide_items = []
+    index = 0
+    while True:
+        image_url_key = f'image_url_{index}'
+        target_url_key = f'target_url_{index}'
+        
+        if image_url_key not in request.form or target_url_key not in request.form:
+            break
+        
+        slide_items.append({
+            'index': index,
+            'image_url': request.form.get(image_url_key, ''),
+            'target_url': request.form.get(target_url_key, '')
+        })
+        index += 1
+    
+    # 將滑動項目添加到廣告數據中
+    ad_data['slide_items'] = slide_items
+    
+    # 確保至少有兩個滑動項目
+    if len(slide_items) < 2:
+        logger.error("垂直Slide廣告至少需要兩個滑動項目")
+        flash("垂直Slide廣告至少需要兩個滑動項目", 'error')
+        return redirect(url_for('vertical_slide_ad')), 400
+    
+    playwright_instance = None
     try:
         logger.info("開始執行垂直Slide廣告創建")
-        with sync_playwright() as playwright:
-            success = run_suprad(playwright, ad_data)
-            logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
+        logger.info(f"廣告數據: {str(ad_data)}")
+        
+        # 檢查 payload_game_widget 是否正確設置
+        if not ad_data.get('payload_game_widget'):
+            logger.error("payload_game_widget 為空或不存在")
+            flash("payload_game_widget 為空，請確保正確填寫所有必要欄位", 'error')
+            return redirect(url_for('vertical_slide_ad')), 400
+            
+        # 記錄 payload 內容
+        logger.info(f"Payload 內容預覽: {ad_data.get('payload_game_widget')[:100]}...")
+        
+        # 初始化 Playwright
+        logger.info("初始化 Playwright")
+        playwright_instance = sync_playwright().start()
+        logger.info("Playwright 初始化成功")
+        
+        # 使用 'vertical_slide' 作為廣告類型
+        ad_data['ad_type'] = 'vertical_slide'
+        success = run_suprad(playwright_instance, ad_data, ad_type='vertical_slide')
+        logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
         
         if success:
             flash(f"垂直Slide廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 已成功創建！", 'success')
@@ -467,8 +619,20 @@ def create_vertical_slide_ad():
             flash(f"創建垂直Slide廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 失敗。請查看日誌獲取更多信息。", 'error')
             logger.error(f"創建垂直Slide廣告失敗: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
     except Exception as e:
-        logger.error(f"創建廣告時發生意外錯誤: {str(e)}")
-        flash(f"創建廣告時發生意外錯誤: {str(e)}", 'error')
+        import traceback
+        error_detail = traceback.format_exc()
+        logger.error(f"創建垂直Slide廣告時發生意外錯誤: {str(e)}")
+        logger.error(f"錯誤詳情：\n{error_detail}")
+        flash(f"創建垂直Slide廣告時發生意外錯誤: {str(e)}", 'error')
+    finally:
+        # 確保資源正確釋放
+        if playwright_instance:
+            try:
+                logger.info("關閉 Playwright 實例")
+                playwright_instance.stop()
+                logger.info("Playwright 實例已關閉")
+            except Exception as close_error:
+                logger.error(f"關閉 Playwright 時出錯 (忽略): {str(close_error)}")
     
     return redirect(url_for('vertical_slide_ad'))
 
@@ -478,73 +642,13 @@ def create_vertical_cube_slide_ad():
     logger.info("垂直 Cube Slide 廣告表單提交開始處理")
     
     # 使用 'vertical_cube_slide_' 前綴保存表單數據到 session
-    prefix = 'vertical_cube_slide_'
     for key, value in request.form.items():
-        session[f"{prefix}{key}" if not key.startswith(prefix) else key] = value
-    
-    ad_data = {
-        'display_name': request.form.get('display_name', ''),
-        'advertiser': request.form.get('advertiser', ''),
-        'main_title': request.form.get('main_title', ''),
-        'subtitle': request.form.get('subtitle', ''),
-        'adset_id': request.form.get('adset_id', ''),
-        'landing_page': request.form.get('landing_page', ''),
-        'call_to_action': request.form.get('call_to_action', '立即了解'),
-        'image_path_m': request.form.get('image_path_m', ''),
-        'image_path_s': request.form.get('image_path_s', ''),
-        'payload_game_widget': request.form.get('payload_game_widget', '')
-    }
-    
-    required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page', 
-                        'image_path_m', 'image_path_s', 'payload_game_widget']
-    missing_fields = [field for field in required_fields if not ad_data[field]]
-
-    if missing_fields:
-        logger.error(f"缺少必填欄位: {missing_fields}")
-        flash(f"以下為必填欄位，不得為空： {', '.join(missing_fields)}", 'error')
-        return redirect(url_for('vertical_cube_slide_ad')), 400
-    
-    try:
-        # 上傳素材
-        upload_success, image_paths = upload_materials(request.form)
-        if not upload_success:
-            logger.error("上傳素材失敗")
-            flash("上傳素材失敗，請檢查圖片路徑是否正確", 'error')
-            return redirect(url_for('vertical_cube_slide_ad')), 400
-        
-        # 更新 ad_data 中的圖片路徑
-        for key, value in image_paths.items():
-            ad_data[key] = value
-            
-        logger.info("開始執行垂直 Cube Slide 廣告創建")
-        with sync_playwright() as playwright:
-            # 在這裡使用 run_cube_slide 或適當的函數
-            success = run_suprad(playwright, ad_data, ad_type='vertical_cube_slide')
-            logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
-        
-        if success:
-            flash(f"廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 已成功創建！", 'success')
-            logger.info(f"成功創建廣告: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-            return redirect(url_for('vertical_cube_slide_ad')), 200
+        if key.startswith('image_url_') or key.startswith('target_url_'):
+            # 這些是滑動項目的數據，保存時不加前綴
+            session[key] = value
         else:
-            flash(f"創建廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 失敗。請查看日誌獲取更多信息。", 'error')
-            logger.error(f"創建廣告失敗: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-            return redirect(url_for('vertical_cube_slide_ad')), 400
-    
-    except Exception as e:
-        logger.exception(f"創建垂直 Cube Slide 廣告時發生錯誤: {str(e)}")
-        flash(f"發生錯誤: {str(e)}", 'error')
-        return redirect(url_for('vertical_cube_slide_ad')), 500
-
-# 創建投票廣告處理
-@app.route('/create-vote-ad', methods=['POST'])
-def create_vote_ad():
-    logger.info("投票廣告表單提交開始處理")
-    
-    # 使用 'vote_' 前綴保存表單數據到 session
-    prefix = 'vote_'
-    for key, value in request.form.items():
-        session[f"{prefix}{key}" if not key.startswith(prefix) else key] = value
+            # 其他表單字段加上前綴
+            session[f"vertical_cube_slide_{key}"] = value
     
     ad_data = {
         'display_name': request.form.get('display_name', ''),
@@ -557,39 +661,291 @@ def create_vote_ad():
         'image_path_m': request.form.get('image_path_m', ''),
         'image_path_s': request.form.get('image_path_s', ''),
         'background_image': request.form.get('background_image', ''),
-        'vote_image': request.form.get('vote_image', ''),
         'payload_game_widget': request.form.get('payload_game_widget', '')
     }
     
     required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page', 
-                        'image_path_m', 'image_path_s', 'background_image', 'vote_image', 'payload_game_widget']
+                        'image_path_m', 'image_path_s', 'payload_game_widget']
     missing_fields = [field for field in required_fields if not ad_data[field]]
 
     if missing_fields:
         logger.error(f"缺少必填欄位: {missing_fields}")
         flash(f"以下為必填欄位，不得為空： {', '.join(missing_fields)}", 'error')
-        return redirect(url_for('vote_ad')), 400
+        return redirect(url_for('vertical_cube_slide_ad')), 400
     
+    # 嘗試從表單中提取滑動項目
+    slide_items = []
+    index = 0
+    while True:
+        image_url_key = f'image_url_{index}'
+        target_url_key = f'target_url_{index}'
+        
+        if image_url_key not in request.form or target_url_key not in request.form:
+            break
+        
+        slide_items.append({
+            'index': index,
+            'image_url': request.form.get(image_url_key, ''),
+            'target_url': request.form.get(target_url_key, '')
+        })
+        index += 1
+    
+    # 將滑動項目添加到廣告數據中
+    ad_data['slide_items'] = slide_items
+    
+    # 確保至少有兩個滑動項目
+    if len(slide_items) < 2:
+        logger.error("垂直 Cube Slide 廣告至少需要兩個滑動項目")
+        flash("垂直 Cube Slide 廣告至少需要兩個滑動項目", 'error')
+        return redirect(url_for('vertical_cube_slide_ad')), 400
+    
+    playwright_instance = None
     try:
-        logger.info("開始執行投票廣告創建")
-        with sync_playwright() as playwright:
-            # 使用 suprad (special ad) 創建函數
-            success = run_suprad(playwright, ad_data)
-            logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
+        logger.info("開始執行垂直 Cube Slide 廣告創建")
+        logger.info(f"廣告數據: {str(ad_data)}")
+        
+        # 檢查 payload_game_widget 是否正確設置
+        if not ad_data.get('payload_game_widget'):
+            logger.error("payload_game_widget 為空或不存在")
+            flash("payload_game_widget 為空，請確保正確填寫所有必要欄位", 'error')
+            return redirect(url_for('vertical_cube_slide_ad')), 400
+            
+        # 記錄 payload 內容
+        logger.info(f"Payload 內容預覽: {ad_data.get('payload_game_widget')[:100]}...")
+        
+        # 初始化 Playwright
+        logger.info("初始化 Playwright")
+        playwright_instance = sync_playwright().start()
+        logger.info("Playwright 初始化成功")
+        
+        # 使用 'vertical_cube_slide' 作為廣告類型
+        ad_data['ad_type'] = 'vertical_cube_slide'
+        success = run_suprad(playwright_instance, ad_data, ad_type='vertical_cube_slide')
+        logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
         
         if success:
-            flash(f"廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 已成功創建！", 'success')
-            logger.info(f"成功創建廣告: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-            return redirect(url_for('vote_ad'))
+            flash(f"垂直 Cube Slide 廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 已成功創建！", 'success')
+            logger.info(f"成功創建垂直 Cube Slide 廣告: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
         else:
-            flash(f"創建廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 失敗。請查看日誌獲取更多信息。", 'error')
-            logger.error(f"創建廣告失敗: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-            return redirect(url_for('vote_ad'))
-    
+            flash(f"創建垂直 Cube Slide 廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 失敗。請查看日誌獲取更多信息。", 'error')
+            logger.error(f"創建垂直 Cube Slide 廣告失敗: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
     except Exception as e:
-        logger.exception(f"創建投票廣告時發生錯誤: {str(e)}")
-        flash(f"發生錯誤: {str(e)}", 'error')
-        return redirect(url_for('vote_ad'))
+        import traceback
+        error_detail = traceback.format_exc()
+        logger.error(f"創建垂直 Cube Slide 廣告時發生意外錯誤: {str(e)}")
+        logger.error(f"錯誤詳情：\n{error_detail}")
+        flash(f"創建垂直 Cube Slide 廣告時發生意外錯誤: {str(e)}", 'error')
+    finally:
+        # 確保資源正確釋放
+        if playwright_instance:
+            try:
+                logger.info("關閉 Playwright 實例")
+                playwright_instance.stop()
+                logger.info("Playwright 實例已關閉")
+            except Exception as close_error:
+                logger.error(f"關閉 Playwright 時出錯 (忽略): {str(close_error)}")
+    
+    return redirect(url_for('vertical_cube_slide_ad'))
+
+# 創建投票廣告處理
+@app.route('/create-vote-ad', methods=['POST'])
+def create_vote_ad():
+    logger.info("投票廣告表單提交開始處理")
+    
+    # 保存所有表單數據到 session，加上前綴 'vote_'
+    for key, value in request.form.items():
+        session[f"vote_{key}"] = value
+    
+    ad_data = {
+        'display_name': request.form.get('display_name', ''),
+        'advertiser': request.form.get('advertiser', ''),
+        'main_title': request.form.get('main_title', ''),
+        'vote_title': request.form.get('vote_title', ''),
+        'subtitle': request.form.get('subtitle', ''),
+        'adset_id': request.form.get('adset_id', ''),
+        'landing_page': request.form.get('landing_page', ''),
+        'call_to_action': request.form.get('call_to_action', '立即了解'),
+        'image_path_m': request.form.get('image_path_m', ''),
+        'image_path_s': request.form.get('image_path_s', ''),
+        'background_image': request.form.get('background_image', ''),
+        'vote_image': request.form.get('vote_image', ''),
+        'vote_id': request.form.get('vote_id', 'myVoteId'),
+        'divider_color': request.form.get('divider_color', '#ff0000'),
+        'vote_width': request.form.get('vote_width', '80%'),
+        'bg_color': request.form.get('bg_color', '#ffffff'),
+        'vote_position': request.form.get('vote_position', 'bottom'),
+        'min_position': request.form.get('min_position', 50),
+        'max_position': request.form.get('max_position', 70),
+        'timeout': request.form.get('timeout', 2000),
+        'winner_bg_color': request.form.get('winner_bg_color', '#26D07C'),
+        'winner_text_color': request.form.get('winner_text_color', '#ffffff'),
+        'loser_bg_color': request.form.get('loser_bg_color', '#000000'),
+        'loser_text_color': request.form.get('loser_text_color', '#ffffff'),
+        'payload_game_widget': request.form.get('payload_vote_widget', '')
+    }
+    
+    # 嘗試從表單中提取投票選項
+    vote_options = []
+    index = 0
+    while True:
+        option_title_key = f'option_title_{index}'
+        if option_title_key not in request.form:
+            break
+        vote_options.append({
+            'title': request.form.get(option_title_key, ''),
+            'text_color': request.form.get(f'option_text_color_{index}', '#207AED'),
+            'bg_color': request.form.get(f'option_bg_color_{index}', '#E7F3FF'),
+            'target_url': request.form.get(f'option_target_url_{index}', '')
+        })
+        index += 1
+    
+    # 將投票選項添加到廣告數據中
+    ad_data['vote_options'] = vote_options
+    
+    required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page', 
+                       'image_path_m', 'image_path_s', 'vote_image', 'payload_game_widget']
+    missing_fields = [field for field in required_fields if not ad_data[field]]
+    
+    if missing_fields:
+        logger.error(f"缺少必填欄位: {missing_fields}")
+        flash(f"以下為必填欄位，不得為空： {', '.join(missing_fields)}", 'error')
+        return redirect(url_for('vote_ad')), 400
+    
+    # 確保至少有兩個投票選項
+    if len(vote_options) < 2:
+        logger.error("投票廣告至少需要兩個投票選項")
+        flash("投票廣告至少需要兩個投票選項", 'error')
+        return redirect(url_for('vote_ad')), 400
+    
+    playwright_instance = None
+    try:
+        logger.info("開始執行投票廣告創建")
+        logger.info(f"廣告數據: {str(ad_data)}")
+        
+        # 檢查 payload_game_widget 是否正確設置
+        if not ad_data.get('payload_game_widget'):
+            logger.error("payload_game_widget 為空或不存在")
+            flash("payload 為空，請確保正確填寫所有必要欄位", 'error')
+            return redirect(url_for('vote_ad')), 400
+        
+        # 記錄 payload 內容
+        logger.info(f"Payload 內容預覽: {ad_data.get('payload_game_widget')[:100]}...")
+        
+        # 初始化 Playwright
+        logger.info("初始化 Playwright")
+        playwright_instance = sync_playwright().start()
+        logger.info("Playwright 初始化成功")
+        
+        # 使用 'vote' 作為廣告類型
+        ad_data['ad_type'] = 'vote'
+        success = run_suprad(playwright_instance, ad_data, ad_type='vote')
+        logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
+        
+        if success:
+            flash(f"投票廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 已成功創建！", 'success')
+            logger.info(f"成功創建投票廣告: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
+        else:
+            flash(f"創建投票廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 失敗。請查看日誌獲取更多信息。", 'error')
+            logger.error(f"創建投票廣告失敗: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        logger.error(f"創建投票廣告時發生意外錯誤: {str(e)}")
+        logger.error(f"錯誤詳情：\n{error_detail}")
+        flash(f"創建投票廣告時發生意外錯誤: {str(e)}", 'error')
+    finally:
+        # 確保資源正確釋放
+        if playwright_instance:
+            try:
+                logger.info("關閉 Playwright 實例")
+                playwright_instance.stop()
+                logger.info("Playwright 實例已關閉")
+            except Exception as close_error:
+                logger.error(f"關閉 Playwright 時出錯 (忽略): {str(close_error)}")
+    
+    return redirect(url_for('vote_ad'))
+
+# 處理倒數廣告表單提交
+@app.route('/create_countdown_ad', methods=['POST'])
+def create_countdown_ad():
+    logger.info("倒數廣告表單提交開始處理")
+    
+    # 保存所有表單數據到 session，加上前綴 'countdown_'
+    for key, value in request.form.items():
+        session[f"countdown_{key}"] = value
+    
+    ad_data = {
+        'display_name': request.form.get('display_name', ''),
+        'advertiser': request.form.get('advertiser', ''),
+        'main_title': request.form.get('main_title', ''),
+        'subtitle': request.form.get('subtitle', ''),
+        'adset_id': request.form.get('adset_id', ''),
+        'landing_page': request.form.get('landing_page', ''),
+        'call_to_action': request.form.get('call_to_action', '立即購買'),
+        'image_path_m': request.form.get('image_path_m', ''),
+        'image_path_s': request.form.get('image_path_s', ''),
+        'background_image': request.form.get('background_image', ''),
+        'background_url': request.form.get('background_url', ''),
+        'target_url': request.form.get('target_url', ''),
+        'payload_game_widget': request.form.get('payload_game_widget', '')
+    }
+    
+    required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page', 
+                       'image_path_m', 'image_path_s', 'background_image', 'payload_game_widget']
+    missing_fields = [field for field in required_fields if not ad_data[field]]
+    
+    if missing_fields:
+        logger.error(f"缺少必填欄位: {missing_fields}")
+        flash(f"以下為必填欄位，不得為空： {', '.join(missing_fields)}", 'error')
+        return redirect(url_for('countdown_ad')), 400
+    
+    playwright_instance = None
+    try:
+        logger.info("開始執行倒數廣告創建")
+        logger.info(f"廣告數據: {str(ad_data)}")
+        
+        # 檢查 payload_game_widget 是否正確設置
+        if not ad_data.get('payload_game_widget'):
+            logger.error("payload_game_widget 為空或不存在")
+            flash("payload_game_widget 為空，請確保正確填寫所有必要欄位", 'error')
+            return redirect(url_for('countdown_ad')), 400
+            
+        # 記錄 payload 內容
+        logger.info(f"Payload 內容預覽: {ad_data.get('payload_game_widget')[:100]}...")
+        
+        # 初始化 Playwright (不使用 with 語句，手動管理生命週期)
+        logger.info("初始化 Playwright")
+        playwright_instance = sync_playwright().start()
+        logger.info("Playwright 初始化成功")
+        
+        # 使用 'countdown' 作為廣告類型
+        ad_data['ad_type'] = 'countdown'  # 確保ad_type寫入ad_data
+        success = run_suprad(playwright_instance, ad_data, ad_type='countdown')
+        logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
+        
+        if success:
+            flash(f"倒數廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 已成功創建！", 'success')
+            logger.info(f"成功創建倒數廣告: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
+        else:
+            flash(f"創建倒數廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 失敗。請查看日誌獲取更多信息。", 'error')
+            logger.error(f"創建倒數廣告失敗: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        logger.error(f"創建倒數廣告時發生意外錯誤: {str(e)}")
+        logger.error(f"錯誤詳情：\n{error_detail}")
+        flash(f"創建倒數廣告時發生意外錯誤: {str(e)}", 'error')
+    finally:
+        # 確保資源正確釋放
+        if playwright_instance:
+            try:
+                logger.info("關閉 Playwright 實例")
+                playwright_instance.stop()
+                logger.info("Playwright 實例已關閉")
+            except Exception as close_error:
+                logger.error(f"關閉 Playwright 時出錯 (忽略): {str(close_error)}")
+    
+    return redirect(url_for('countdown_ad'))
 
 # 批量廣告創建處理
 @app.route('/create_batch_ads', methods=['POST'])

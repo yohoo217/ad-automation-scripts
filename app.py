@@ -5,6 +5,13 @@ import os
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import time
+import base64
+from pymongo import MongoClient
+from dotenv import load_dotenv
+from urllib.parse import quote_plus
+
+# 載入環境變數
+load_dotenv()
 
 # 從修改後的腳本導入 run 函式和 config
 from native_adunit_auto_create import run as run_native # type: ignore
@@ -13,6 +20,84 @@ import config # type: ignore
 
 app = Flask(__name__)
 app.secret_key = 'your_very_secret_key' # 記得更換為一個安全的密鑰
+
+# MongoDB 配置
+MONGO_CONNECTION_STRING = os.getenv('MONGO_CONNECTION_STRING')
+MONGO_DATABASE = os.getenv('MONGO_DATABASE', 'trek')
+
+def get_mongo_client():
+    """取得 MongoDB 連接"""
+    try:
+        if MONGO_CONNECTION_STRING:
+            client = MongoClient(MONGO_CONNECTION_STRING)
+            return client
+        else:
+            # 備用連線方式（如果環境變數不存在）
+            username = os.getenv('MONGO_USERNAME', 'trekread')
+            password = os.getenv('MONGO_PASSWORD', 'HNwMUr0NCKZejRMzxLbAWOnRYIrPT9qZuzL0')
+            hosts = "172.105.200.150:27017,139.162.91.194:27017,172.105.208.153:27017"
+            database = MONGO_DATABASE
+            
+            connection_string = f"mongodb://{quote_plus(username)}:{quote_plus(password)}@{hosts}/{database}?replicaSet=rs0&authMechanism=SCRAM-SHA-1"
+            client = MongoClient(connection_string)
+            return client
+    except Exception as e:
+        logger.error(f"MongoDB 連接失敗: {str(e)}")
+        return None
+
+def get_adunit_by_uuid(uuid):
+    """根據 UUID 從 MongoDB 取得 AdUnit 資料"""
+    try:
+        client = get_mongo_client()
+        if not client:
+            return None
+            
+        db = client[MONGO_DATABASE]
+        collection = db['AdUnit']
+        
+        # 查詢 AdUnit
+        adunit = collection.find_one({"uuid": uuid})
+        return adunit
+        
+    except Exception as e:
+        logger.error(f"查詢 AdUnit 時發生錯誤: {str(e)}")
+        return None
+    finally:
+        if client:
+            client.close()
+
+def build_screenshot_url(adunit_data):
+    """根據 AdUnit 資料建構截圖網址"""
+    if not adunit_data:
+        return None
+        
+    base_url = "https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html"
+    
+    # 從 AdUnit 資料中取得相關欄位
+    media_title = adunit_data.get('title', '')
+    media_desc = adunit_data.get('text', '')
+    media_sponsor = adunit_data.get('advertiserName', '')
+    media_cta = adunit_data.get('callToAction', '')
+    url_original = adunit_data.get('url_original', '')
+    uuid = adunit_data.get('uuid', '')
+    
+    # 建構 catrun 網址
+    catrun_url = f"https://tkcatrun.aotter.net/b/{uuid}/1200x628"
+    
+    # 建構完整的網址參數
+    params = [
+        f"media-title={quote_plus(media_title)}",
+        f"media-cta={quote_plus(media_cta)}",
+        f"media-desc={quote_plus(media_desc)}",
+        f"media-sponsor={quote_plus(media_sponsor)}",
+        f"media-url={quote_plus(url_original)}",
+        f"trek-debug-place=5a41c4d0-b268-43b2-9536-d774f46c33bf",
+        f"trek-debug-catrun={quote_plus(catrun_url)}",
+        f"dataSrcUrl=https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html"
+    ]
+    
+    full_url = f"{base_url}?{'&'.join(params)}"
+    return full_url
 
 # 配置上傳文件夾
 UPLOAD_FOLDER = 'uploads'
@@ -271,10 +356,19 @@ def countdown_ad():
         'image_path_m': session.get('countdown_image_path_m', ''),
         'image_path_s': session.get('countdown_image_path_s', ''),
         'background_image': session.get('countdown_background_image', ''),
-        'background_url': session.get('countdown_background_url', ''),
-        'target_url': session.get('countdown_target_url', '')
+        'image_cover': session.get('countdown_image_cover', ''),
+        'game_winner_bg_color': session.get('countdown_game_winner_bg_color', '#26D07C'),
+        'game_winner_text_color': session.get('countdown_game_winner_text_color', '#ffffff'),
+        'game_bg_color': session.get('countdown_game_bg_color', '#ffffff'),
+        'game_text_color': session.get('countdown_game_text_color', '#000000'),
+        'game_border_color': session.get('countdown_game_border_color', '#000000')
     }
     return render_template('countdown_ad.html', **form_data)
+
+# 自動截圖頁面
+@app.route('/auto-screenshot')
+def auto_screenshot():
+    return render_template('auto_screenshot.html')
 
 # 批量廣告頁面
 @app.route('/batch')
@@ -947,6 +1041,160 @@ def create_countdown_ad():
     
     return redirect(url_for('countdown_ad'))
 
+# 自動截圖處理
+@app.route('/create-screenshot', methods=['POST'])
+def create_screenshot():
+    try:
+        uuid = request.form.get('uuid', '').strip()
+        device = request.form.get('device', 'iphone_x')
+        full_page = request.form.get('full_page') == 'true'
+        scroll_distance = int(request.form.get('scroll_distance', 4800))
+        wait_time = int(request.form.get('wait_time', 3)) * 1000  # 轉換為毫秒
+        
+        if not uuid:
+            flash('請輸入有效的 UUID', 'error')
+            return redirect(url_for('auto_screenshot'))
+        
+        # 從 MongoDB 查詢 AdUnit 資料
+        logger.info(f"正在查詢 UUID: {uuid}")
+        adunit_data = get_adunit_by_uuid(uuid)
+        
+        if not adunit_data:
+            flash(f'找不到 UUID {uuid} 對應的 AdUnit 資料', 'error')
+            return redirect(url_for('auto_screenshot'))
+        
+        # 建構截圖網址
+        url = build_screenshot_url(adunit_data)
+        if not url:
+            flash('無法建構截圖網址', 'error')
+            return redirect(url_for('auto_screenshot'))
+        
+        logger.info(f"建構的截圖網址: {url}")
+        
+        # 裝置尺寸配置
+        device_configs = {
+            'iphone_x': {'width': 375, 'height': 812, 'name': 'iPhone X'},
+            'iphone_se': {'width': 375, 'height': 667, 'name': 'iPhone SE'},
+            'iphone_plus': {'width': 414, 'height': 736, 'name': 'iPhone Plus'},
+            'android': {'width': 360, 'height': 640, 'name': 'Android 標準'},
+            'tablet': {'width': 768, 'height': 1024, 'name': '平板電腦'}
+        }
+        
+        device_config = device_configs.get(device, device_configs['iphone_x'])
+        
+        # 預設 cookie（用於 aotter 相關網站）
+        default_cookie = "AOTTERBD_SESSION=757418f543a95a889184e798ec5ab66d4fad04e5-lats=1724229220332&sso=PIg4zu/Vdnn/A15vMEimFlVAGliNhoWlVd5FTvtEMRAFpk/VvBGvAetanw8DLATSLexy9pee/t52uNojvoFS2Q==;aotter=eyJ1c2VyIjp7ImlkIjoiNjNkYjRkNDBjOTFiNTUyMmViMjk4YjBkIiwiZW1haWwiOiJpYW4uY2hlbkBhb3R0ZXIubmV0IiwiY3JlYXRlZEF0IjoxNjc1MzE2NTQ0LCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJsZWdhY3lJZCI6bnVsbCwibGVnYWN5U2VxSWQiOjE2NzUzMTY1NDQ3ODI5NzQwMDB9LCJhY2Nlc3NUb2tlbiI6IjJkYjQyZTNkOTM5MDUzMjdmODgyZmYwMDRiZmI4YmEzZjBhNTlmMDQwYzhiN2Y4NGY5MmZmZTIzYTU0ZTQ2MDQiLCJ1ZWEiOm51bGx9; _Secure-1PSID=vlPPgXupFroiSjP1/A02minugZVZDgIG4K; _Secure-1PSIDCC=g.a000mwhavReSVd1vN09AVTswXkPAhyuW7Tgj8-JFhj-FZya9I_l1B6W2gqTIWAtQUTQMkTxoAwACgYKAW0SARISFQHGX2MiC--NJ2PzCzDpJ0m3odxHhxoVAUF8yKr8r49abq8oe4UxCA0t_QCW0076; _Secure-3PSID=AKEyXzUuXI1zywmFmkEBEBHfg6GRkRM9cJ9BiJZxmaR46x5im_krhaPtmL4Jhw8gQsz5uFFkfbc; _Secure-3PSIDCC=sidts-CjEBUFGohzUF6oK3ZMACCk2peoDBDp6djBwJhGc4Lxgu2zOlzbVFeVpXF4q1TYZ5ba6cEAA"
+        
+        logger.info(f"開始自動截圖，目標網址: {url}, 裝置: {device_config['name']}, 完整頁面: {full_page}, UUID: {uuid}, 滾動距離: {scroll_distance}px")
+        
+        # 使用 Playwright 進行截圖
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True)
+            context = browser.new_context(
+                viewport={'width': device_config['width'], 'height': device_config['height']},
+                user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1' if 'iphone' in device or device == 'android' else 'Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1'
+            )
+            
+            # 預設使用 cookie
+            try:
+                # 解析 cookie 字串
+                cookies = []
+                cookie_pairs = default_cookie.split(';')
+                
+                for pair in cookie_pairs:
+                    if '=' in pair:
+                        name, value = pair.split('=', 1)
+                        name = name.strip()
+                        value = value.strip()
+                        
+                        # 根據 URL 域名設置 cookie
+                        from urllib.parse import urlparse
+                        parsed_url = urlparse(url)
+                        domain = parsed_url.netloc
+                        
+                        # 針對不同的 cookie 設置適當的域名
+                        if name.startswith('_Secure-') or 'PSID' in name:
+                            cookie_domain = '.google.com'
+                        else:
+                            # 對於 aotter 相關的 cookie，設置為目標域名或其父域名
+                            if 'aotter' in domain or 'trek' in domain:
+                                cookie_domain = '.aotter.net' if 'aotter.net' in domain else domain
+                            else:
+                                cookie_domain = domain
+                        
+                        cookies.append({
+                            'name': name,
+                            'value': value,
+                            'domain': cookie_domain,
+                            'path': '/',
+                            'secure': name.startswith('_Secure-') or 'PSID' in name,
+                            'httpOnly': False
+                        })
+                
+                # 設置 cookies 到 context
+                context.add_cookies(cookies)
+                logger.info(f"已設置 {len(cookies)} 個 cookies")
+                
+            except Exception as cookie_error:
+                logger.warning(f"設置 cookie 時發生錯誤（將繼續不使用 cookie）: {str(cookie_error)}")
+            
+            page = context.new_page()
+            
+            # 訪問目標網址
+            page.goto(url, wait_until='networkidle')
+            
+            # 等待頁面載入完成
+            page.wait_for_timeout(wait_time)
+            
+            # 如果設定了滾動距離，則向下滾動到廣告區域
+            if scroll_distance > 0:
+                logger.info(f"向下滾動 {scroll_distance} 像素到廣告區域")
+                page.evaluate(f"window.scrollTo(0, {scroll_distance})")
+                # 滾動後再等待一下讓內容穩定
+                page.wait_for_timeout(1000)
+            
+            # 創建截圖目錄
+            today = datetime.now().strftime('%Y%m%d')
+            screenshot_dir = os.path.join('uploads', 'screenshots', today)
+            if not os.path.exists(screenshot_dir):
+                os.makedirs(screenshot_dir)
+            
+            # 生成檔案名稱
+            timestamp = datetime.now().strftime('%H%M%S')
+            device_suffix = device.replace('_', '-')
+            page_type = 'full' if full_page else 'viewport'
+            scroll_suffix = f'scroll-{scroll_distance}px' if scroll_distance > 0 else 'no-scroll'
+            filename = f'screenshot_{device_suffix}_{page_type}_uuid-{uuid}_{scroll_suffix}_{timestamp}.png'
+            screenshot_path = os.path.join(screenshot_dir, filename)
+            
+            # 截圖
+            page.screenshot(path=screenshot_path, full_page=full_page)
+            
+            browser.close()
+            
+            # 取得絕對路徑
+            absolute_path = os.path.abspath(screenshot_path)
+            
+            logger.info(f"截圖完成，檔案儲存至: {absolute_path}")
+            flash(f'截圖成功！檔案儲存至: {absolute_path}', 'success')
+            
+            # 將截圖路徑儲存到session，供模板顯示
+            session['last_screenshot'] = absolute_path
+            session['last_screenshot_device'] = device_config['name']
+            session['last_screenshot_full_page'] = full_page
+            session['last_screenshot_scroll_distance'] = scroll_distance
+            session['last_screenshot_uuid'] = uuid
+            session['last_screenshot_adunit_title'] = adunit_data.get('title', '')
+            
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        logger.error(f"自動截圖時發生錯誤: {str(e)}")
+        logger.error(f"錯誤詳情：\n{error_detail}")
+        flash(f'截圖失敗: {str(e)}', 'error')
+    
+    return redirect(url_for('auto_screenshot'))
+
 # 批量廣告創建處理
 @app.route('/create_batch_ads', methods=['POST'])
 def create_batch_ads():
@@ -1098,6 +1346,30 @@ def upload_file():
             'success': True,
             'file_path': os.path.abspath(file_path)
         })
+
+# 提供截圖檔案的 base64 編碼
+@app.route('/screenshot_base64/<path:filename>')
+def screenshot_base64(filename):
+    """提供截圖檔案的 base64 編碼"""
+    try:
+        # 安全檢查：確保檔案路徑在允許的目錄內
+        if not filename.startswith('screenshots/'):
+            return "Unauthorized", 403
+            
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        if not os.path.exists(file_path):
+            return "File not found", 404
+            
+        # 讀取檔案並轉換為 base64
+        with open(file_path, 'rb') as image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+            
+        return f"data:image/png;base64,{encoded_string}"
+        
+    except Exception as e:
+        logger.error(f"提供截圖檔案時發生錯誤: {str(e)}")
+        return "Internal server error", 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5002) # 使用不同的埠號 

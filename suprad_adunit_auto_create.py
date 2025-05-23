@@ -219,33 +219,27 @@ def run(playwright: Playwright, ad_data: dict, ad_type: str = 'gif') -> bool:
         
         # 文字敘述
         log_message("填入文字敘述...")
-        text_input = page.locator('input[name="text"]')
-        text_input.click()
-        text_input.fill(ad_data['subtitle'])
+        page.locator("input[name=\"text\"]").fill(ad_data['subtitle'])
         log_message("已填入文字敘述")
         slow_down(page)
-        
-        page.get_by_placeholder("bg_placeholder: background").click()
         
         # call to action
         log_message("設定 Call to Action...")
         cta_input = page.locator('input[name="callToAction"]')
-        cta_input.click()
         cta_input.fill(ad_data['call_to_action'])
         log_message(f"已填入「{ad_data['call_to_action']}」")
         slow_down(page)
         
         # 遊戲套件預設背景
-        page.get_by_placeholder("bg_placeholder: background").fill(ad_data['background_image'])
+        page.get_by_placeholder("bg_placeholder: background").fill(ad_data['background_url'])
         slow_down(page)
         page.once("dialog", lambda dialog: dialog.dismiss())
-        page.get_by_placeholder("urlInteractivePopup: url to").click()
         
         # 多目標popup網址
+        page.locator("input[name=\"advertiserName\"]").fill(ad_data['advertiser'])
         urlInteractivePopups = "https://tkcatrun.aotter.net/popup/"
         page.get_by_placeholder("urlInteractivePopup: url to").fill(urlInteractivePopups)
         slow_down(page)
-        page.locator("textarea[name=\"payload_gameWidgetJson\"]").click()
         
         # payload_gameWidget
         page.locator("textarea[name=\"payload_gameWidgetJson\"]").fill(ad_data['payload_game_widget'])
@@ -254,7 +248,7 @@ def run(playwright: Playwright, ad_data: dict, ad_type: str = 'gif') -> bool:
         page.wait_for_timeout(2000)
 
         log_message("點擊「新增」按鈕")
-        page.get_by_role("button", name="新增").click()
+        page.get_by_text("新增").click()
         log_message("已點擊「新增」按鈕")
         slow_down(page)
         

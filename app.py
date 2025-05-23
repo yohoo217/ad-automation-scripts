@@ -370,704 +370,132 @@ def countdown_ad():
 def auto_screenshot():
     return render_template('auto_screenshot.html')
 
-# 批量廣告頁面
-@app.route('/batch')
-def batch():
-    return render_template('batch.html')
+# Native 廣告多尺寸截圖頁面
+@app.route('/native-ad-screenshot')
+def native_ad_screenshot():
+    return render_template('native_ad_screenshot.html')
 
-# 創建原生廣告處理
-@app.route('/create-native-ad', methods=['POST'])
-def create_native_ad():
-    logger.info("原生廣告表單提交開始處理")
+# 建構 native 廣告截圖網址
+def build_native_screenshot_url(adunit_data, size, template):
+    """根據 AdUnit 資料和尺寸建構 native 廣告截圖網址"""
+    if not adunit_data:
+        return None
     
-    # 保存所有表單數據到 session
-    for key, value in request.form.items():
-        session[key] = value
+    # 從 AdUnit 資料中取得相關欄位
+    media_title = adunit_data.get('title', '')
+    media_desc = adunit_data.get('text', '')
+    media_sponsor = adunit_data.get('advertiserName', '')
+    media_cta = adunit_data.get('callToAction', '')
+    url_original = adunit_data.get('url_original', '')
+    uuid = adunit_data.get('uuid', '')
     
-    ad_data = {
-        'display_name': request.form.get('display_name', ''),
-        'advertiser': request.form.get('advertiser', ''),
-        'main_title': request.form.get('main_title', ''),
-        'subtitle': request.form.get('subtitle', ''),
-        'adset_id': request.form.get('adset_id', ''),
-        'landing_page': request.form.get('landing_page', ''),
-        'call_to_action': request.form.get('call_to_action', '瞭解詳情'),
-        'image_path_m': request.form.get('image_path_m', ''),
-        'image_path_o': request.form.get('image_path_o', ''),
-        'image_path_p': request.form.get('image_path_p', ''),
-        'image_path_s': request.form.get('image_path_s', ''),
-        'tracking_url': request.form.get('tracking_url', '')
+    # 建構 catrun 網址
+    catrun_url = f"https://tkcatrun.aotter.net/b/{uuid}/{size}"
+    
+    # 根據尺寸和模板類型選擇對應的 URL 模板
+    url_templates = {
+        '1200x628': {
+            'ptt-article': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html',
+            'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html'
+        },
+        '300x300': {
+            'ptt-article-list': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article-list/index.html',
+            'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2Findex.html',
+            'lastArticleNumber': '153746'
+        },
+        '320x50': {
+            'ptt-article': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html',
+            'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html'
+        },
+        '300x250': {
+            'moptt': 'https://moptt.tw/p/Gossiping.M.1718675708.A.183',
+            'trek-debug': 'true'
+        },
+        '640x200': {
+            'pnn-article': 'https://aotter.github.io/trek-ad-preview/pages/pnn-article/',
+            'iframe-url': 'https://www.ptt.cc/bbs/NBA/M.1701151337.A.E0C.html',
+            'dataSrcUrl': ''
+        }
     }
     
-    required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page', 
-                        'image_path_m', 'image_path_o', 'image_path_p', 'image_path_s']
-    missing_fields = [field for field in required_fields if not ad_data[field]]
+    template_config = url_templates.get(size, {})
+    
+    if template == 'ptt-article' and size in ['1200x628', '320x50']:
+        base_url = template_config.get('ptt-article')
+        params = [
+            f"media-title={quote_plus(media_title)}",
+            f"media-cta={quote_plus(media_cta)}",
+            f"media-desc={quote_plus(media_desc)}",
+            f"media-sponsor={quote_plus(media_sponsor)}",
+            f"trek-debug-place=5a41c4d0-b268-43b2-9536-d774f46c33bf",
+            f"trek-debug-catrun={quote_plus(catrun_url)}",
+            f"dataSrcUrl={template_config.get('dataSrcUrl', '')}"
+        ]
+        
+    elif template == 'ptt-article-list' and size == '300x300':
+        base_url = template_config.get('ptt-article-list')
+        # 需要取得圖片路徑
+        media_img = adunit_data.get('image_path_m', '')
+        params = [
+            f"media-url={quote_plus(url_original)}",
+            f"media-title={quote_plus(media_title)}",
+            f"media-desc={quote_plus(media_desc)}",
+            f"media-sponsor={quote_plus(media_sponsor)}",
+            f"media-img={quote_plus(media_img)}",
+            f"trek-debug-place=5a41c4d0-b268-43b2-9536-d774f46c33bf",
+            f"dataSrcUrl={template_config.get('dataSrcUrl', '')}",
+            f"lastArticleNumber={template_config.get('lastArticleNumber', '')}"
+        ]
+        
+    elif template == 'moptt' and size == '300x250':
+        base_url = template_config.get('moptt')
+        catrun_with_sdk = f"{catrun_url}?sdkVer=web_3.5.4"
+        params = [
+            f"trek-debug=true",
+            f"trek-debug-place=5a41c4d0-b268-43b2-9536-d774f46c33bf",
+            f"trek-debug-catrun={quote_plus(catrun_with_sdk)}"
+        ]
+        
+    elif template == 'pnn-article' and size == '640x200':
+        base_url = template_config.get('pnn-article')
+        params = [
+            f"trek-debug-place=f62fc7ee-2629-4977-be97-c92f4ac4ec23",
+            f"trek-debug-catrun={quote_plus(catrun_url)}",
+            f"iframe-url={template_config.get('iframe-url', '')}",
+            f"dataSrcUrl={template_config.get('dataSrcUrl', '')}"
+        ]
+    else:
+        return None
+    
+    full_url = f"{base_url}?{'&'.join(params)}"
+    return full_url
 
-    if missing_fields:
-        logger.error(f"缺少必填欄位: {missing_fields}")
-        flash(f"以下為必填欄位，不得為空： {', '.join(missing_fields)}", 'error')
-        return render_template('native_ad.html', **ad_data), 400
-
+# Native 廣告多尺寸截圖處理
+@app.route('/create-native-screenshot', methods=['POST'])
+def create_native_screenshot():
     try:
-        logger.info("開始執行原生廣告創建")
-        with sync_playwright() as playwright:
-            success = run_native(playwright, ad_data)
-            logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
+        # 解析 JSON 請求
+        data = request.get_json()
+        uuid = data.get('uuid', '').strip()
+        size = data.get('size', '')
+        device = data.get('device', 'iphone_x')
+        scroll_distance = int(data.get('scroll_distance', 0))
+        template = data.get('template', 'ptt-article')
         
-        if success:
-            flash(f"廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 已成功創建！", 'success')
-            logger.info(f"成功創建廣告: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-        else:
-            flash(f"創建廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 失敗。請查看日誌獲取更多信息。", 'error')
-            logger.error(f"創建廣告失敗: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-    except Exception as e:
-        logger.error(f"創建廣告時發生意外錯誤: {str(e)}")
-        flash(f"創建廣告時發生意外錯誤: {str(e)}", 'error')
-
-    return redirect(url_for('native_ad'))
-
-# 創建GIF廣告處理
-@app.route('/create-gif-ad', methods=['POST'])
-def create_gif_ad():
-    logger.info("GIF廣告表單提交開始處理")
-    
-    # 保存所有表單數據到 session，加上前綴 'gif_'
-    for key, value in request.form.items():
-        session[f"gif_{key}"] = value
-    
-    ad_data = {
-        'display_name': request.form.get('display_name', ''),
-        'advertiser': request.form.get('advertiser', ''),
-        'main_title': request.form.get('main_title', ''),
-        'subtitle': request.form.get('subtitle', ''),
-        'adset_id': request.form.get('adset_id', ''),
-        'landing_page': request.form.get('landing_page', ''),
-        'call_to_action': request.form.get('call_to_action', '立即購買'),
-        'image_path_m': request.form.get('image_path_m', ''),
-        'image_path_s': request.form.get('image_path_s', ''),
-        'background_image': request.form.get('background_image', ''),
-        'background_url': request.form.get('background_url', ''),
-        'target_url': request.form.get('target_url', ''),
-        'payload_game_widget': request.form.get('payload_game_widget', '')
-    }
-    
-    required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page', 
-                       'image_path_m', 'image_path_s', 'background_image', 'payload_game_widget']
-    missing_fields = [field for field in required_fields if not ad_data[field]]
-    
-    if missing_fields:
-        logger.error(f"缺少必填欄位: {missing_fields}")
-        flash(f"以下為必填欄位，不得為空： {', '.join(missing_fields)}", 'error')
-        return redirect(url_for('gif_ad')), 400
-    
-    playwright_instance = None
-    try:
-        logger.info("開始執行GIF廣告創建")
-        logger.info(f"廣告數據: {str(ad_data)}")
-        
-        # 檢查 payload_game_widget 是否正確設置
-        if not ad_data.get('payload_game_widget'):
-            logger.error("payload_game_widget 為空或不存在")
-            flash("payload_game_widget 為空，請確保正確填寫所有必要欄位", 'error')
-            return redirect(url_for('gif_ad')), 400
-            
-        # 記錄 payload 內容
-        logger.info(f"Payload 內容預覽: {ad_data.get('payload_game_widget')[:100]}...")
-        
-        # 初始化 Playwright
-        logger.info("初始化 Playwright")
-        playwright_instance = sync_playwright().start()
-        logger.info("Playwright 初始化成功")
-        
-        # 使用 'gif' 作為廣告類型
-        ad_data['ad_type'] = 'gif'
-        success = run_suprad(playwright_instance, ad_data, ad_type='gif')
-        logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
-        
-        if success:
-            flash(f"GIF廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 已成功創建！", 'success')
-            logger.info(f"成功創建GIF廣告: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-        else:
-            flash(f"創建GIF廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 失敗。請查看日誌獲取更多信息。", 'error')
-            logger.error(f"創建GIF廣告失敗: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-    except Exception as e:
-        import traceback
-        error_detail = traceback.format_exc()
-        logger.error(f"創建GIF廣告時發生意外錯誤: {str(e)}")
-        logger.error(f"錯誤詳情：\n{error_detail}")
-        flash(f"創建GIF廣告時發生意外錯誤: {str(e)}", 'error')
-    finally:
-        # 確保資源正確釋放
-        if playwright_instance:
-            try:
-                logger.info("關閉 Playwright 實例")
-                playwright_instance.stop()
-                logger.info("Playwright 實例已關閉")
-            except Exception as close_error:
-                logger.error(f"關閉 Playwright 時出錯 (忽略): {str(close_error)}")
-    
-    return redirect(url_for('gif_ad'))
-
-# 創建水平Slide廣告處理
-@app.route('/create-slide-ad', methods=['POST'])
-def create_slide_ad():
-    logger.info("水平Slide廣告表單提交開始處理")
-    
-    # 保存所有表單數據到 session，加上前綴 'slide_' 
-    for key, value in request.form.items():
-        if key.startswith('image_url_') or key.startswith('target_url_'):
-            # 這些是滑動項目的數據，保存時不加前綴
-            session[key] = value
-        else:
-            # 其他表單字段加上前綴
-            session[f"slide_{key}"] = value
-    
-    ad_data = {
-        'display_name': request.form.get('display_name', ''),
-        'advertiser': request.form.get('advertiser', ''),
-        'main_title': request.form.get('main_title', ''),
-        'subtitle': request.form.get('subtitle', ''),
-        'adset_id': request.form.get('adset_id', ''),
-        'landing_page': request.form.get('landing_page', ''),
-        'call_to_action': request.form.get('call_to_action', '立即了解'),
-        'image_path_m': request.form.get('image_path_m', ''),
-        'image_path_s': request.form.get('image_path_s', ''),
-        'background_image': request.form.get('background_image', ''),
-        'payload_game_widget': request.form.get('payload_game_widget', '')
-    }
-    
-    required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page', 
-                       'image_path_m', 'image_path_s', 'background_image', 'payload_game_widget']
-    missing_fields = [field for field in required_fields if not ad_data[field]]
-    
-    if missing_fields:
-        logger.error(f"缺少必填欄位: {missing_fields}")
-        flash(f"以下為必填欄位，不得為空： {', '.join(missing_fields)}", 'error')
-        return redirect(url_for('slide_ad')), 400
-    
-    # 嘗試從表單中提取滑動項目
-    slide_items = []
-    index = 0
-    while True:
-        image_url_key = f'image_url_{index}'
-        target_url_key = f'target_url_{index}'
-        
-        if image_url_key not in request.form or target_url_key not in request.form:
-            break
-        
-        slide_items.append({
-            'index': index,
-            'image_url': request.form.get(image_url_key, ''),
-            'target_url': request.form.get(target_url_key, '')
-        })
-        index += 1
-    
-    # 將滑動項目添加到廣告數據中
-    ad_data['slide_items'] = slide_items
-    
-    # 確保至少有兩個滑動項目
-    if len(slide_items) < 2:
-        logger.error("水平Slide廣告至少需要兩個滑動項目")
-        flash("水平Slide廣告至少需要兩個滑動項目", 'error')
-        return redirect(url_for('slide_ad')), 400
-    
-    playwright_instance = None
-    try:
-        logger.info("開始執行水平Slide廣告創建")
-        logger.info(f"廣告數據: {str(ad_data)}")
-        
-        # 檢查 payload_game_widget 是否正確設置
-        if not ad_data.get('payload_game_widget'):
-            logger.error("payload_game_widget 為空或不存在")
-            flash("payload_game_widget 為空，請確保正確填寫所有必要欄位", 'error')
-            return redirect(url_for('slide_ad')), 400
-            
-        # 記錄 payload 內容
-        logger.info(f"Payload 內容預覽: {ad_data.get('payload_game_widget')[:100]}...")
-        
-        # 初始化 Playwright
-        logger.info("初始化 Playwright")
-        playwright_instance = sync_playwright().start()
-        logger.info("Playwright 初始化成功")
-        
-        # 使用 'slide' 作為廣告類型
-        ad_data['ad_type'] = 'slide'
-        success = run_suprad(playwright_instance, ad_data, ad_type='slide')
-        logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
-        
-        if success:
-            flash(f"水平Slide廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 已成功創建！", 'success')
-            logger.info(f"成功創建水平Slide廣告: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-        else:
-            flash(f"創建水平Slide廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 失敗。請查看日誌獲取更多信息。", 'error')
-            logger.error(f"創建水平Slide廣告失敗: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-    except Exception as e:
-        import traceback
-        error_detail = traceback.format_exc()
-        logger.error(f"創建水平Slide廣告時發生意外錯誤: {str(e)}")
-        logger.error(f"錯誤詳情：\n{error_detail}")
-        flash(f"創建水平Slide廣告時發生意外錯誤: {str(e)}", 'error')
-    finally:
-        # 確保資源正確釋放
-        if playwright_instance:
-            try:
-                logger.info("關閉 Playwright 實例")
-                playwright_instance.stop()
-                logger.info("Playwright 實例已關閉")
-            except Exception as close_error:
-                logger.error(f"關閉 Playwright 時出錯 (忽略): {str(close_error)}")
-    
-    return redirect(url_for('slide_ad'))
-
-# 創建垂直Slide廣告處理
-@app.route('/create-vertical-slide-ad', methods=['POST'])
-def create_vertical_slide_ad():
-    logger.info("垂直Slide廣告表單提交開始處理")
-    
-    # 保存所有表單數據到 session，加上前綴 'vertical_slide_'
-    for key, value in request.form.items():
-        if key.startswith('image_url_') or key.startswith('target_url_'):
-            # 這些是滑動項目的數據，保存時不加前綴
-            session[key] = value
-        else:
-            # 其他表單字段加上前綴
-            session[f"vertical_slide_{key}"] = value
-    
-    ad_data = {
-        'display_name': request.form.get('display_name', ''),
-        'advertiser': request.form.get('advertiser', ''),
-        'main_title': request.form.get('main_title', ''),
-        'subtitle': request.form.get('subtitle', ''),
-        'adset_id': request.form.get('adset_id', ''),
-        'landing_page': request.form.get('landing_page', ''),
-        'call_to_action': request.form.get('call_to_action', '立即了解'),
-        'image_path_m': request.form.get('image_path_m', ''),
-        'image_path_s': request.form.get('image_path_s', ''),
-        'background_image': request.form.get('background_image', ''),
-        'payload_game_widget': request.form.get('payload_game_widget', '')
-    }
-    
-    required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page', 
-                       'image_path_m', 'image_path_s', 'background_image', 'payload_game_widget']
-    missing_fields = [field for field in required_fields if not ad_data[field]]
-    
-    if missing_fields:
-        logger.error(f"缺少必填欄位: {missing_fields}")
-        flash(f"以下為必填欄位，不得為空： {', '.join(missing_fields)}", 'error')
-        return redirect(url_for('vertical_slide_ad')), 400
-    
-    # 嘗試從表單中提取滑動項目
-    slide_items = []
-    index = 0
-    while True:
-        image_url_key = f'image_url_{index}'
-        target_url_key = f'target_url_{index}'
-        
-        if image_url_key not in request.form or target_url_key not in request.form:
-            break
-        
-        slide_items.append({
-            'index': index,
-            'image_url': request.form.get(image_url_key, ''),
-            'target_url': request.form.get(target_url_key, '')
-        })
-        index += 1
-    
-    # 將滑動項目添加到廣告數據中
-    ad_data['slide_items'] = slide_items
-    
-    # 確保至少有兩個滑動項目
-    if len(slide_items) < 2:
-        logger.error("垂直Slide廣告至少需要兩個滑動項目")
-        flash("垂直Slide廣告至少需要兩個滑動項目", 'error')
-        return redirect(url_for('vertical_slide_ad')), 400
-    
-    playwright_instance = None
-    try:
-        logger.info("開始執行垂直Slide廣告創建")
-        logger.info(f"廣告數據: {str(ad_data)}")
-        
-        # 檢查 payload_game_widget 是否正確設置
-        if not ad_data.get('payload_game_widget'):
-            logger.error("payload_game_widget 為空或不存在")
-            flash("payload_game_widget 為空，請確保正確填寫所有必要欄位", 'error')
-            return redirect(url_for('vertical_slide_ad')), 400
-            
-        # 記錄 payload 內容
-        logger.info(f"Payload 內容預覽: {ad_data.get('payload_game_widget')[:100]}...")
-        
-        # 初始化 Playwright
-        logger.info("初始化 Playwright")
-        playwright_instance = sync_playwright().start()
-        logger.info("Playwright 初始化成功")
-        
-        # 使用 'vertical_slide' 作為廣告類型
-        ad_data['ad_type'] = 'vertical_slide'
-        success = run_suprad(playwright_instance, ad_data, ad_type='vertical_slide')
-        logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
-        
-        if success:
-            flash(f"垂直Slide廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 已成功創建！", 'success')
-            logger.info(f"成功創建垂直Slide廣告: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-        else:
-            flash(f"創建垂直Slide廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 失敗。請查看日誌獲取更多信息。", 'error')
-            logger.error(f"創建垂直Slide廣告失敗: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-    except Exception as e:
-        import traceback
-        error_detail = traceback.format_exc()
-        logger.error(f"創建垂直Slide廣告時發生意外錯誤: {str(e)}")
-        logger.error(f"錯誤詳情：\n{error_detail}")
-        flash(f"創建垂直Slide廣告時發生意外錯誤: {str(e)}", 'error')
-    finally:
-        # 確保資源正確釋放
-        if playwright_instance:
-            try:
-                logger.info("關閉 Playwright 實例")
-                playwright_instance.stop()
-                logger.info("Playwright 實例已關閉")
-            except Exception as close_error:
-                logger.error(f"關閉 Playwright 時出錯 (忽略): {str(close_error)}")
-    
-    return redirect(url_for('vertical_slide_ad'))
-
-# 創建垂直 Cube Slide 廣告處理
-@app.route('/create-vertical-cube-slide-ad', methods=['POST'])
-def create_vertical_cube_slide_ad():
-    logger.info("垂直 Cube Slide 廣告表單提交開始處理")
-    
-    # 使用 'vertical_cube_slide_' 前綴保存表單數據到 session
-    for key, value in request.form.items():
-        if key.startswith('image_url_') or key.startswith('target_url_'):
-            # 這些是滑動項目的數據，保存時不加前綴
-            session[key] = value
-        else:
-            # 其他表單字段加上前綴
-            session[f"vertical_cube_slide_{key}"] = value
-    
-    ad_data = {
-        'display_name': request.form.get('display_name', ''),
-        'advertiser': request.form.get('advertiser', ''),
-        'main_title': request.form.get('main_title', ''),
-        'subtitle': request.form.get('subtitle', ''),
-        'adset_id': request.form.get('adset_id', ''),
-        'landing_page': request.form.get('landing_page', ''),
-        'call_to_action': request.form.get('call_to_action', '立即了解'),
-        'image_path_m': request.form.get('image_path_m', ''),
-        'image_path_s': request.form.get('image_path_s', ''),
-        'background_image': request.form.get('background_image', ''),
-        'payload_game_widget': request.form.get('payload_game_widget', '')
-    }
-    
-    required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page', 
-                        'image_path_m', 'image_path_s', 'payload_game_widget']
-    missing_fields = [field for field in required_fields if not ad_data[field]]
-
-    if missing_fields:
-        logger.error(f"缺少必填欄位: {missing_fields}")
-        flash(f"以下為必填欄位，不得為空： {', '.join(missing_fields)}", 'error')
-        return redirect(url_for('vertical_cube_slide_ad')), 400
-    
-    # 嘗試從表單中提取滑動項目
-    slide_items = []
-    index = 0
-    while True:
-        image_url_key = f'image_url_{index}'
-        target_url_key = f'target_url_{index}'
-        
-        if image_url_key not in request.form or target_url_key not in request.form:
-            break
-        
-        slide_items.append({
-            'index': index,
-            'image_url': request.form.get(image_url_key, ''),
-            'target_url': request.form.get(target_url_key, '')
-        })
-        index += 1
-    
-    # 將滑動項目添加到廣告數據中
-    ad_data['slide_items'] = slide_items
-    
-    # 確保至少有兩個滑動項目
-    if len(slide_items) < 2:
-        logger.error("垂直 Cube Slide 廣告至少需要兩個滑動項目")
-        flash("垂直 Cube Slide 廣告至少需要兩個滑動項目", 'error')
-        return redirect(url_for('vertical_cube_slide_ad')), 400
-    
-    playwright_instance = None
-    try:
-        logger.info("開始執行垂直 Cube Slide 廣告創建")
-        logger.info(f"廣告數據: {str(ad_data)}")
-        
-        # 檢查 payload_game_widget 是否正確設置
-        if not ad_data.get('payload_game_widget'):
-            logger.error("payload_game_widget 為空或不存在")
-            flash("payload_game_widget 為空，請確保正確填寫所有必要欄位", 'error')
-            return redirect(url_for('vertical_cube_slide_ad')), 400
-            
-        # 記錄 payload 內容
-        logger.info(f"Payload 內容預覽: {ad_data.get('payload_game_widget')[:100]}...")
-        
-        # 初始化 Playwright
-        logger.info("初始化 Playwright")
-        playwright_instance = sync_playwright().start()
-        logger.info("Playwright 初始化成功")
-        
-        # 使用 'vertical_cube_slide' 作為廣告類型
-        ad_data['ad_type'] = 'vertical_cube_slide'
-        success = run_suprad(playwright_instance, ad_data, ad_type='vertical_cube_slide')
-        logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
-        
-        if success:
-            flash(f"垂直 Cube Slide 廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 已成功創建！", 'success')
-            logger.info(f"成功創建垂直 Cube Slide 廣告: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-        else:
-            flash(f"創建垂直 Cube Slide 廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 失敗。請查看日誌獲取更多信息。", 'error')
-            logger.error(f"創建垂直 Cube Slide 廣告失敗: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-    except Exception as e:
-        import traceback
-        error_detail = traceback.format_exc()
-        logger.error(f"創建垂直 Cube Slide 廣告時發生意外錯誤: {str(e)}")
-        logger.error(f"錯誤詳情：\n{error_detail}")
-        flash(f"創建垂直 Cube Slide 廣告時發生意外錯誤: {str(e)}", 'error')
-    finally:
-        # 確保資源正確釋放
-        if playwright_instance:
-            try:
-                logger.info("關閉 Playwright 實例")
-                playwright_instance.stop()
-                logger.info("Playwright 實例已關閉")
-            except Exception as close_error:
-                logger.error(f"關閉 Playwright 時出錯 (忽略): {str(close_error)}")
-    
-    return redirect(url_for('vertical_cube_slide_ad'))
-
-# 創建投票廣告處理
-@app.route('/create-vote-ad', methods=['POST'])
-def create_vote_ad():
-    logger.info("投票廣告表單提交開始處理")
-    
-    # 保存所有表單數據到 session，加上前綴 'vote_'
-    for key, value in request.form.items():
-        session[f"vote_{key}"] = value
-    
-    ad_data = {
-        'display_name': request.form.get('display_name', ''),
-        'advertiser': request.form.get('advertiser', ''),
-        'main_title': request.form.get('main_title', ''),
-        'vote_title': request.form.get('vote_title', ''),
-        'subtitle': request.form.get('subtitle', ''),
-        'adset_id': request.form.get('adset_id', ''),
-        'landing_page': request.form.get('landing_page', ''),
-        'call_to_action': request.form.get('call_to_action', '立即了解'),
-        'image_path_m': request.form.get('image_path_m', ''),
-        'image_path_s': request.form.get('image_path_s', ''),
-        'background_image': request.form.get('background_image', ''),
-        'vote_image': request.form.get('vote_image', ''),
-        'vote_id': request.form.get('vote_id', 'myVoteId'),
-        'divider_color': request.form.get('divider_color', '#ff0000'),
-        'vote_width': request.form.get('vote_width', '80%'),
-        'bg_color': request.form.get('bg_color', '#ffffff'),
-        'vote_position': request.form.get('vote_position', 'bottom'),
-        'min_position': request.form.get('min_position', 50),
-        'max_position': request.form.get('max_position', 70),
-        'timeout': request.form.get('timeout', 2000),
-        'winner_bg_color': request.form.get('winner_bg_color', '#26D07C'),
-        'winner_text_color': request.form.get('winner_text_color', '#ffffff'),
-        'loser_bg_color': request.form.get('loser_bg_color', '#000000'),
-        'loser_text_color': request.form.get('loser_text_color', '#ffffff'),
-        'payload_game_widget': request.form.get('payload_vote_widget', '')
-    }
-    
-    # 嘗試從表單中提取投票選項
-    vote_options = []
-    index = 0
-    while True:
-        option_title_key = f'option_title_{index}'
-        if option_title_key not in request.form:
-            break
-        vote_options.append({
-            'title': request.form.get(option_title_key, ''),
-            'text_color': request.form.get(f'option_text_color_{index}', '#207AED'),
-            'bg_color': request.form.get(f'option_bg_color_{index}', '#E7F3FF'),
-            'target_url': request.form.get(f'option_target_url_{index}', '')
-        })
-        index += 1
-    
-    # 將投票選項添加到廣告數據中
-    ad_data['vote_options'] = vote_options
-    
-    required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page', 
-                       'image_path_m', 'image_path_s', 'vote_image', 'payload_game_widget']
-    missing_fields = [field for field in required_fields if not ad_data[field]]
-    
-    if missing_fields:
-        logger.error(f"缺少必填欄位: {missing_fields}")
-        flash(f"以下為必填欄位，不得為空： {', '.join(missing_fields)}", 'error')
-        return redirect(url_for('vote_ad')), 400
-    
-    # 確保至少有兩個投票選項
-    if len(vote_options) < 2:
-        logger.error("投票廣告至少需要兩個投票選項")
-        flash("投票廣告至少需要兩個投票選項", 'error')
-        return redirect(url_for('vote_ad')), 400
-    
-    playwright_instance = None
-    try:
-        logger.info("開始執行投票廣告創建")
-        logger.info(f"廣告數據: {str(ad_data)}")
-        
-        # 檢查 payload_game_widget 是否正確設置
-        if not ad_data.get('payload_game_widget'):
-            logger.error("payload_game_widget 為空或不存在")
-            flash("payload 為空，請確保正確填寫所有必要欄位", 'error')
-            return redirect(url_for('vote_ad')), 400
-        
-        # 記錄 payload 內容
-        logger.info(f"Payload 內容預覽: {ad_data.get('payload_game_widget')[:100]}...")
-        
-        # 初始化 Playwright
-        logger.info("初始化 Playwright")
-        playwright_instance = sync_playwright().start()
-        logger.info("Playwright 初始化成功")
-        
-        # 使用 'vote' 作為廣告類型
-        ad_data['ad_type'] = 'vote'
-        success = run_suprad(playwright_instance, ad_data, ad_type='vote')
-        logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
-        
-        if success:
-            flash(f"投票廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 已成功創建！", 'success')
-            logger.info(f"成功創建投票廣告: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-        else:
-            flash(f"創建投票廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 失敗。請查看日誌獲取更多信息。", 'error')
-            logger.error(f"創建投票廣告失敗: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-    except Exception as e:
-        import traceback
-        error_detail = traceback.format_exc()
-        logger.error(f"創建投票廣告時發生意外錯誤: {str(e)}")
-        logger.error(f"錯誤詳情：\n{error_detail}")
-        flash(f"創建投票廣告時發生意外錯誤: {str(e)}", 'error')
-    finally:
-        # 確保資源正確釋放
-        if playwright_instance:
-            try:
-                logger.info("關閉 Playwright 實例")
-                playwright_instance.stop()
-                logger.info("Playwright 實例已關閉")
-            except Exception as close_error:
-                logger.error(f"關閉 Playwright 時出錯 (忽略): {str(close_error)}")
-    
-    return redirect(url_for('vote_ad'))
-
-# 處理倒數廣告表單提交
-@app.route('/create_countdown_ad', methods=['POST'])
-def create_countdown_ad():
-    logger.info("倒數廣告表單提交開始處理")
-    
-    # 保存所有表單數據到 session，加上前綴 'countdown_'
-    for key, value in request.form.items():
-        session[f"countdown_{key}"] = value
-    
-    ad_data = {
-        'display_name': request.form.get('display_name', ''),
-        'advertiser': request.form.get('advertiser', ''),
-        'main_title': request.form.get('main_title', ''),
-        'subtitle': request.form.get('subtitle', ''),
-        'adset_id': request.form.get('adset_id', ''),
-        'landing_page': request.form.get('landing_page', ''),
-        'call_to_action': request.form.get('call_to_action', '立即購買'),
-        'image_path_m': request.form.get('image_path_m', ''),
-        'image_path_s': request.form.get('image_path_s', ''),
-        'background_image': request.form.get('background_image', ''),
-        'background_url': request.form.get('background_url', ''),
-        'target_url': request.form.get('target_url', ''),
-        'payload_game_widget': request.form.get('payload_game_widget', '')
-    }
-    
-    required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page', 
-                       'image_path_m', 'image_path_s', 'background_image', 'payload_game_widget']
-    missing_fields = [field for field in required_fields if not ad_data[field]]
-    
-    if missing_fields:
-        logger.error(f"缺少必填欄位: {missing_fields}")
-        flash(f"以下為必填欄位，不得為空： {', '.join(missing_fields)}", 'error')
-        return redirect(url_for('countdown_ad')), 400
-    
-    playwright_instance = None
-    try:
-        logger.info("開始執行倒數廣告創建")
-        logger.info(f"廣告數據: {str(ad_data)}")
-        
-        # 檢查 payload_game_widget 是否正確設置
-        if not ad_data.get('payload_game_widget'):
-            logger.error("payload_game_widget 為空或不存在")
-            flash("payload_game_widget 為空，請確保正確填寫所有必要欄位", 'error')
-            return redirect(url_for('countdown_ad')), 400
-            
-        # 記錄 payload 內容
-        logger.info(f"Payload 內容預覽: {ad_data.get('payload_game_widget')[:100]}...")
-        
-        # 初始化 Playwright (不使用 with 語句，手動管理生命週期)
-        logger.info("初始化 Playwright")
-        playwright_instance = sync_playwright().start()
-        logger.info("Playwright 初始化成功")
-        
-        # 使用 'countdown' 作為廣告類型
-        ad_data['ad_type'] = 'countdown'  # 確保ad_type寫入ad_data
-        success = run_suprad(playwright_instance, ad_data, ad_type='countdown')
-        logger.info(f"廣告創建結果: {'成功' if success else '失敗'}")
-        
-        if success:
-            flash(f"倒數廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 已成功創建！", 'success')
-            logger.info(f"成功創建倒數廣告: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-        else:
-            flash(f"創建倒數廣告 '{ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}' 失敗。請查看日誌獲取更多信息。", 'error')
-            logger.error(f"創建倒數廣告失敗: {ad_data.get('display_name') or ad_data.get('main_title') or '(無名稱)'}")
-    except Exception as e:
-        import traceback
-        error_detail = traceback.format_exc()
-        logger.error(f"創建倒數廣告時發生意外錯誤: {str(e)}")
-        logger.error(f"錯誤詳情：\n{error_detail}")
-        flash(f"創建倒數廣告時發生意外錯誤: {str(e)}", 'error')
-    finally:
-        # 確保資源正確釋放
-        if playwright_instance:
-            try:
-                logger.info("關閉 Playwright 實例")
-                playwright_instance.stop()
-                logger.info("Playwright 實例已關閉")
-            except Exception as close_error:
-                logger.error(f"關閉 Playwright 時出錯 (忽略): {str(close_error)}")
-    
-    return redirect(url_for('countdown_ad'))
-
-# 自動截圖處理
-@app.route('/create-screenshot', methods=['POST'])
-def create_screenshot():
-    try:
-        uuid = request.form.get('uuid', '').strip()
-        device = request.form.get('device', 'iphone_x')
-        full_page = request.form.get('full_page') == 'true'
-        scroll_distance = int(request.form.get('scroll_distance', 4800))
-        wait_time = int(request.form.get('wait_time', 3)) * 1000  # 轉換為毫秒
-        
-        if not uuid:
-            flash('請輸入有效的 UUID', 'error')
-            return redirect(url_for('auto_screenshot'))
+        if not uuid or not size:
+            return jsonify({'success': False, 'error': '缺少必要參數'}), 400
         
         # 從 MongoDB 查詢 AdUnit 資料
         logger.info(f"正在查詢 UUID: {uuid}")
         adunit_data = get_adunit_by_uuid(uuid)
         
         if not adunit_data:
-            flash(f'找不到 UUID {uuid} 對應的 AdUnit 資料', 'error')
-            return redirect(url_for('auto_screenshot'))
+            return jsonify({'success': False, 'error': f'找不到 UUID {uuid} 對應的 AdUnit 資料'}), 404
         
         # 建構截圖網址
-        url = build_screenshot_url(adunit_data)
+        url = build_native_screenshot_url(adunit_data, size, template)
         if not url:
-            flash('無法建構截圖網址', 'error')
-            return redirect(url_for('auto_screenshot'))
+            return jsonify({'success': False, 'error': '無法建構截圖網址'}), 400
         
         logger.info(f"建構的截圖網址: {url}")
         
@@ -1077,27 +505,35 @@ def create_screenshot():
             'iphone_se': {'width': 375, 'height': 667, 'name': 'iPhone SE'},
             'iphone_plus': {'width': 414, 'height': 736, 'name': 'iPhone Plus'},
             'android': {'width': 360, 'height': 640, 'name': 'Android 標準'},
-            'tablet': {'width': 768, 'height': 1024, 'name': '平板電腦'}
+            'tablet': {'width': 768, 'height': 1024, 'name': '平板電腦'},
+            'desktop': {'width': 1920, 'height': 1080, 'name': '桌上型電腦'}
         }
         
         device_config = device_configs.get(device, device_configs['iphone_x'])
         
-        # 預設 cookie（用於 aotter 相關網站）
+        # 預設 cookie
         default_cookie = "AOTTERBD_SESSION=757418f543a95a889184e798ec5ab66d4fad04e5-lats=1724229220332&sso=PIg4zu/Vdnn/A15vMEimFlVAGliNhoWlVd5FTvtEMRAFpk/VvBGvAetanw8DLATSLexy9pee/t52uNojvoFS2Q==;aotter=eyJ1c2VyIjp7ImlkIjoiNjNkYjRkNDBjOTFiNTUyMmViMjk4YjBkIiwiZW1haWwiOiJpYW4uY2hlbkBhb3R0ZXIubmV0IiwiY3JlYXRlZEF0IjoxNjc1MzE2NTQ0LCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJsZWdhY3lJZCI6bnVsbCwibGVnYWN5U2VxSWQiOjE2NzUzMTY1NDQ3ODI5NzQwMDB9LCJhY2Nlc3NUb2tlbiI6IjJkYjQyZTNkOTM5MDUzMjdmODgyZmYwMDRiZmI4YmEzZjBhNTlmMDQwYzhiN2Y4NGY5MmZmZTIzYTU0ZTQ2MDQiLCJ1ZWEiOm51bGx9; _Secure-1PSID=vlPPgXupFroiSjP1/A02minugZVZDgIG4K; _Secure-1PSIDCC=g.a000mwhavReSVd1vN09AVTswXkPAhyuW7Tgj8-JFhj-FZya9I_l1B6W2gqTIWAtQUTQMkTxoAwACgYKAW0SARISFQHGX2MiC--NJ2PzCzDpJ0m3odxHhxoVAUF8yKr8r49abq8oe4UxCA0t_QCW0076; _Secure-3PSID=AKEyXzUuXI1zywmFmkEBEBHfg6GRkRM9cJ9BiJZxmaR46x5im_krhaPtmL4Jhw8gQsz5uFFkfbc; _Secure-3PSIDCC=sidts-CjEBUFGohzUF6oK3ZMACCk2peoDBDp6djBwJhGc4Lxgu2zOlzbVFeVpXF4q1TYZ5ba6cEAA"
         
-        logger.info(f"開始自動截圖，目標網址: {url}, 裝置: {device_config['name']}, 完整頁面: {full_page}, UUID: {uuid}, 滾動距離: {scroll_distance}px")
+        logger.info(f"開始截圖 {size}，目標網址: {url}, 裝置: {device_config['name']}, UUID: {uuid}, 滾動距離: {scroll_distance}px")
         
         # 使用 Playwright 進行截圖
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True)
-            context = browser.new_context(
-                viewport={'width': device_config['width'], 'height': device_config['height']},
-                user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1' if 'iphone' in device or device == 'android' else 'Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1'
-            )
             
-            # 預設使用 cookie
+            # 根據裝置類型設定不同的上下文
+            if device == 'desktop':
+                context = browser.new_context(
+                    viewport={'width': device_config['width'], 'height': device_config['height']},
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                )
+            else:
+                context = browser.new_context(
+                    viewport={'width': device_config['width'], 'height': device_config['height']},
+                    user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1'
+                )
+            
+            # 設置 cookies
             try:
-                # 解析 cookie 字串
                 cookies = []
                 cookie_pairs = default_cookie.split(';')
                 
@@ -1107,16 +543,13 @@ def create_screenshot():
                         name = name.strip()
                         value = value.strip()
                         
-                        # 根據 URL 域名設置 cookie
                         from urllib.parse import urlparse
                         parsed_url = urlparse(url)
                         domain = parsed_url.netloc
                         
-                        # 針對不同的 cookie 設置適當的域名
                         if name.startswith('_Secure-') or 'PSID' in name:
                             cookie_domain = '.google.com'
                         else:
-                            # 對於 aotter 相關的 cookie，設置為目標域名或其父域名
                             if 'aotter' in domain or 'trek' in domain:
                                 cookie_domain = '.aotter.net' if 'aotter.net' in domain else domain
                             else:
@@ -1131,7 +564,6 @@ def create_screenshot():
                             'httpOnly': False
                         })
                 
-                # 設置 cookies 到 context
                 context.add_cookies(cookies)
                 logger.info(f"已設置 {len(cookies)} 個 cookies")
                 
@@ -1144,13 +576,12 @@ def create_screenshot():
             page.goto(url, wait_until='networkidle')
             
             # 等待頁面載入完成
-            page.wait_for_timeout(wait_time)
+            page.wait_for_timeout(3000)
             
             # 如果設定了滾動距離，則向下滾動到廣告區域
             if scroll_distance > 0:
                 logger.info(f"向下滾動 {scroll_distance} 像素到廣告區域")
                 page.evaluate(f"window.scrollTo(0, {scroll_distance})")
-                # 滾動後再等待一下讓內容穩定
                 page.wait_for_timeout(1000)
             
             # 創建截圖目錄
@@ -1162,38 +593,48 @@ def create_screenshot():
             # 生成檔案名稱
             timestamp = datetime.now().strftime('%H%M%S')
             device_suffix = device.replace('_', '-')
-            page_type = 'full' if full_page else 'viewport'
             scroll_suffix = f'scroll-{scroll_distance}px' if scroll_distance > 0 else 'no-scroll'
-            filename = f'screenshot_{device_suffix}_{page_type}_uuid-{uuid}_{scroll_suffix}_{timestamp}.png'
+            filename = f'native_{size.replace("x", "_")}_device-{device_suffix}_uuid-{uuid}_{scroll_suffix}_{timestamp}.png'
             screenshot_path = os.path.join(screenshot_dir, filename)
             
             # 截圖
-            page.screenshot(path=screenshot_path, full_page=full_page)
+            page.screenshot(path=screenshot_path, full_page=False)
             
             browser.close()
             
-            # 取得絕對路徑
+            # 取得檔案資訊
             absolute_path = os.path.abspath(screenshot_path)
+            file_size = os.path.getsize(absolute_path)
+            
+            # 格式化檔案大小
+            if file_size > 1024 * 1024:
+                file_size_str = f"{file_size / (1024 * 1024):.1f}MB"
+            elif file_size > 1024:
+                file_size_str = f"{file_size / 1024:.1f}KB"
+            else:
+                file_size_str = f"{file_size}B"
             
             logger.info(f"截圖完成，檔案儲存至: {absolute_path}")
-            flash(f'截圖成功！檔案儲存至: {absolute_path}', 'success')
             
-            # 將截圖路徑儲存到session，供模板顯示
-            session['last_screenshot'] = absolute_path
-            session['last_screenshot_device'] = device_config['name']
-            session['last_screenshot_full_page'] = full_page
-            session['last_screenshot_scroll_distance'] = scroll_distance
-            session['last_screenshot_uuid'] = uuid
-            session['last_screenshot_adunit_title'] = adunit_data.get('title', '')
+            # 計算相對路徑供前端使用
+            relative_path = os.path.relpath(screenshot_path, 'uploads')
+            
+            return jsonify({
+                'success': True,
+                'file_path': absolute_path,
+                'filename': filename,
+                'file_size': file_size_str,
+                'device_name': device_config['name'],
+                'preview_url': url_for('screenshot_base64', filename=relative_path),
+                'download_url': url_for('screenshot_base64', filename=relative_path)
+            })
             
     except Exception as e:
         import traceback
         error_detail = traceback.format_exc()
-        logger.error(f"自動截圖時發生錯誤: {str(e)}")
+        logger.error(f"Native 廣告截圖時發生錯誤: {str(e)}")
         logger.error(f"錯誤詳情：\n{error_detail}")
-        flash(f'截圖失敗: {str(e)}', 'error')
-    
-    return redirect(url_for('auto_screenshot'))
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # 批量廣告創建處理
 @app.route('/create_batch_ads', methods=['POST'])
@@ -1370,6 +811,165 @@ def screenshot_base64(filename):
     except Exception as e:
         logger.error(f"提供截圖檔案時發生錯誤: {str(e)}")
         return "Internal server error", 500
+
+# 批量廣告頁面
+@app.route('/batch')
+def batch():
+    return render_template('batch.html')
+
+# 自動截圖處理
+@app.route('/create-screenshot', methods=['POST'])
+def create_screenshot():
+    try:
+        uuid = request.form.get('uuid', '').strip()
+        device = request.form.get('device', 'iphone_x')
+        full_page = request.form.get('full_page') == 'true'
+        scroll_distance = int(request.form.get('scroll_distance', 4800))
+        wait_time = int(request.form.get('wait_time', 3)) * 1000  # 轉換為毫秒
+        
+        if not uuid:
+            flash('請輸入有效的 UUID', 'error')
+            return redirect(url_for('auto_screenshot'))
+        
+        # 從 MongoDB 查詢 AdUnit 資料
+        logger.info(f"正在查詢 UUID: {uuid}")
+        adunit_data = get_adunit_by_uuid(uuid)
+        
+        if not adunit_data:
+            flash(f'找不到 UUID {uuid} 對應的 AdUnit 資料', 'error')
+            return redirect(url_for('auto_screenshot'))
+        
+        # 建構截圖網址
+        url = build_screenshot_url(adunit_data)
+        if not url:
+            flash('無法建構截圖網址', 'error')
+            return redirect(url_for('auto_screenshot'))
+        
+        logger.info(f"建構的截圖網址: {url}")
+        
+        # 裝置尺寸配置
+        device_configs = {
+            'iphone_x': {'width': 375, 'height': 812, 'name': 'iPhone X'},
+            'iphone_se': {'width': 375, 'height': 667, 'name': 'iPhone SE'},
+            'iphone_plus': {'width': 414, 'height': 736, 'name': 'iPhone Plus'},
+            'android': {'width': 360, 'height': 640, 'name': 'Android 標準'},
+            'tablet': {'width': 768, 'height': 1024, 'name': '平板電腦'}
+        }
+        
+        device_config = device_configs.get(device, device_configs['iphone_x'])
+        
+        # 預設 cookie（用於 aotter 相關網站）
+        default_cookie = "AOTTERBD_SESSION=757418f543a95a889184e798ec5ab66d4fad04e5-lats=1724229220332&sso=PIg4zu/Vdnn/A15vMEimFlVAGliNhoWlVd5FTvtEMRAFpk/VvBGvAetanw8DLATSLexy9pee/t52uNojvoFS2Q==;aotter=eyJ1c2VyIjp7ImlkIjoiNjNkYjRkNDBjOTFiNTUyMmViMjk4YjBkIiwiZW1haWwiOiJpYW4uY2hlbkBhb3R0ZXIubmV0IiwiY3JlYXRlZEF0IjoxNjc1MzE2NTQ0LCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJsZWdhY3lJZCI6bnVsbCwibGVnYWN5U2VxSWQiOjE2NzUzMTY1NDQ3ODI5NzQwMDB9LCJhY2Nlc3NUb2tlbiI6IjJkYjQyZTNkOTM5MDUzMjdmODgyZmYwMDRiZmI4YmEzZjBhNTlmMDQwYzhiN2Y4NGY5MmZmZTIzYTU0ZTQ2MDQiLCJ1ZWEiOm51bGx9; _Secure-1PSID=vlPPgXupFroiSjP1/A02minugZVZDgIG4K; _Secure-1PSIDCC=g.a000mwhavReSVd1vN09AVTswXkPAhyuW7Tgj8-JFhj-FZya9I_l1B6W2gqTIWAtQUTQMkTxoAwACgYKAW0SARISFQHGX2MiC--NJ2PzCzDpJ0m3odxHhxoVAUF8yKr8r49abq8oe4UxCA0t_QCW0076; _Secure-3PSID=AKEyXzUuXI1zywmFmkEBEBHfg6GRkRM9cJ9BiJZxmaR46x5im_krhaPtmL4Jhw8gQsz5uFFkfbc; _Secure-3PSIDCC=sidts-CjEBUFGohzUF6oK3ZMACCk2peoDBDp6djBwJhGc4Lxgu2zOlzbVFeVpXF4q1TYZ5ba6cEAA"
+        
+        logger.info(f"開始自動截圖，目標網址: {url}, 裝置: {device_config['name']}, 完整頁面: {full_page}, UUID: {uuid}, 滾動距離: {scroll_distance}px")
+        
+        # 使用 Playwright 進行截圖
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True)
+            context = browser.new_context(
+                viewport={'width': device_config['width'], 'height': device_config['height']},
+                user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1' if 'iphone' in device or device == 'android' else 'Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1'
+            )
+            
+            # 預設使用 cookie
+            try:
+                # 解析 cookie 字串
+                cookies = []
+                cookie_pairs = default_cookie.split(';')
+                
+                for pair in cookie_pairs:
+                    if '=' in pair:
+                        name, value = pair.split('=', 1)
+                        name = name.strip()
+                        value = value.strip()
+                        
+                        # 根據 URL 域名設置 cookie
+                        from urllib.parse import urlparse
+                        parsed_url = urlparse(url)
+                        domain = parsed_url.netloc
+                        
+                        # 針對不同的 cookie 設置適當的域名
+                        if name.startswith('_Secure-') or 'PSID' in name:
+                            cookie_domain = '.google.com'
+                        else:
+                            # 對於 aotter 相關的 cookie，設置為目標域名或其父域名
+                            if 'aotter' in domain or 'trek' in domain:
+                                cookie_domain = '.aotter.net' if 'aotter.net' in domain else domain
+                            else:
+                                cookie_domain = domain
+                        
+                        cookies.append({
+                            'name': name,
+                            'value': value,
+                            'domain': cookie_domain,
+                            'path': '/',
+                            'secure': name.startswith('_Secure-') or 'PSID' in name,
+                            'httpOnly': False
+                        })
+                
+                # 設置 cookies 到 context
+                context.add_cookies(cookies)
+                logger.info(f"已設置 {len(cookies)} 個 cookies")
+                
+            except Exception as cookie_error:
+                logger.warning(f"設置 cookie 時發生錯誤（將繼續不使用 cookie）: {str(cookie_error)}")
+            
+            page = context.new_page()
+            
+            # 訪問目標網址
+            page.goto(url, wait_until='networkidle')
+            
+            # 等待頁面載入完成
+            page.wait_for_timeout(wait_time)
+            
+            # 如果設定了滾動距離，則向下滾動到廣告區域
+            if scroll_distance > 0:
+                logger.info(f"向下滾動 {scroll_distance} 像素到廣告區域")
+                page.evaluate(f"window.scrollTo(0, {scroll_distance})")
+                # 滾動後再等待一下讓內容穩定
+                page.wait_for_timeout(1000)
+            
+            # 創建截圖目錄
+            today = datetime.now().strftime('%Y%m%d')
+            screenshot_dir = os.path.join('uploads', 'screenshots', today)
+            if not os.path.exists(screenshot_dir):
+                os.makedirs(screenshot_dir)
+            
+            # 生成檔案名稱
+            timestamp = datetime.now().strftime('%H%M%S')
+            device_suffix = device.replace('_', '-')
+            page_type = 'full' if full_page else 'viewport'
+            scroll_suffix = f'scroll-{scroll_distance}px' if scroll_distance > 0 else 'no-scroll'
+            filename = f'screenshot_{device_suffix}_{page_type}_uuid-{uuid}_{scroll_suffix}_{timestamp}.png'
+            screenshot_path = os.path.join(screenshot_dir, filename)
+            
+            # 截圖
+            page.screenshot(path=screenshot_path, full_page=full_page)
+            
+            browser.close()
+            
+            # 取得絕對路徑
+            absolute_path = os.path.abspath(screenshot_path)
+            
+            logger.info(f"截圖完成，檔案儲存至: {absolute_path}")
+            flash(f'截圖成功！檔案儲存至: {absolute_path}', 'success')
+            
+            # 將截圖路徑儲存到session，供模板顯示
+            session['last_screenshot'] = absolute_path
+            session['last_screenshot_device'] = device_config['name']
+            session['last_screenshot_full_page'] = full_page
+            session['last_screenshot_scroll_distance'] = scroll_distance
+            session['last_screenshot_uuid'] = uuid
+            session['last_screenshot_adunit_title'] = adunit_data.get('title', '')
+            
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        logger.error(f"自動截圖時發生錯誤: {str(e)}")
+        logger.error(f"錯誤詳情：\n{error_detail}")
+        flash(f'截圖失敗: {str(e)}', 'error')
+    
+    return redirect(url_for('auto_screenshot'))
 
 if __name__ == '__main__':
     app.run(debug=True, port=5002) # 使用不同的埠號 

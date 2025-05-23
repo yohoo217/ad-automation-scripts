@@ -1,0 +1,584 @@
+{% extends "base.html" %}
+
+{% block title %}Native 廣告多尺寸截圖{% endblock %}
+
+{% block page_title %}Native 廣告多尺寸截圖工具{% endblock %}
+
+{% block additional_styles %}
+<style>
+    .screenshot-form {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+    }
+    
+    .input-group {
+        margin-bottom: 20px;
+    }
+    
+    .input-group label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #333;
+    }
+    
+    .uuid-input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        box-sizing: border-box;
+    }
+    
+    .uuid-input:focus {
+        border-color: #5cb85c;
+        outline: none;
+    }
+    
+    .screenshot-btn {
+        background-color: #5cb85c;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        width: 100%;
+        margin-bottom: 15px;
+    }
+    
+    .screenshot-btn:hover {
+        background-color: #4cae4c;
+    }
+    
+    .screenshot-btn:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
+    
+    .size-config {
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .size-config h4 {
+        margin: 0 0 10px 0;
+        color: #333;
+    }
+    
+    .config-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        font-size: 14px;
+        color: #666;
+    }
+    
+    .config-item {
+        background-color: #f5f5f5;
+        padding: 8px;
+        border-radius: 4px;
+        text-align: center;
+    }
+    
+    .progress-container {
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 20px;
+        display: none;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 20px;
+        background-color: #f0f0f0;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background-color: #5cb85c;
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+    
+    .progress-text {
+        text-align: center;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+    
+    .results-container {
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+    
+    .screenshot-result {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 20px;
+        background-color: #fafafa;
+    }
+    
+    .screenshot-result h4 {
+        margin: 0 0 10px 0;
+        color: #333;
+    }
+    
+    .screenshot-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 15px;
+        font-size: 14px;
+    }
+    
+    .meta-item {
+        background-color: #fff;
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #eee;
+    }
+    
+    .meta-label {
+        font-weight: bold;
+        color: #666;
+        display: block;
+    }
+    
+    .meta-value {
+        color: #333;
+    }
+    
+    .screenshot-preview {
+        max-width: 100%;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        cursor: pointer;
+    }
+    
+    .download-btn {
+        background-color: #007bff;
+        color: white;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 14px;
+    }
+    
+    .download-btn:hover {
+        background-color: #0056b3;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .file-path {
+        background-color: #f5f5f5;
+        padding: 8px;
+        border-radius: 4px;
+        font-family: monospace;
+        word-break: break-all;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        font-size: 12px;
+    }
+    
+    .info-box {
+        background-color: #e7f3ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 20px;
+    }
+    
+    .info-box .icon {
+        color: #0066cc;
+        font-weight: bold;
+        margin-right: 5px;
+    }
+
+    .adunit-info {
+        background-color: #f0f8f0;
+        border: 1px solid #c6e8c6;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 15px;
+    }
+    
+    .help-section {
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+    
+    .help-section h3 {
+        color: #333;
+        margin-top: 0;
+    }
+    
+    .help-section ul {
+        margin: 10px 0;
+        padding-left: 20px;
+    }
+    
+    .help-section li {
+        margin: 5px 0;
+        color: #666;
+    }
+    
+    .error-message {
+        background-color: #ffe6e6;
+        border: 1px solid #ffcccc;
+        color: #cc0000;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+    }
+    
+    .success-message {
+        background-color: #e6ffe6;
+        border: 1px solid #ccffcc;
+        color: #008800;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="screenshot-form">
+    <div class="info-box">
+        <span class="icon">ℹ️</span>
+        此工具會根據您提供的 UUID，自動截取 Native 廣告的所有尺寸（1200x628、300x300、320x50、300x250、640x200），每種尺寸使用不同的裝置和滾動設定。
+    </div>
+    
+    <form id="screenshot-form">
+        <div class="input-group">
+            <label for="uuid">輸入 UUID：</label>
+            <input type="text" 
+                   id="uuid" 
+                   name="uuid" 
+                   class="uuid-input" 
+                   placeholder="例如：84ab2622-dc2b-402d-b42b-b3ea54f9faeb" 
+                   required>
+        </div>
+        
+        <button type="submit" class="screenshot-btn" id="submit-btn">開始多尺寸截圖</button>
+    </form>
+    
+    <div class="size-config">
+        <h4>📐 支援的廣告尺寸配置</h4>
+        <div style="display: grid; gap: 15px;">
+            <div style="border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                <strong>1200x628 (大圖廣告)</strong>
+                <div class="config-details">
+                    <div class="config-item">📱 手機畫面</div>
+                    <div class="config-item">📏 向下滾動 4800px</div>
+                    <div class="config-item">🌐 PTT 文章頁面</div>
+                </div>
+            </div>
+            
+            <div style="border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                <strong>300x300 (方形廣告)</strong>
+                <div class="config-details">
+                    <div class="config-item">📱 手機畫面</div>
+                    <div class="config-item">📏 不滾動</div>
+                    <div class="config-item">🌐 PTT 文章列表</div>
+                </div>
+            </div>
+            
+            <div style="border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                <strong>320x50 (橫幅廣告)</strong>
+                <div class="config-details">
+                    <div class="config-item">📱 手機畫面</div>
+                    <div class="config-item">📏 不滾動</div>
+                    <div class="config-item">🌐 PTT 文章頁面</div>
+                </div>
+            </div>
+            
+            <div style="border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                <strong>300x250 (中等廣告)</strong>
+                <div class="config-details">
+                    <div class="config-item">💻 桌機畫面</div>
+                    <div class="config-item">📏 向下滾動 4800px</div>
+                    <div class="config-item">🌐 MoPTT 頁面</div>
+                </div>
+            </div>
+            
+            <div style="border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                <strong>640x200 (寬幅廣告)</strong>
+                <div class="config-details">
+                    <div class="config-item">📱 手機畫面</div>
+                    <div class="config-item">📏 不滾動</div>
+                    <div class="config-item">🌐 PNN 文章頁面</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="progress-container" id="progress-container">
+        <h3>截圖進度</h3>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-text" id="progress-text">準備開始...</div>
+    </div>
+    
+    <div class="results-container" id="results-container" style="display: none;">
+        <h3>截圖結果</h3>
+        <div id="screenshots-list"></div>
+    </div>
+</div>
+
+<div class="help-section">
+    <h3>📋 使用說明</h3>
+    <ul>
+        <li><strong>UUID 輸入：</strong>輸入 AdUnit 的 UUID，系統會自動從資料庫查詢相關資料</li>
+        <li><strong>多尺寸截圖：</strong>一次點擊會自動截取所有 5 種尺寸的廣告圖片</li>
+        <li><strong>智慧配置：</strong>每種尺寸會自動使用最適合的裝置類型、滾動距離和預覽頁面</li>
+        <li><strong>即時預覽：</strong>截圖完成後可立即預覽所有結果</li>
+        <li><strong>選擇下載：</strong>可選擇要下載哪些截圖</li>
+        <li><strong>自動命名：</strong>檔案會自動以尺寸和時間戳命名</li>
+    </ul>
+    
+    <h3>⚠️ 注意事項</h3>
+    <ul>
+        <li>請確保輸入的 UUID 存在於資料庫中</li>
+        <li>完整的 5 尺寸截圖可能需要 30-60 秒</li>
+        <li>請耐心等待所有截圖完成</li>
+        <li>大尺寸圖片載入可能較慢</li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('screenshot-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const progressContainer = document.getElementById('progress-container');
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+    const resultsContainer = document.getElementById('results-container');
+    const screenshotsList = document.getElementById('screenshots-list');
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const uuid = document.getElementById('uuid').value.trim();
+        if (!uuid) {
+            alert('請輸入 UUID');
+            return;
+        }
+        
+        // 開始截圖流程
+        startScreenshots(uuid);
+    });
+    
+    function startScreenshots(uuid) {
+        // 重置 UI
+        submitBtn.disabled = true;
+        submitBtn.textContent = '截圖進行中...';
+        progressContainer.style.display = 'block';
+        resultsContainer.style.display = 'none';
+        screenshotsList.innerHTML = '';
+        
+        // 截圖配置
+        const configs = [
+            {
+                size: '1200x628',
+                name: '大圖廣告',
+                device: 'iphone_x',
+                scroll: 4800,
+                template: 'ptt-article'
+            },
+            {
+                size: '300x300',
+                name: '方形廣告',
+                device: 'iphone_x',
+                scroll: 0,
+                template: 'ptt-article-list'
+            },
+            {
+                size: '320x50',
+                name: '橫幅廣告',
+                device: 'iphone_x',
+                scroll: 0,
+                template: 'ptt-article'
+            },
+            {
+                size: '300x250',
+                name: '中等廣告',
+                device: 'desktop',
+                scroll: 4800,
+                template: 'moptt'
+            },
+            {
+                size: '640x200',
+                name: '寬幅廣告',
+                device: 'iphone_x',
+                scroll: 0,
+                template: 'pnn-article'
+            }
+        ];
+        
+        let currentIndex = 0;
+        const results = [];
+        
+        function processNext() {
+            if (currentIndex >= configs.length) {
+                // 全部完成
+                completeScreenshots(results);
+                return;
+            }
+            
+            const config = configs[currentIndex];
+            const progress = ((currentIndex) / configs.length) * 100;
+            
+            updateProgress(progress, `正在截圖 ${config.name} (${config.size})...`);
+            
+            // 發送截圖請求
+            fetch('/create-native-screenshot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    uuid: uuid,
+                    size: config.size,
+                    device: config.device,
+                    scroll_distance: config.scroll,
+                    template: config.template
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    results.push({
+                        config: config,
+                        data: data
+                    });
+                } else {
+                    results.push({
+                        config: config,
+                        error: data.error
+                    });
+                }
+                
+                currentIndex++;
+                setTimeout(processNext, 1000); // 延遲 1 秒再處理下一個
+            })
+            .catch(error => {
+                results.push({
+                    config: config,
+                    error: error.message
+                });
+                currentIndex++;
+                setTimeout(processNext, 1000);
+            });
+        }
+        
+        processNext();
+    }
+    
+    function updateProgress(percent, text) {
+        progressFill.style.width = percent + '%';
+        progressText.textContent = text;
+    }
+    
+    function completeScreenshots(results) {
+        updateProgress(100, '截圖完成！');
+        
+        setTimeout(() => {
+            progressContainer.style.display = 'none';
+            submitBtn.disabled = false;
+            submitBtn.textContent = '開始多尺寸截圖';
+            
+            // 顯示結果
+            displayResults(results);
+        }, 1000);
+    }
+    
+    function displayResults(results) {
+        screenshotsList.innerHTML = '';
+        
+        results.forEach((result, index) => {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'screenshot-result';
+            
+            if (result.error) {
+                resultDiv.innerHTML = `
+                    <h4>${result.config.name} (${result.config.size})</h4>
+                    <div class="error-message">
+                        ❌ 截圖失敗: ${result.error}
+                    </div>
+                `;
+            } else {
+                const data = result.data;
+                resultDiv.innerHTML = `
+                    <h4>${result.config.name} (${result.config.size})</h4>
+                    <div class="screenshot-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">裝置類型</span>
+                            <span class="meta-value">${data.device_name}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">滾動距離</span>
+                            <span class="meta-value">${result.config.scroll}px</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">檔案大小</span>
+                            <span class="meta-value">${data.file_size || '未知'}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="file-path">
+                        <strong>檔案位置：</strong>${data.file_path}
+                    </div>
+                    
+                    <img src="${data.preview_url}" 
+                         alt="${result.config.name} 截圖" 
+                         class="screenshot-preview"
+                         onclick="window.open('${data.preview_url}', '_blank')">
+                    
+                    <a href="${data.download_url}" 
+                       class="download-btn" 
+                       download="${data.filename}">
+                        📥 下載 ${result.config.size} 截圖
+                    </a>
+                `;
+            }
+            
+            screenshotsList.appendChild(resultDiv);
+        });
+        
+        resultsContainer.style.display = 'block';
+    }
+});
+</script>
+{% endblock %} 

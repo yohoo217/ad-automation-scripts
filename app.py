@@ -408,19 +408,25 @@ def build_native_screenshot_url(adunit_data, size, template):
             'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html'
         },
         '300x250': {
-            'moptt': 'https://moptt.tw/p/Gossiping.M.1718675708.A.183',
-            'trek-debug': 'true'
+            # MoPTT 經常失敗，直接使用 PTT 作為主要方案
+            'ptt-article': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html',
+            'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html',
+            # 保留原始 MoPTT 配置作為註釋
+            'moptt_backup': 'https://moptt.tw/p/Gossiping.M.1718675708.A.183'
         },
         '640x200': {
-            'pnn-article': 'https://aotter.github.io/trek-ad-preview/pages/pnn-article/',
-            'iframe-url': 'https://www.ptt.cc/bbs/NBA/M.1701151337.A.E0C.html',
-            'dataSrcUrl': ''
+            # PNN 經常失敗，直接使用 PTT 作為主要方案
+            'ptt-article': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html',
+            'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html',
+            # 保留原始 PNN 配置作為註釋
+            'pnn_backup': 'https://aotter.github.io/trek-ad-preview/pages/pnn-article/'
         }
     }
     
     template_config = url_templates.get(size, {})
     
-    if template == 'ptt-article' and size in ['1200x628', '320x50']:
+    # 統一使用 PTT 頁面作為所有尺寸的基礎模板（更穩定）
+    if size in ['1200x628', '320x50', '300x250', '640x200']:
         base_url = template_config.get('ptt-article')
         params = [
             f"media-title={quote_plus(media_title)}",
@@ -445,24 +451,6 @@ def build_native_screenshot_url(adunit_data, size, template):
             f"trek-debug-place=5a41c4d0-b268-43b2-9536-d774f46c33bf",
             f"dataSrcUrl={template_config.get('dataSrcUrl', '')}",
             f"lastArticleNumber={template_config.get('lastArticleNumber', '')}"
-        ]
-        
-    elif template == 'moptt' and size == '300x250':
-        base_url = template_config.get('moptt')
-        catrun_with_sdk = f"{catrun_url}?sdkVer=web_3.5.4"
-        params = [
-            f"trek-debug=true",
-            f"trek-debug-place=5a41c4d0-b268-43b2-9536-d774f46c33bf",
-            f"trek-debug-catrun={quote_plus(catrun_with_sdk)}"
-        ]
-        
-    elif template == 'pnn-article' and size == '640x200':
-        base_url = template_config.get('pnn-article')
-        params = [
-            f"trek-debug-place=f62fc7ee-2629-4977-be97-c92f4ac4ec23",
-            f"trek-debug-catrun={quote_plus(catrun_url)}",
-            f"iframe-url={template_config.get('iframe-url', '')}",
-            f"dataSrcUrl={template_config.get('dataSrcUrl', '')}"
         ]
     else:
         return None
@@ -618,6 +606,12 @@ def create_native_screenshot():
             
             # 計算相對路徑供前端使用
             relative_path = os.path.relpath(screenshot_path, 'uploads')
+            
+            # 對於某些已知有問題的尺寸，提供警告信息
+            if size == '300x250':
+                logger.info(f"300x250 尺寸改用 PTT 頁面（原 MoPTT 不穩定）")
+            elif size == '640x200':
+                logger.info(f"640x200 尺寸改用 PTT 頁面（原 PNN 不穩定）")
             
             return jsonify({
                 'success': True,

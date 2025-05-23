@@ -293,52 +293,7 @@
     
     <div class="size-config">
         <h4>📐 支援的廣告尺寸配置</h4>
-        <div style="display: grid; gap: 15px;">
-            <div style="border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
-                <strong>1200x628 (大圖廣告)</strong>
-                <div class="config-details">
-                    <div class="config-item">📱 手機畫面</div>
-                    <div class="config-item">📏 向下滾動 4800px</div>
-                    <div class="config-item">🌐 PTT 文章頁面</div>
-                </div>
-            </div>
-            
-            <div style="border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
-                <strong>300x300 (方形廣告)</strong>
-                <div class="config-details">
-                    <div class="config-item">📱 手機畫面</div>
-                    <div class="config-item">📏 不滾動</div>
-                    <div class="config-item">🌐 PTT 文章列表</div>
-                </div>
-            </div>
-            
-            <div style="border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
-                <strong>320x50 (橫幅廣告)</strong>
-                <div class="config-details">
-                    <div class="config-item">📱 手機畫面</div>
-                    <div class="config-item">📏 不滾動</div>
-                    <div class="config-item">🌐 PTT 文章頁面</div>
-                </div>
-            </div>
-            
-            <div style="border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
-                <strong>300x250 (中等廣告)</strong>
-                <div class="config-details">
-                    <div class="config-item">💻 桌機畫面</div>
-                    <div class="config-item">📏 向下滾動 4800px</div>
-                    <div class="config-item">🌐 MoPTT 頁面</div>
-                </div>
-            </div>
-            
-            <div style="border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
-                <strong>640x200 (寬幅廣告)</strong>
-                <div class="config-details">
-                    <div class="config-item">📱 手機畫面</div>
-                    <div class="config-item">📏 不滾動</div>
-                    <div class="config-item">🌐 PNN 文章頁面</div>
-                </div>
-            </div>
-        </div>
+        <div id="config-container"></div>
     </div>
     
     <div class="progress-container" id="progress-container">
@@ -386,6 +341,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const progressText = document.getElementById('progress-text');
     const resultsContainer = document.getElementById('results-container');
     const screenshotsList = document.getElementById('screenshots-list');
+    const configContainer = document.getElementById('config-container');
     
     form.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -407,6 +363,7 @@ document.addEventListener('DOMContentLoaded', function() {
         progressContainer.style.display = 'block';
         resultsContainer.style.display = 'none';
         screenshotsList.innerHTML = '';
+        configContainer.innerHTML = '';
         
         // 截圖配置
         const configs = [
@@ -415,37 +372,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 name: '大圖廣告',
                 device: 'iphone_x',
                 scroll: 4800,
-                template: 'ptt-article'
+                template: 'ptt-article',
+                displayInfo: { device: 'iPhone X', scroll: '4800px', template: 'PTT 文章頁面' }
             },
             {
                 size: '300x300',
                 name: '方形廣告',
                 device: 'iphone_x',
                 scroll: 0,
-                template: 'ptt-article-list'
+                template: 'ptt-article-list',
+                displayInfo: { device: 'iPhone X', scroll: '不滾動', template: 'PTT 文章列表' }
             },
             {
                 size: '320x50',
                 name: '橫幅廣告',
                 device: 'iphone_x',
                 scroll: 0,
-                template: 'ptt-article'
+                template: 'ptt-article',
+                displayInfo: { device: 'iPhone X', scroll: '不滾動', template: 'PTT 文章頁面' }
             },
             {
                 size: '300x250',
                 name: '中等廣告',
                 device: 'desktop',
                 scroll: 4800,
-                template: 'moptt'
+                template: 'moptt',  // 後端會自動轉為 ptt-article
+                displayInfo: { device: '桌上型電腦', scroll: '4800px', template: 'PTT 文章頁面 (穩定版)' }
             },
             {
                 size: '640x200',
                 name: '寬幅廣告',
                 device: 'iphone_x',
                 scroll: 0,
-                template: 'pnn-article'
+                template: 'pnn-article',  // 後端會自動轉為 ptt-article
+                displayInfo: { device: 'iPhone X', scroll: '不滾動', template: 'PTT 文章頁面 (穩定版)' }
             }
         ];
+        
+        // 顯示配置
+        displayConfig(configs);
         
         let currentIndex = 0;
         const results = [];
@@ -578,6 +543,27 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         resultsContainer.style.display = 'block';
+    }
+
+    function displayConfig(configs) {
+        configContainer.innerHTML = configs.map((config, index) => `
+            <div class="config-item">
+                <div class="config-header">
+                    <h4>${index + 1}. ${config.size} ${config.name}</h4>
+                    <div class="config-details">
+                        <span class="config-badge">📱 ${config.displayInfo.device}</span>
+                        <span class="config-badge">📏 ${config.displayInfo.scroll}</span>
+                        <span class="config-badge">🌐 ${config.displayInfo.template}</span>
+                    </div>
+                </div>
+                <div class="screenshot-result" id="result-${index}" style="display: none;">
+                    <div class="result-loading">
+                        <div class="spinner"></div>
+                        <span>截圖中...</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
     }
 });
 </script>

@@ -388,6 +388,7 @@ def build_native_screenshot_url(adunit_data, size, template):
     media_cta = adunit_data.get('callToAction', '')
     url_original = adunit_data.get('url_original', '')
     uuid = adunit_data.get('uuid', '')
+    media_img = adunit_data.get('image_path_m', '')
     
     # 建構 catrun 網址
     catrun_url = f"https://tkcatrun.aotter.net/b/{uuid}/{size}"
@@ -395,53 +396,66 @@ def build_native_screenshot_url(adunit_data, size, template):
     # 根據尺寸和模板類型選擇對應的 URL 模板
     url_templates = {
         '1200x628': {
-            'ptt-article': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html',
-            'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html'
+            'ptt-article': {
+                'base_url': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html',
+                'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html'
+            }
         },
         '300x300': {
-            'ptt-article-list': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article-list/index.html',
-            'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2Findex.html',
-            'lastArticleNumber': '153746'
+            'ptt-article-list': {
+                'base_url': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article-list/index.html',
+                'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2Findex.html',
+                'lastArticleNumber': '153746'
+            }
         },
         '320x50': {
-            'ptt-article': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html',
-            'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html'
+            'ptt-article': {
+                'base_url': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html',
+                'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html'
+            }
         },
         '300x250': {
-            # MoPTT 經常失敗，直接使用 PTT 作為主要方案
-            'ptt-article': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html',
-            'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html',
-            # 保留原始 MoPTT 配置作為註釋
-            'moptt_backup': 'https://moptt.tw/p/Gossiping.M.1718675708.A.183'
+            'moptt': {
+                'base_url': 'https://moptt.tw/p/Gossiping.M.1718675708.A.183',
+                'use_iframe': True
+            },
+            'ptt-article': {
+                'base_url': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html',
+                'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html'
+            }
         },
         '640x200': {
-            # PNN 經常失敗，直接使用 PTT 作為主要方案
-            'ptt-article': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html',
-            'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html',
-            # 保留原始 PNN 配置作為註釋
-            'pnn_backup': 'https://aotter.github.io/trek-ad-preview/pages/pnn-article/'
+            'pnn-article': {
+                'base_url': 'https://aotter.github.io/trek-ad-preview/pages/pnn-article/',
+                'use_iframe': True
+            },
+            'ptt-article': {
+                'base_url': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html',
+                'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html'
+            }
         }
     }
     
-    template_config = url_templates.get(size, {})
+    # 根據尺寸和模板決定使用哪個配置
+    size_templates = url_templates.get(size, {})
+    template_config = size_templates.get(template)
     
-    # 統一使用 PTT 頁面作為所有尺寸的基礎模板（更穩定）
-    if size in ['1200x628', '320x50', '300x250', '640x200']:
-        base_url = template_config.get('ptt-article')
-        params = [
-            f"media-title={quote_plus(media_title)}",
-            f"media-cta={quote_plus(media_cta)}",
-            f"media-desc={quote_plus(media_desc)}",
-            f"media-sponsor={quote_plus(media_sponsor)}",
-            f"trek-debug-place=5a41c4d0-b268-43b2-9536-d774f46c33bf",
-            f"trek-debug-catrun={quote_plus(catrun_url)}",
-            f"dataSrcUrl={template_config.get('dataSrcUrl', '')}"
-        ]
-        
-    elif template == 'ptt-article-list' and size == '300x300':
-        base_url = template_config.get('ptt-article-list')
-        # 需要取得圖片路徑
-        media_img = adunit_data.get('image_path_m', '')
+    # 如果指定的模板不存在，嘗試使用預設模板
+    if not template_config:
+        if size == '300x300':
+            template_config = size_templates.get('ptt-article-list')
+        else:
+            template_config = size_templates.get('ptt-article')
+    
+    if not template_config:
+        return None
+    
+    base_url = template_config.get('base_url')
+    if not base_url:
+        return None
+    
+    # 根據不同模板類型建構參數
+    if template == 'ptt-article-list' and size == '300x300':
         params = [
             f"media-url={quote_plus(url_original)}",
             f"media-title={quote_plus(media_title)}",
@@ -452,8 +466,41 @@ def build_native_screenshot_url(adunit_data, size, template):
             f"dataSrcUrl={template_config.get('dataSrcUrl', '')}",
             f"lastArticleNumber={template_config.get('lastArticleNumber', '')}"
         ]
+    elif template == 'moptt' and size == '300x250':
+        # MoPTT 使用 iframe 參數
+        params = [
+            f"iframe_title={quote_plus(media_title)}",
+            f"iframe_desc={quote_plus(media_desc)}",
+            f"iframe_sponsor={quote_plus(media_sponsor)}",
+            f"iframe_cta={quote_plus(media_cta)}",
+            f"iframe_url={quote_plus(url_original)}",
+            f"iframe_img={quote_plus(media_img)}",
+            f"trek-debug-place=5a41c4d0-b268-43b2-9536-d774f46c33bf",
+            f"trek-debug-catrun={quote_plus(catrun_url)}"
+        ]
+    elif template == 'pnn-article' and size == '640x200':
+        # PNN 使用特定參數格式
+        params = [
+            f"iframe_title={quote_plus(media_title)}",
+            f"iframe_desc={quote_plus(media_desc)}",
+            f"iframe_sponsor={quote_plus(media_sponsor)}",
+            f"iframe_cta={quote_plus(media_cta)}",
+            f"iframe_url={quote_plus(url_original)}",
+            f"iframe_img={quote_plus(media_img)}",
+            f"trek-debug-place=5a41c4d0-b268-43b2-9536-d774f46c33bf",
+            f"trek-debug-catrun={quote_plus(catrun_url)}"
+        ]
     else:
-        return None
+        # PTT 文章頁面的標準參數
+        params = [
+            f"media-title={quote_plus(media_title)}",
+            f"media-cta={quote_plus(media_cta)}",
+            f"media-desc={quote_plus(media_desc)}",
+            f"media-sponsor={quote_plus(media_sponsor)}",
+            f"trek-debug-place=5a41c4d0-b268-43b2-9536-d774f46c33bf",
+            f"trek-debug-catrun={quote_plus(catrun_url)}",
+            f"dataSrcUrl={template_config.get('dataSrcUrl', '')}"
+        ]
     
     full_url = f"{base_url}?{'&'.join(params)}"
     return full_url
@@ -467,7 +514,7 @@ def create_native_screenshot():
         uuid = data.get('uuid', '').strip()
         size = data.get('size', '')
         device = data.get('device', 'iphone_x')
-        scroll_distance = int(data.get('scroll_distance', 0))
+        scroll_distance = int(data.get('scroll_distance', 4800))
         template = data.get('template', 'ptt-article')
         
         if not uuid or not size:
@@ -506,71 +553,155 @@ def create_native_screenshot():
         
         # 使用 Playwright 進行截圖
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=True)
+            browser = playwright.chromium.launch(
+                headless=True,
+                args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+            )
             
-            # 根據裝置類型設定不同的上下文
+            # 根據裝置類型和網站設定不同的上下文
+            extra_http_headers = {}
+            
+            # 為外部網站設置額外的 headers
+            if template in ['moptt', 'pnn-article']:
+                extra_http_headers = {
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'DNT': '1',
+                    'Connection': 'keep-alive',
+                    'Upgrade-Insecure-Requests': '1',
+                }
+            
             if device == 'desktop':
                 context = browser.new_context(
                     viewport={'width': device_config['width'], 'height': device_config['height']},
-                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    extra_http_headers=extra_http_headers
                 )
             else:
                 context = browser.new_context(
                     viewport={'width': device_config['width'], 'height': device_config['height']},
-                    user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1'
+                    user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+                    extra_http_headers=extra_http_headers
                 )
-            
-            # 設置 cookies
-            try:
-                cookies = []
-                cookie_pairs = default_cookie.split(';')
-                
-                for pair in cookie_pairs:
-                    if '=' in pair:
-                        name, value = pair.split('=', 1)
-                        name = name.strip()
-                        value = value.strip()
-                        
-                        from urllib.parse import urlparse
-                        parsed_url = urlparse(url)
-                        domain = parsed_url.netloc
-                        
-                        if name.startswith('_Secure-') or 'PSID' in name:
-                            cookie_domain = '.google.com'
-                        else:
-                            if 'aotter' in domain or 'trek' in domain:
-                                cookie_domain = '.aotter.net' if 'aotter.net' in domain else domain
-                            else:
-                                cookie_domain = domain
-                        
-                        cookies.append({
-                            'name': name,
-                            'value': value,
-                            'domain': cookie_domain,
-                            'path': '/',
-                            'secure': name.startswith('_Secure-') or 'PSID' in name,
-                            'httpOnly': False
-                        })
-                
-                context.add_cookies(cookies)
-                logger.info(f"已設置 {len(cookies)} 個 cookies")
-                
-            except Exception as cookie_error:
-                logger.warning(f"設置 cookie 時發生錯誤（將繼續不使用 cookie）: {str(cookie_error)}")
             
             page = context.new_page()
             
-            # 訪問目標網址
-            page.goto(url, wait_until='networkidle')
+            # 只對 aotter 相關網址設置 cookies
+            from urllib.parse import urlparse
+            parsed_url = urlparse(url)
+            domain = parsed_url.netloc
             
-            # 等待頁面載入完成
-            page.wait_for_timeout(3000)
+            # 修正 Cookie 判斷條件，更精確
+            if (".aotter.net" in domain or "trek.aotter.net" == domain) and not domain.endswith(".github.io"):
+                try:
+                    # 設置 aotter 相關的 cookies
+                    cookies = []
+                    cookie_pairs = default_cookie.split(';')
+                    
+                    for pair in cookie_pairs:
+                        if '=' in pair:
+                            name, value = pair.split('=', 1)
+                            name = name.strip()
+                            value = value.strip()
+                            
+                            if name.startswith('_Secure-') or 'PSID' in name:
+                                cookie_domain = '.google.com'
+                            else:
+                                cookie_domain = '.aotter.net' if 'aotter.net' in domain else domain
+                            
+                            cookies.append({
+                                'name': name,
+                                'value': value,
+                                'domain': cookie_domain,
+                                'path': '/',
+                                'secure': name.startswith('_Secure-') or 'PSID' in name,
+                                'httpOnly': False
+                            })
+                    
+                    context.add_cookies(cookies)
+                    logger.info(f"已為 aotter 網域設置 {len(cookies)} 個 cookies")
+                    
+                except Exception as cookie_error:
+                    logger.warning(f"設置 cookie 時發生錯誤（將繼續不使用 cookie）: {str(cookie_error)}")
+            else:
+                logger.info(f"外部網址 {domain}，跳過 cookie 設置")
             
-            # 如果設定了滾動距離，則向下滾動到廣告區域
-            if scroll_distance > 0:
-                logger.info(f"向下滾動 {scroll_distance} 像素到廣告區域")
-                page.evaluate(f"window.scrollTo(0, {scroll_distance})")
+            try:
+                # 根據不同網站使用不同的載入策略
+                if template == 'moptt' and size == '300x250':
+                    logger.info(f"處理 MoPTT 頁面，URL: {url} - 採用最簡化策略")
+                    try:
+                        page.goto(url, wait_until='domcontentloaded', timeout=20000) # 快速載入
+                        logger.info("MoPTT 頁面 domcontentloaded，等待 1 秒後立即嘗試截圖")
+                        page.wait_for_timeout(1000) # 非常短的等待
+                        # 對於 MoPTT，不再嘗試 iframe 或特定元素，直接準備截圖
+                    except Exception as e_goto:
+                        logger.error(f"MoPTT page.goto() 失敗: {str(e_goto)}")
+                        # 如果 goto 失敗，也沒什麼能做的了，錯誤會在截圖步驟中被捕獲
+                        pass # 允許繼續到截圖步驟，那裡會處理 page closed
+
+                elif template == 'pnn-article' and size == '640x200':
+                    logger.info(f"處理 PNN 頁面，URL: {url}")
+                    page.goto(url, wait_until='domcontentloaded', timeout=30000) 
+                    logger.info("PNN 頁面 domcontentloaded，等待 3 秒...")
+                    page.wait_for_timeout(3000)
+
+                    ad_frame = None
+                    try:
+                        logger.info("PNN: 嘗試尋找廣告 iframe: iframe[src*=\"tkcatrun.aotter.net\"]")
+                        iframe_element = page.wait_for_selector('iframe[src*="tkcatrun.aotter.net"]', timeout=10000)
+                        if iframe_element:
+                            ad_frame = iframe_element.content_frame()
+                            logger.info("PNN: 找到並獲取到廣告 iframe")
+                            if ad_frame:
+                                logger.info("PNN: 在 iframe 內額外等待 2 秒讓 CatRun 初始化")
+                                ad_frame.wait_for_timeout(2000) # 給 CatRun iframe 內部多一點時間
+                        else:
+                            logger.warning("PNN: 未找到 tkcatrun iframe 的元素")
+                    except Exception as fe:
+                        logger.warning(f"PNN: 尋找 tkcatrun iframe 時出錯: {str(fe)}.")
+
+                    target_for_ad_wait = ad_frame if ad_frame else page
+                    try:
+                        logger.info(f"PNN: 在 {'iframe' if ad_frame else '主頁面'} 中等待廣告元素 [data-trek-ad]")
+                        target_for_ad_wait.wait_for_selector('[data-trek-ad]', timeout=10000)
+                        logger.info("PNN: 廣告元素 [data-trek-ad] 已找到")
+                    except Exception as ad_el_err:
+                        logger.warning(f"PNN: 未找到 [data-trek-ad] 廣告元素: {str(ad_el_err)}")
+                    page.wait_for_timeout(1000) # 等待穩定
+                    
+                else: # Aotter 內部頁面或其他
+                    logger.info(f"處理 aotter/其他頁面 ({template})，使用完整載入策略: {url}")
+                    page.goto(url, wait_until='networkidle', timeout=30000)
+                    logger.info(f"頁面 ({template}) networkidle，額外等待 2 秒確保穩定")
+                    page.wait_for_timeout(2000) # 額外等待，確保 JS 完成
+                    
+                    try:
+                        logger.info(f"頁面 ({template}): 等待廣告容器 [data-trek-ad]")
+                        page.wait_for_selector('[data-trek-ad]', timeout=5000)
+                        logger.info(f"頁面 ({template}): 找到廣告容器")
+                    except:
+                        logger.warning(f"頁面 ({template}): 未找到廣告容器，繼續進行截圖")
+                
+                # 如果設定了滾動距離，則向下滾動到廣告區域
+                if scroll_distance > 0:
+                    logger.info(f"向下滾動 {scroll_distance} 像素到廣告區域")
+                    page.evaluate(f"window.scrollTo(0, {scroll_distance})")
+                    page.wait_for_timeout(1500)  # 滾動後等待
+                
+                # 最終等待，確保內容穩定
                 page.wait_for_timeout(1000)
+                
+            except Exception as page_error:
+                logger.warning(f"頁面載入過程中發生警告: {str(page_error)}")
+                # 如果載入失敗，嘗試重新載入一次
+                try:
+                    logger.info("嘗試重新載入頁面...")
+                    page.goto(url, wait_until='load', timeout=15000)
+                    page.wait_for_timeout(2000)
+                except Exception as retry_error:
+                    logger.error(f"重新載入也失敗: {str(retry_error)}，繼續進行截圖")
             
             # 創建截圖目錄
             today = datetime.now().strftime('%Y%m%d')
@@ -582,13 +713,143 @@ def create_native_screenshot():
             timestamp = datetime.now().strftime('%H%M%S')
             device_suffix = device.replace('_', '-')
             scroll_suffix = f'scroll-{scroll_distance}px' if scroll_distance > 0 else 'no-scroll'
-            filename = f'native_{size.replace("x", "_")}_device-{device_suffix}_uuid-{uuid}_{scroll_suffix}_{timestamp}.png'
+            template_suffix = f'_{template}' if template not in ['ptt-article'] else ''
+            filename = f'native_{size.replace("x", "_")}_device-{device_suffix}_uuid-{uuid}_{scroll_suffix}{template_suffix}_{timestamp}.png'
             screenshot_path = os.path.join(screenshot_dir, filename)
             
-            # 截圖
-            page.screenshot(path=screenshot_path, full_page=False)
+            # 截圖前檢查頁面是否仍然有效
+            screenshot_success = False
+            try:
+                # 檢查頁面是否仍然可用
+                if hasattr(page, 'is_closed') and not page.is_closed():
+                    page.title()  # 這會觸發錯誤如果頁面已關閉
+                    
+                    # 決定截圖目標
+                    element_to_screenshot = None # Playwright Locator or ElementHandle
+                    screenshot_description = "主頁面 viewport"
+
+                    if template == 'moptt' and size == '300x250':
+                        # MoPTT 極簡策略：直接截取 page viewport，不進行內部元素定位
+                        logger.info("MoPTT: 採用極簡策略，截圖主頁面 viewport")
+                        screenshot_description = "MoPTT 主頁面 viewport (極簡策略)"
+                        # element_to_screenshot 保持 None，將由後續邏輯截取 page.screenshot
+
+                    elif template == 'pnn-article' and size == '640x200':
+                        iframe_el = page.query_selector('iframe[src*="tkcatrun.aotter.net"]')
+                        if iframe_el:
+                            ad_frame = iframe_el.content_frame()
+                            if ad_frame:
+                                logger.info("PNN: 定位到 tkcatrun iframe")
+                                element_to_screenshot = ad_frame.locator('body')
+                                screenshot_description = "PNN iframe body"
+                                try:
+                                    ad_el_in_iframe = ad_frame.wait_for_selector('[data-trek-ad]', timeout=3000)
+                                    if ad_el_in_iframe:
+                                        element_to_screenshot = ad_el_in_iframe
+                                        screenshot_description = "PNN iframe [data-trek-ad] Element"
+                                except Exception as e_ad_find_pnn:
+                                    logger.warning(f"PNN: iframe 內未找到 [data-trek-ad] 元素 ({e_ad_find_pnn})，將截取 iframe body")
+                            else:
+                                logger.warning("PNN: tkcatrun iframe 存在但無法取得 content_frame，截圖主頁面 body")
+                                element_to_screenshot = page.locator('body')
+                                screenshot_description = "主頁面 body (PNN iframe 獲取失敗)"
+                        else:
+                            logger.warning("PNN: 未找到 tkcatrun iframe，截圖主頁面 body")
+                            element_to_screenshot = page.locator('body')
+                            screenshot_description = "主頁面 body (PNN iframe 未找到)"
+                    else:
+                        # 其他情況，預設截取主頁面 viewport
+                        logger.info(f"預設截圖: 主頁面 viewport for {template} {size}")
+                        # element_to_screenshot 保持 None，下面会处理 page.screenshot
+                        pass 
+
+                    # 執行截圖
+                    if element_to_screenshot: 
+                        logger.info(f"準備截圖，目標: {screenshot_description}")
+                        # ElementHandle 和 Locator 都有 screenshot 方法
+                        element_to_screenshot.screenshot(path=screenshot_path)
+                    else:
+                        # 如果 element_to_screenshot 未被設置 (例如非 MoPTT/PNN 頁面，或 body 也沒取到)
+                        logger.info(f"準備截圖，目標: 主頁面 viewport (full_page=False) for {template} {size}")
+                        page.screenshot(path=screenshot_path, full_page=False)
+
+                    logger.info("截圖操作完成")
+                    screenshot_success = True
+                else:
+                    raise Exception("頁面已關閉")
+                
+            except Exception as screenshot_error:
+                logger.error(f"截圖過程中發生錯誤: {str(screenshot_error)}")
+                # 如果截圖失敗，嘗試重新建立頁面和截圖
+                try:
+                    logger.info("嘗試重新建立頁面進行截圖...")
+                    try:
+                        page.close()
+                    except:
+                        pass
+                    
+                    page = context.new_page()
+                    page.goto(url, wait_until='domcontentloaded', timeout=15000) # 簡化重試的等待
+                    page.wait_for_timeout(3000)
+                    
+                    # 重試截圖時也需要判斷 target
+                    retry_element_to_screenshot = None # Playwright Locator or ElementHandle
+                    retry_screenshot_description = "主頁面 viewport (重試)"
+
+                    if template == 'moptt' and size == '300x250':
+                        # MoPTT 重試也使用極簡策略
+                        logger.info("MoPTT (重試): 採用極簡策略，截圖主頁面 viewport")
+                        retry_screenshot_description = "MoPTT 主頁面 viewport (重試極簡策略)"
+                        # retry_element_to_screenshot 保持 None
+
+                    elif template == 'pnn-article' and size == '640x200':
+                        iframe_el_retry = page.query_selector('iframe[src*="tkcatrun.aotter.net"]')
+                        if iframe_el_retry:
+                            ad_frame_retry = iframe_el_retry.content_frame()
+                            if ad_frame_retry:
+                                logger.info("PNN (重試): 定位到 tkcatrun iframe")
+                                retry_element_to_screenshot = ad_frame_retry.locator('body')
+                                retry_screenshot_description = "PNN iframe body (重試)"
+                                try:
+                                    ad_el_retry = ad_frame_retry.wait_for_selector('[data-trek-ad]', timeout=2000)
+                                    if ad_el_retry: 
+                                        retry_element_to_screenshot = ad_el_retry
+                                        retry_screenshot_description = "PNN iframe [data-trek-ad] Element (重試)"
+                                except Exception as e_retry_pnn:
+                                    logger.warning(f"PNN (重試): iframe 內未找到 [data-trek-ad] ({e_retry_pnn}), 截 iframe body")
+                        if not retry_element_to_screenshot: 
+                            logger.warning("PNN (重試): iframe 處理失敗或未找到, 截主頁面 body")
+                            retry_element_to_screenshot = page.locator('body')
+                            retry_screenshot_description = "主頁面 body (PNN 重試 iframe 失敗)"
+                    
+                    if retry_element_to_screenshot:
+                        logger.info(f"重試截圖，目標: {retry_screenshot_description}")
+                        retry_element_to_screenshot.screenshot(path=screenshot_path)
+                    else:
+                        logger.info(f"重試截圖，目標: 主頁面 viewport (full_page=False) for {template} {size}")
+                        page.screenshot(path=screenshot_path, full_page=False)
+                        
+                    logger.info("重新截圖成功")
+                    screenshot_success = True
+                except Exception as retry_screenshot_error:
+                    logger.error(f"重新截圖也失敗: {str(retry_screenshot_error)}")
+                    raise screenshot_error  # 重新拋出原始錯誤
             
-            browser.close()
+            # 確保瀏覽器資源被正確清理
+            try:
+                if hasattr(page, 'is_closed') and not page.is_closed():
+                    page.close()
+            except:
+                pass
+            
+            try:
+                browser.close()
+            except:
+                pass
+            
+            # 只有成功截圖才繼續處理檔案
+            if not screenshot_success:
+                raise Exception("截圖失敗")
             
             # 取得檔案資訊
             absolute_path = os.path.abspath(screenshot_path)
@@ -607,11 +868,13 @@ def create_native_screenshot():
             # 計算相對路徑供前端使用
             relative_path = os.path.relpath(screenshot_path, 'uploads')
             
-            # 對於某些已知有問題的尺寸，提供警告信息
-            if size == '300x250':
-                logger.info(f"300x250 尺寸改用 PTT 頁面（原 MoPTT 不穩定）")
-            elif size == '640x200':
-                logger.info(f"640x200 尺寸改用 PTT 頁面（原 PNN 不穩定）")
+            # 提供模板使用信息
+            if template == 'moptt' and size == '300x250':
+                logger.info(f"300x250 使用 MoPTT 模板截圖完成")
+            elif template == 'pnn-article' and size == '640x200':
+                logger.info(f"640x200 使用 PNN 模板截圖完成")
+            else:
+                logger.info(f"{size} 使用 {template} 模板截圖完成")
             
             return jsonify({
                 'success': True,
@@ -629,6 +892,67 @@ def create_native_screenshot():
         logger.error(f"Native 廣告截圖時發生錯誤: {str(e)}")
         logger.error(f"錯誤詳情：\n{error_detail}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+# 原生廣告創建處理
+@app.route('/create_native_ad', methods=['POST'])
+def create_native_ad():
+    try:
+        # 獲取表單數據
+        ad_data = {
+            'display_name': request.form.get('display_name', ''),
+            'advertiser': request.form.get('advertiser', ''),
+            'main_title': request.form.get('main_title', ''),
+            'subtitle': request.form.get('subtitle', ''),
+            'adset_id': request.form.get('adset_id', ''),
+            'landing_page': request.form.get('landing_page', ''),
+            'call_to_action': request.form.get('call_to_action', '瞭解詳情'),
+            'image_path_m': request.form.get('image_path_m', ''),
+            'image_path_o': request.form.get('image_path_o', ''),
+            'image_path_p': request.form.get('image_path_p', ''),
+            'image_path_s': request.form.get('image_path_s', ''),
+            'tracking_url': request.form.get('tracking_url', '')
+        }
+        
+        # 保存表單數據到 session（以便失敗時可以重新填充）
+        for key, value in ad_data.items():
+            session[key] = value
+        
+        # 驗證必填欄位
+        required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page', 
+                          'image_path_m', 'image_path_o', 'image_path_p', 'image_path_s']
+        missing_fields = [field for field in required_fields if not ad_data[field]]
+        
+        if missing_fields:
+            flash(f"缺少必填欄位: {', '.join(missing_fields)}", 'error')
+            return redirect(url_for('native_ad'))
+        
+        # 嘗試創建廣告
+        logger.info(f"開始創建原生廣告: {ad_data['display_name'] or ad_data['main_title']}")
+        
+        with sync_playwright() as playwright:
+            success = run_native(playwright, ad_data)
+        
+        if success:
+            # 成功後清除 session 中的表單數據
+            for key in ad_data.keys():
+                session.pop(key, None)
+            flash(f"成功創建廣告: {ad_data['display_name'] or ad_data['main_title']}", 'success')
+            logger.info(f"成功創建廣告: {ad_data['display_name'] or ad_data['main_title']}")
+        else:
+            flash("自動創建過程中發生錯誤", 'error')
+            logger.error(f"創建廣告失敗: {ad_data['display_name'] or ad_data['main_title']}")
+            
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"創建原生廣告時發生意外錯誤: {error_msg}")
+        
+        # 特別處理 TargetClosedError
+        if "TargetClosedError" in error_msg or "Target page, context or browser has been closed" in error_msg:
+            flash("瀏覽器意外關閉，請稍後再試", 'error')
+        else:
+            flash(f"創建廣告時發生錯誤: {error_msg}", 'error')
+    
+    return redirect(url_for('native_ad'))
 
 # 批量廣告創建處理
 @app.route('/create_batch_ads', methods=['POST'])
@@ -964,6 +1288,332 @@ def create_screenshot():
         flash(f'截圖失敗: {str(e)}', 'error')
     
     return redirect(url_for('auto_screenshot'))
+
+# 投票廣告創建處理
+@app.route('/create_vote_ad', methods=['POST'])
+def create_vote_ad():
+    try:
+        # 獲取基本表單數據
+        ad_data = {
+            'adset_id': request.form.get('adset_id', ''),
+            'display_name': request.form.get('display_name', ''),
+            'advertiser': request.form.get('advertiser', ''),
+            'main_title': request.form.get('main_title', ''),
+            'vote_title': request.form.get('vote_title', ''),
+            'subtitle': request.form.get('subtitle', ''),
+            'landing_page': request.form.get('landing_page', ''),
+            'call_to_action': request.form.get('call_to_action', '立即了解'),
+            'image_path_m': request.form.get('image_path_m', ''),
+            'image_path_s': request.form.get('image_path_s', ''),
+            'vote_image': request.form.get('vote_image', ''),
+            'vote_id': request.form.get('vote_id', 'myVoteId'),
+            'divider_color': request.form.get('divider_color', '#ff0000'),
+            'vote_width': request.form.get('vote_width', '80%'),
+            'bg_color': request.form.get('bg_color', '#ffffff'),
+            'vote_position': request.form.get('vote_position', 'bottom'),
+            'min_position': request.form.get('min_position', 50),
+            'max_position': request.form.get('max_position', 70),
+            'timeout': request.form.get('timeout', 2000),
+            'winner_bg_color': request.form.get('winner_bg_color', '#26D07C'),
+            'winner_text_color': request.form.get('winner_text_color', '#ffffff'),
+            'loser_bg_color': request.form.get('loser_bg_color', '#000000'),
+            'loser_text_color': request.form.get('loser_text_color', '#ffffff')
+        }
+        
+        # 保存表單數據到 session
+        for key, value in ad_data.items():
+            session[f'vote_{key}'] = value
+            
+        # 處理投票選項
+        vote_options = []
+        index = 0
+        while True:
+            option_title = request.form.get(f'option_title_{index}', '')
+            if not option_title:
+                break
+                
+            vote_options.append({
+                'title': option_title,
+                'text_color': request.form.get(f'option_text_color_{index}', '#207AED'),
+                'bg_color': request.form.get(f'option_bg_color_{index}', '#E7F3FF'),
+                'target_url': request.form.get(f'option_target_url_{index}', '')
+            })
+            
+            # 保存到 session
+            session[f'option_title_{index}'] = option_title
+            session[f'option_text_color_{index}'] = request.form.get(f'option_text_color_{index}', '#207AED')
+            session[f'option_bg_color_{index}'] = request.form.get(f'option_bg_color_{index}', '#E7F3FF')
+            session[f'option_target_url_{index}'] = request.form.get(f'option_target_url_{index}', '')
+            index += 1
+            
+        ad_data['vote_options'] = vote_options
+        
+        flash("投票廣告創建功能尚未實現", 'warning')
+        
+    except Exception as e:
+        logger.error(f"創建投票廣告時發生錯誤: {str(e)}")
+        flash(f"創建投票廣告時發生錯誤: {str(e)}", 'error')
+    
+    return redirect(url_for('vote_ad'))
+
+# GIF 廣告創建處理
+@app.route('/create_gif_ad', methods=['POST'])
+def create_gif_ad():
+    try:
+        ad_data = {
+            'adset_id': request.form.get('adset_id', ''),
+            'display_name': request.form.get('display_name', ''),
+            'advertiser': request.form.get('advertiser', ''),
+            'main_title': request.form.get('main_title', ''),
+            'subtitle': request.form.get('subtitle', ''),
+            'landing_page': request.form.get('landing_page', ''),
+            'call_to_action': request.form.get('call_to_action', '立即購買'),
+            'image_path_m': request.form.get('image_path_m', ''),
+            'image_path_s': request.form.get('image_path_s', ''),
+            'background_image': request.form.get('background_image', ''),
+            'background_url': request.form.get('background_url', ''),
+            'target_url': request.form.get('target_url', '')
+        }
+        
+        # 保存表單數據到 session
+        for key, value in ad_data.items():
+            session[f'gif_{key}'] = value
+        
+        flash("GIF 廣告創建功能尚未實現", 'warning')
+        
+    except Exception as e:
+        logger.error(f"創建 GIF 廣告時發生錯誤: {str(e)}")
+        flash(f"創建 GIF 廣告時發生錯誤: {str(e)}", 'error')
+    
+    return redirect(url_for('gif_ad'))
+
+# 水平 Slide 廣告創建處理
+@app.route('/create_slide_ad', methods=['POST'])
+def create_slide_ad():
+    try:
+        ad_data = {
+            'adset_id': request.form.get('adset_id', ''),
+            'display_name': request.form.get('display_name', ''),
+            'advertiser': request.form.get('advertiser', ''),
+            'main_title': request.form.get('main_title', ''),
+            'subtitle': request.form.get('subtitle', ''),
+            'landing_page': request.form.get('landing_page', ''),
+            'call_to_action': request.form.get('call_to_action', '立即了解'),
+            'image_path_m': request.form.get('image_path_m', ''),
+            'image_path_s': request.form.get('image_path_s', ''),
+            'background_image': request.form.get('background_image', '')
+        }
+        
+        # 保存表單數據到 session
+        for key, value in ad_data.items():
+            session[f'slide_{key}'] = value
+            
+        # 處理滑動項目
+        slide_items = []
+        index = 0
+        while True:
+            image_url = request.form.get(f'image_url_{index}', '')
+            target_url = request.form.get(f'target_url_{index}', '')
+            if not image_url and not target_url:
+                break
+                
+            slide_items.append({
+                'image_url': image_url,
+                'target_url': target_url
+            })
+            
+            # 保存到 session
+            session[f'image_url_{index}'] = image_url
+            session[f'target_url_{index}'] = target_url
+            index += 1
+            
+        ad_data['slide_items'] = slide_items
+        
+        flash("水平 Slide 廣告創建功能尚未實現", 'warning')
+        
+    except Exception as e:
+        logger.error(f"創建水平 Slide 廣告時發生錯誤: {str(e)}")
+        flash(f"創建水平 Slide 廣告時發生錯誤: {str(e)}", 'error')
+    
+    return redirect(url_for('slide_ad'))
+
+# 垂直 Slide 廣告創建處理
+@app.route('/create_vertical_slide_ad', methods=['POST'])
+def create_vertical_slide_ad():
+    try:
+        ad_data = {
+            'adset_id': request.form.get('adset_id', ''),
+            'display_name': request.form.get('display_name', ''),
+            'advertiser': request.form.get('advertiser', ''),
+            'main_title': request.form.get('main_title', ''),
+            'subtitle': request.form.get('subtitle', ''),
+            'landing_page': request.form.get('landing_page', ''),
+            'call_to_action': request.form.get('call_to_action', '立即了解'),
+            'image_path_m': request.form.get('image_path_m', ''),
+            'image_path_s': request.form.get('image_path_s', ''),
+            'background_image': request.form.get('background_image', '')
+        }
+        
+        # 保存表單數據到 session
+        for key, value in ad_data.items():
+            session[f'vertical_slide_{key}'] = value
+            
+        # 處理滑動項目（重用相同的 key 結構）
+        slide_items = []
+        index = 0
+        while True:
+            image_url = request.form.get(f'image_url_{index}', '')
+            target_url = request.form.get(f'target_url_{index}', '')
+            if not image_url and not target_url:
+                break
+                
+            slide_items.append({
+                'image_url': image_url,
+                'target_url': target_url
+            })
+            
+            # 保存到 session
+            session[f'image_url_{index}'] = image_url
+            session[f'target_url_{index}'] = target_url
+            index += 1
+            
+        ad_data['slide_items'] = slide_items
+        
+        flash("垂直 Slide 廣告創建功能尚未實現", 'warning')
+        
+    except Exception as e:
+        logger.error(f"創建垂直 Slide 廣告時發生錯誤: {str(e)}")
+        flash(f"創建垂直 Slide 廣告時發生錯誤: {str(e)}", 'error')
+    
+    return redirect(url_for('vertical_slide_ad'))
+
+# 垂直 Cube Slide 廣告創建處理
+@app.route('/create_vertical_cube_slide_ad', methods=['POST'])
+def create_vertical_cube_slide_ad():
+    try:
+        ad_data = {
+            'adset_id': request.form.get('adset_id', ''),
+            'display_name': request.form.get('display_name', ''),
+            'advertiser': request.form.get('advertiser', ''),
+            'main_title': request.form.get('main_title', ''),
+            'subtitle': request.form.get('subtitle', ''),
+            'landing_page': request.form.get('landing_page', ''),
+            'call_to_action': request.form.get('call_to_action', '立即了解'),
+            'image_path_m': request.form.get('image_path_m', ''),
+            'image_path_s': request.form.get('image_path_s', ''),
+            'background_image': request.form.get('background_image', '')
+        }
+        
+        # 保存表單數據到 session
+        for key, value in ad_data.items():
+            session[f'vertical_cube_slide_{key}'] = value
+            
+        # 處理滑動項目（重用相同的 key 結構）
+        slide_items = []
+        index = 0
+        while True:
+            image_url = request.form.get(f'image_url_{index}', '')
+            target_url = request.form.get(f'target_url_{index}', '')
+            if not image_url and not target_url:
+                break
+                
+            slide_items.append({
+                'image_url': image_url,
+                'target_url': target_url
+            })
+            
+            # 保存到 session
+            session[f'image_url_{index}'] = image_url
+            session[f'target_url_{index}'] = target_url
+            index += 1
+            
+        ad_data['slide_items'] = slide_items
+        
+        flash("垂直 Cube Slide 廣告創建功能尚未實現", 'warning')
+        
+    except Exception as e:
+        logger.error(f"創建垂直 Cube Slide 廣告時發生錯誤: {str(e)}")
+        flash(f"創建垂直 Cube Slide 廣告時發生錯誤: {str(e)}", 'error')
+    
+    return redirect(url_for('vertical_cube_slide_ad'))
+
+# 倒數廣告創建處理
+@app.route('/create_countdown_ad', methods=['POST'])
+def create_countdown_ad():
+    try:
+        ad_data = {
+            'adset_id': request.form.get('adset_id', ''),
+            'display_name': request.form.get('display_name', ''),
+            'advertiser': request.form.get('advertiser', ''),
+            'main_title': request.form.get('main_title', ''),
+            'subtitle': request.form.get('subtitle', ''),
+            'landing_page': request.form.get('landing_page', ''),
+            'call_to_action': request.form.get('call_to_action', '立即購買'),
+            'image_path_m': request.form.get('image_path_m', ''),
+            'image_path_s': request.form.get('image_path_s', ''),
+            'background_image': request.form.get('background_image', ''),
+            'image_cover': request.form.get('image_cover', ''),
+            'game_winner_bg_color': request.form.get('game_winner_bg_color', '#26D07C'),
+            'game_winner_text_color': request.form.get('game_winner_text_color', '#ffffff'),
+            'game_bg_color': request.form.get('game_bg_color', '#ffffff'),
+            'game_text_color': request.form.get('game_text_color', '#000000'),
+            'game_border_color': request.form.get('game_border_color', '#000000')
+        }
+        
+        # 保存表單數據到 session
+        for key, value in ad_data.items():
+            session[f'countdown_{key}'] = value
+        
+        flash("倒數廣告創建功能尚未實現", 'warning')
+        
+    except Exception as e:
+        logger.error(f"創建倒數廣告時發生錯誤: {str(e)}")
+        flash(f"創建倒數廣告時發生錯誤: {str(e)}", 'error')
+    
+    return redirect(url_for('countdown_ad'))
+
+# 通用廣告創建路由（用於 index.html）
+@app.route('/create_ad_route', methods=['POST'])
+def create_ad_route():
+    """根據 active_tab 參數決定創建哪種類型的廣告"""
+    try:
+        active_tab = request.form.get('active_tab', 'native-ad')
+        
+        # 根據 active_tab 重定向到對應的創建函數
+        if active_tab == 'native-ad':
+            return create_native_ad()
+        elif active_tab == 'gif-ad':
+            # 需要重新映射字段名稱（去掉 gif_ 前綴）
+            adjusted_form_data = {}
+            for key, value in request.form.items():
+                if key.startswith('gif_'):
+                    adjusted_form_data[key[4:]] = value  # 移除 'gif_' 前綴
+                else:
+                    adjusted_form_data[key] = value
+            
+            # 創建一個新的 request.form 對象
+            from werkzeug.datastructures import ImmutableMultiDict
+            request.form = ImmutableMultiDict(adjusted_form_data)
+            
+            return create_gif_ad()
+        elif active_tab == 'slide-ad':
+            # 類似處理其他廣告類型...
+            flash("水平 Slide 廣告創建功能尚未實現", 'warning')
+            return redirect(url_for('index'))
+        elif active_tab == 'vertical-slide-ad':
+            flash("垂直 Slide 廣告創建功能尚未實現", 'warning')
+            return redirect(url_for('index'))
+        elif active_tab == 'vertical-cube-slide-ad':
+            flash("垂直 Cube Slide 廣告創建功能尚未實現", 'warning')
+            return redirect(url_for('index'))
+        else:
+            flash(f"未知的廣告類型: {active_tab}", 'error')
+            return redirect(url_for('index'))
+            
+    except Exception as e:
+        logger.error(f"創建廣告時發生錯誤: {str(e)}")
+        flash(f"創建廣告時發生錯誤: {str(e)}", 'error')
+        return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run(debug=True, port=5002) # 使用不同的埠號 

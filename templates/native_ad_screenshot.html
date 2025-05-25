@@ -396,16 +396,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 name: '中等廣告',
                 device: 'desktop',
                 scroll: 4800,
-                template: 'moptt',  // 後端會自動轉為 ptt-article
-                displayInfo: { device: '桌上型電腦', scroll: '4800px', template: 'PTT 文章頁面 (穩定版)' }
+                template: 'moptt',
+                displayInfo: { device: '桌上型電腦', scroll: '不滾動', template: 'MoPTT 頁面' }
             },
             {
                 size: '640x200',
                 name: '寬幅廣告',
                 device: 'iphone_x',
                 scroll: 0,
-                template: 'pnn-article',  // 後端會自動轉為 ptt-article
-                displayInfo: { device: 'iPhone X', scroll: '不滾動', template: 'PTT 文章頁面 (穩定版)' }
+                template: 'pnn-article',
+                displayInfo: { device: 'iPhone X', scroll: '不滾動', template: 'PNN 文章頁面' }
             }
         ];
         
@@ -448,11 +448,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         config: config,
                         data: data
                     });
+                    console.log(`${config.name} 截圖成功`);
                 } else {
                     results.push({
                         config: config,
                         error: data.error
                     });
+                    console.error(`${config.name} 截圖失敗:`, data.error);
                 }
                 
                 currentIndex++;

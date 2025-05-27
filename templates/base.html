@@ -173,17 +173,17 @@
 <body>
     <div class="container">
         <div class="nav-buttons">
-            <a href="{{ url_for('batch') }}" class="button nav-button">批量廣告創建</a>
+            <a href="{{ url_for('main.batch') }}" class="button nav-button">批量廣告創建</a>
             <div>
-                <a href="{{ url_for('native_ad') }}" class="button nav-button">原生廣告</a>
-                <a href="{{ url_for('gif_ad') }}" class="button nav-button">GIF 廣告</a>
-                <a href="{{ url_for('slide_ad') }}" class="button nav-button">水平 Slide 廣告</a>
-                <a href="{{ url_for('vertical_slide_ad') }}" class="button nav-button">垂直 Slide 廣告</a>
-                <a href="{{ url_for('vertical_cube_slide_ad') }}" class="button nav-button">垂直 Cube Slide 廣告</a>
-                <a href="{{ url_for('vote_ad') }}" class="button nav-button">投票廣告</a>
-                <a href="{{ url_for('countdown_ad') }}" class="button nav-button">倒數廣告</a>
-                <a href="{{ url_for('auto_screenshot') }}" class="button nav-button">SuprAd 自動截圖</a>
-                <a href="{{ url_for('native_ad_screenshot') }}" class="button nav-button">Native 廣告截圖</a>
+                <a href="{{ url_for('native_ad.native_ad') }}" class="button nav-button">原生廣告</a>
+                <a href="{{ url_for('main.gif_ad') }}" class="button nav-button">GIF 廣告</a>
+                <a href="{{ url_for('main.slide_ad') }}" class="button nav-button">水平 Slide 廣告</a>
+                <a href="{{ url_for('main.vertical_slide_ad') }}" class="button nav-button">垂直 Slide 廣告</a>
+                <a href="{{ url_for('main.vertical_cube_slide_ad') }}" class="button nav-button">垂直 Cube Slide 廣告</a>
+                <a href="{{ url_for('main.vote_ad') }}" class="button nav-button">投票廣告</a>
+                <a href="{{ url_for('main.countdown_ad') }}" class="button nav-button">倒數廣告</a>
+                <a href="{{ url_for('screenshot.auto_screenshot') }}" class="button nav-button">SuprAd 自動截圖</a>
+                <a href="{{ url_for('screenshot.native_ad_screenshot') }}" class="button nav-button">Native 廣告截圖</a>
             </div>
         </div>
         

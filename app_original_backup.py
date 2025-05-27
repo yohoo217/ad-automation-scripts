@@ -398,20 +398,20 @@ def build_native_screenshot_url(adunit_data, size, template):
         '1200x628': {
             'ptt-article': {
                 'base_url': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html',
-            'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html'
+                'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html'
             }
         },
         '300x300': {
             'ptt-article-list': {
                 'base_url': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article-list/index.html',
-            'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2Findex.html',
-            'lastArticleNumber': '153746'
+                'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2Findex.html',
+                'lastArticleNumber': '153746'
             }
         },
         '320x50': {
             'ptt-article': {
                 'base_url': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html',
-            'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html'
+                'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html'
             }
         },
         '300x250': {
@@ -425,6 +425,10 @@ def build_native_screenshot_url(adunit_data, size, template):
             }
         },
         '640x200': {
+            'pnn-article': {
+                'base_url': 'https://aotter.github.io/trek-ad-preview/pages/pnn-article/',
+                'use_iframe': True
+            },
             'ptt-article': {
                 'base_url': 'https://trek.aotter.net/trek-ad-preview/pages/ptt-article/index.html',
                 'dataSrcUrl': 'https%3A%2F%2Fwww.ptt.cc%2Fbbs%2FBabyMother%2FM.1724296474.A.887.html'
@@ -473,16 +477,6 @@ def build_native_screenshot_url(adunit_data, size, template):
             f"iframe_img={quote_plus(media_img)}",
             f"trek-debug-place=5a41c4d0-b268-43b2-9536-d774f46c33bf",
             f"trek-debug-catrun={quote_plus(catrun_url)}"
-        ]
-    elif template == 'ptt-article' and size == '640x200':
-        params = [
-            f"media-title={quote_plus(media_title)}",
-            f"media-cta={quote_plus(media_cta)}",
-            f"media-desc={quote_plus(media_desc)}",
-            f"media-sponsor={quote_plus(media_sponsor)}",
-            f"trek-debug-place=5a41c4d0-b268-43b2-9536-d774f46c33bf",
-            f"trek-debug-catrun={quote_plus(catrun_url)}",
-            f"dataSrcUrl={template_config.get('dataSrcUrl', '')}"
         ]
     elif template == 'pnn-article' and size == '640x200':
         # PNN 使用特定參數格式，固定使用指定的 iframe 網址
@@ -567,11 +561,11 @@ def create_native_screenshot():
             if template in ['moptt', 'pnn-article']:
                 extra_http_headers = {
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                            'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
-                            'Accept-Encoding': 'gzip, deflate, br',
-                            'DNT': '1',
-                            'Connection': 'keep-alive',
-                            'Upgrade-Insecure-Requests': '1',
+                    'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'DNT': '1',
+                    'Connection': 'keep-alive',
+                    'Upgrade-Insecure-Requests': '1',
                 }
             
             if device == 'desktop':
@@ -593,7 +587,7 @@ def create_native_screenshot():
             from urllib.parse import urlparse
             parsed_url = urlparse(url)
             domain = parsed_url.netloc
-                    
+            
             # 為 aotter.github.io 域名設置特定的 cookies
             if domain == "aotter.github.io":
                 try:
@@ -602,13 +596,13 @@ def create_native_screenshot():
                     
                     cookies = []
                     cookie_pairs = github_cookie_string.split(';')
-                        
+                    
                     for pair in cookie_pairs:
                         if '=' in pair:
                             name, value = pair.split('=', 1)
                             name = name.strip()
                             value = value.strip()
-                                
+                            
                             # 根據 cookie 名稱設置適當的域名
                             if name == 'cf_clearance':
                                 cookie_domain = domain  # 使用 aotter.github.io 域名
@@ -618,7 +612,7 @@ def create_native_screenshot():
                                 cookie_domain = '.aotter.net'  # Trek session 使用 aotter 域名
                             else:
                                 cookie_domain = domain
-                                
+                            
                             cookies.append({
                                 'name': name,
                                 'value': value,
@@ -630,7 +624,7 @@ def create_native_screenshot():
                     
                     context.add_cookies(cookies)
                     logger.info(f"已為 aotter.github.io 設置 {len(cookies)} 個專用 cookies")
-                
+                    
                 except Exception as cookie_error:
                     logger.warning(f"設置 aotter.github.io cookies 時發生錯誤（將繼續不使用 cookie）: {str(cookie_error)}")
             
@@ -727,8 +721,8 @@ def create_native_screenshot():
                     logger.info(f"處理 PNN 頁面，URL: {url}")
                     
                     # 監聽網路請求
-                    # page.on('request', lambda request: logger.info(f"Network Request > {request.method} {request.url}"))
-                    # page.on('response', lambda response: logger.info(f"Network Response < {response.status} {response.url}"))
+                    page.on('request', lambda request: logger.info(f"Network Request > {request.method} {request.url}"))
+                    page.on('response', lambda response: logger.info(f"Network Response < {response.status} {response.url}"))
                     
                     # 監聽頁面關閉事件，在關閉前立即截圖
                     page_closed = False
@@ -801,8 +795,8 @@ def create_native_screenshot():
                             if ad_frame:
                                 logger.info("PNN: 在 iframe 內額外等待 2 秒讓 CatRun 初始化")
                                 ad_frame.wait_for_timeout(2000) # 給 CatRun iframe 內部多一點時間
-                            else:
-                                logger.warning("PNN: 未找到 tkcatrun iframe 的元素")
+                        else:
+                            logger.warning("PNN: 未找到 tkcatrun iframe 的元素")
                     except Exception as fe:
                         logger.warning(f"PNN: 尋找 tkcatrun iframe 時出錯: {str(fe)}.")
 
@@ -830,13 +824,13 @@ def create_native_screenshot():
                 
                 # 如果設定了滾動距離，則向下滾動到廣告區域
                 if scroll_distance > 0:
-                        logger.info(f"向下滾動 {scroll_distance} 像素到廣告區域")
-                        page.evaluate(f"window.scrollTo(0, {scroll_distance})")
-                        page.wait_for_timeout(1500)  # 滾動後等待
+                    logger.info(f"向下滾動 {scroll_distance} 像素到廣告區域")
+                    page.evaluate(f"window.scrollTo(0, {scroll_distance})")
+                    page.wait_for_timeout(1500)  # 滾動後等待
                 
                 # 最終等待，確保內容穩定
-                        page.wait_for_timeout(1000)
-                        
+                page.wait_for_timeout(1000)
+                
             except Exception as page_error:
                 logger.warning(f"頁面載入過程中發生警告: {str(page_error)}")
                 
@@ -852,142 +846,111 @@ def create_native_screenshot():
                         page.wait_for_timeout(2000)
                     except Exception as retry_error:
                         logger.error(f"重新載入也失敗: {str(retry_error)}，繼續進行截圖")
-                
-                # 創建截圖目錄
-                today = datetime.now().strftime('%Y%m%d')
-                screenshot_dir = os.path.join('uploads', 'screenshots', today)
-                if not os.path.exists(screenshot_dir):
-                    os.makedirs(screenshot_dir)
-                
-                # 生成檔案名稱
-                timestamp = datetime.now().strftime('%H%M%S')
-                device_suffix = device.replace('_', '-')
-                scroll_suffix = f'scroll-{scroll_distance}px' if scroll_distance > 0 else 'no-scroll'
+            
+            # 創建截圖目錄
+            today = datetime.now().strftime('%Y%m%d')
+            screenshot_dir = os.path.join('uploads', 'screenshots', today)
+            if not os.path.exists(screenshot_dir):
+                os.makedirs(screenshot_dir)
+            
+            # 生成檔案名稱
+            timestamp = datetime.now().strftime('%H%M%S')
+            device_suffix = device.replace('_', '-')
+            scroll_suffix = f'scroll-{scroll_distance}px' if scroll_distance > 0 else 'no-scroll'
             template_suffix = f'_{template}' if template not in ['ptt-article'] else ''
             filename = f'native_{size.replace("x", "_")}_device-{device_suffix}_uuid-{uuid}_{scroll_suffix}{template_suffix}_{timestamp}.png'
-                screenshot_path = os.path.join(screenshot_dir, filename)
-                
-                # 截圖前檢查頁面是否仍然有效
-                screenshot_success = False
-                try:
-                    # 檢查頁面是否仍然可用
-                    if hasattr(page, 'is_closed') and not page.is_closed():
-                        page.title()  # 這會觸發錯誤如果頁面已關閉
-                        
-                        # 決定截圖目標
-                        element_to_screenshot = None # Playwright Locator or ElementHandle
-                        screenshot_description = "主頁面 viewport"
-
-                        if template == 'moptt' and size == '300x250':
-                            # MoPTT 極簡策略：直接截取 page viewport，不進行內部元素定位
-                            logger.info("MoPTT: 採用極簡策略，截圖主頁面 viewport")
-                            screenshot_description = "MoPTT 主頁面 viewport (極簡策略)"
-                            # element_to_screenshot 保持 None，將由後續邏輯截取 page.screenshot
-
-                        elif template == 'pnn-article' and size == '640x200':
-                            # PNN 640x200 截取整個手機畫面
-                            logger.info("PNN 640x200: 等待頁面載入完成，準備截取整個手機畫面")
-                            
-                            # 等待廣告 iframe 載入（但不截取 iframe，而是截取整頁）
-                            try:
-                                iframe_el = page.wait_for_selector('iframe[src*="tkcatrun.aotter.net"]', timeout=10000)
-                                if iframe_el:
-                                    logger.info("PNN: 找到廣告 iframe，等待廣告初始化")
-                                    ad_frame = iframe_el.content_frame()
-                                    if ad_frame:
-                                        # 等待廣告載入完成
-                                        ad_frame.wait_for_timeout(3000)
-                                        try:
-                                            ad_frame.wait_for_selector('[data-trek-ad]', timeout=5000)
-                                            logger.info("PNN: 廣告已載入完成")
-                                        except:
-                                            logger.warning("PNN: 廣告元素載入超時，但繼續截圖")
-                                    else:
-                                        logger.warning("PNN: 未找到廣告 iframe")
-                                except Exception as iframe_error:
-                                    logger.warning(f"PNN: 等待 iframe 時發生錯誤: {str(iframe_error)}")
-                                
-                                # 截取整個手機畫面（viewport）
-                                element_to_screenshot = None  # 使用 page.screenshot 截取整個 viewport
-                                screenshot_description = "PNN 整個手機畫面 (640x200)"
-                                
-                                # 確保頁面完全載入
-                                page.wait_for_timeout(2000)
-                                
-                                # 🎯 新增：在主截圖前 2 秒先截一次圖
-                                try:
-                                    timestamp_before = datetime.now().strftime('%H%M%S')
-                                    filename_before = f'native_{size.replace("x", "_")}_device-{device_suffix}_uuid-{uuid}_{scroll_suffix}{template_suffix}_BEFORE_{timestamp_before}.png'
-                                    screenshot_path_before = os.path.join(screenshot_dir, filename_before)
-                                    page.screenshot(path=screenshot_path_before, full_page=False)
-                                    logger.info(f"📸 PNN 640x200: 主截圖前 2 秒截圖完成: {screenshot_path_before}")
-                                except Exception as before_error:
-                                    logger.warning(f"主截圖前截圖失敗: {str(before_error)}")
-                                
-                                # 等待 2 秒
-                                page.wait_for_timeout(2000)
-                                logger.info("📸 PNN 640x200: 等待 2 秒後準備主截圖")
-
-                        else:
-                            # 其他情況，預設截取主頁面 viewport
-                            logger.info(f"預設截圖: 主頁面 viewport for {template} {size}")
-                            # element_to_screenshot 保持 None，下面会处理 page.screenshot
-                            pass 
-
-                        # 執行截圖
-                        if element_to_screenshot: 
-                            logger.info(f"準備截圖，目標: {screenshot_description}")
-                            # ElementHandle 和 Locator 都有 screenshot 方法
-                            element_to_screenshot.screenshot(path=screenshot_path)
-                        else:
-                            # 如果 element_to_screenshot 未被設置 (例如非 MoPTT/PNN 頁面，或 body 也沒取到)
-                            logger.info(f"準備截圖，目標: 主頁面 viewport (full_page=False) for {template} {size}")
-                            page.screenshot(path=screenshot_path, full_page=False)
-
-                        logger.info("截圖操作完成")
-                        
-                        # 🎯 新增：針對 PNN 640x200，在主截圖後 2 秒再截一次圖
-                        if template == 'pnn-article' and size == '640x200':
-                            try:
-                                # 等待 2 秒
-                                page.wait_for_timeout(2000)
-                                logger.info("📸 PNN 640x200: 等待 2 秒後準備後續截圖")
-                                
-                                timestamp_after = datetime.now().strftime('%H%M%S')
-                                filename_after = f'native_{size.replace("x", "_")}_device-{device_suffix}_uuid-{uuid}_{scroll_suffix}{template_suffix}_AFTER_{timestamp_after}.png'
-                                screenshot_path_after = os.path.join(screenshot_dir, filename_after)
-                                page.screenshot(path=screenshot_path_after, full_page=False)
-                                logger.info(f"📸 PNN 640x200: 主截圖後 2 秒截圖完成: {screenshot_path_after}")
-                            except Exception as after_error:
-                                logger.warning(f"主截圖後截圖失敗: {str(after_error)}")
-                        
-                        screenshot_success = True
-                    else:
-                        raise Exception("頁面已關閉")
+            screenshot_path = os.path.join(screenshot_dir, filename)
+            
+            # 截圖前檢查頁面是否仍然有效
+            screenshot_success = False
+            try:
+                # 檢查頁面是否仍然可用
+                if hasattr(page, 'is_closed') and not page.is_closed():
+                    page.title()  # 這會觸發錯誤如果頁面已關閉
                     
-                except Exception as screenshot_error:
-                    logger.error(f"截圖過程中發生錯誤: {str(screenshot_error)}")
-                    
-                    # 如果是 Target closed 錯誤，不嘗試重試
-                    if "Target page, context or browser has been closed" in str(screenshot_error) or "TargetClosedError" in str(screenshot_error):
-                        logger.error("頁面已關閉，無法進行截圖重試")
-                        raise screenshot_error
-                    
-                    # 如果截圖失敗，嘗試重新建立頁面和截圖
-                    try:
-                        logger.info("嘗試重新建立頁面進行截圖...")
+                    # 決定截圖目標
+                    element_to_screenshot = None # Playwright Locator or ElementHandle
+                    screenshot_description = "主頁面 viewport"
+
+                    if template == 'moptt' and size == '300x250':
+                        # MoPTT 極簡策略：直接截取 page viewport，不進行內部元素定位
+                        logger.info("MoPTT: 採用極簡策略，截圖主頁面 viewport")
+                        screenshot_description = "MoPTT 主頁面 viewport (極簡策略)"
+                        # element_to_screenshot 保持 None，將由後續邏輯截取 page.screenshot
+
+                    elif template == 'pnn-article' and size == '640x200':
+                        # PNN 640x200 截取整個手機畫面
+                        logger.info("PNN 640x200: 等待頁面載入完成，準備截取整個手機畫面")
+                        
+                        # 等待廣告 iframe 載入（但不截取 iframe，而是截取整頁）
                         try:
-                            page.close()
-                        except:
-                            pass
+                            iframe_el = page.wait_for_selector('iframe[src*="tkcatrun.aotter.net"]', timeout=10000)
+                            if iframe_el:
+                                logger.info("PNN: 找到廣告 iframe，等待廣告初始化")
+                                ad_frame = iframe_el.content_frame()
+                                if ad_frame:
+                                    # 等待廣告載入完成
+                                    ad_frame.wait_for_timeout(3000)
+                                    try:
+                                        ad_frame.wait_for_selector('[data-trek-ad]', timeout=5000)
+                                        logger.info("PNN: 廣告已載入完成")
+                                    except:
+                                        logger.warning("PNN: 廣告元素載入超時，但繼續截圖")
+                            else:
+                                logger.warning("PNN: 未找到廣告 iframe")
+                        except Exception as iframe_error:
+                            logger.warning(f"PNN: 等待 iframe 時發生錯誤: {str(iframe_error)}")
                         
-                        page = context.new_page()
-                        page.goto(url, wait_until='domcontentloaded', timeout=15000) # 簡化重試的等待
-                        page.wait_for_timeout(3000)
+                        # 截取整個手機畫面（viewport）
+                        element_to_screenshot = None  # 使用 page.screenshot 截取整個 viewport
+                        screenshot_description = "PNN 整個手機畫面 (640x200)"
                         
-                        # 重試截圖時也需要判斷 target
-                        retry_element_to_screenshot = None # Playwright Locator or ElementHandle
-                        retry_screenshot_description = "主頁面 viewport (重試)"
+                        # 確保頁面完全載入
+                        page.wait_for_timeout(2000)
+                    else:
+                        # 其他情況，預設截取主頁面 viewport
+                        logger.info(f"預設截圖: 主頁面 viewport for {template} {size}")
+                        # element_to_screenshot 保持 None，下面会处理 page.screenshot
+                        pass 
+
+                    # 執行截圖
+                    if element_to_screenshot: 
+                        logger.info(f"準備截圖，目標: {screenshot_description}")
+                        # ElementHandle 和 Locator 都有 screenshot 方法
+                        element_to_screenshot.screenshot(path=screenshot_path)
+                    else:
+                        # 如果 element_to_screenshot 未被設置 (例如非 MoPTT/PNN 頁面，或 body 也沒取到)
+                        logger.info(f"準備截圖，目標: 主頁面 viewport (full_page=False) for {template} {size}")
+                        page.screenshot(path=screenshot_path, full_page=False)
+
+                    logger.info("截圖操作完成")
+                    screenshot_success = True
+                else:
+                    raise Exception("頁面已關閉")
+                
+            except Exception as screenshot_error:
+                logger.error(f"截圖過程中發生錯誤: {str(screenshot_error)}")
+                
+                # 如果是 Target closed 錯誤，不嘗試重試
+                if "Target page, context or browser has been closed" in str(screenshot_error) or "TargetClosedError" in str(screenshot_error):
+                    logger.error("頁面已關閉，無法進行截圖重試")
+                    raise screenshot_error
+                
+                # 如果截圖失敗，嘗試重新建立頁面和截圖
+                try:
+                    logger.info("嘗試重新建立頁面進行截圖...")
+                    try:
+                        page.close()
+                    except:
+                        pass
+                    
+                    page = context.new_page()
+                    page.goto(url, wait_until='domcontentloaded', timeout=15000) # 簡化重試的等待
+                    page.wait_for_timeout(3000)
+                    
+                    # 重試截圖時也需要判斷 target
+                    retry_element_to_screenshot = None # Playwright Locator or ElementHandle
+                    retry_screenshot_description = "主頁面 viewport (重試)"
 
                     if template == 'moptt' and size == '300x250':
                         # MoPTT 重試也使用極簡策略
@@ -1049,24 +1012,24 @@ def create_native_screenshot():
             # 只有成功截圖才繼續處理檔案
             if not screenshot_success:
                 raise Exception("截圖失敗")
-                
-                # 取得檔案資訊
-                absolute_path = os.path.abspath(screenshot_path)
-                file_size = os.path.getsize(absolute_path)
-                
-                # 格式化檔案大小
-                if file_size > 1024 * 1024:
-                    file_size_str = f"{file_size / (1024 * 1024):.1f}MB"
-                elif file_size > 1024:
-                    file_size_str = f"{file_size / 1024:.1f}KB"
-                else:
-                    file_size_str = f"{file_size}B"
-                
-                logger.info(f"截圖完成，檔案儲存至: {absolute_path}")
-                
-                # 計算相對路徑供前端使用
-                relative_path = os.path.relpath(screenshot_path, 'uploads')
-                
+            
+            # 取得檔案資訊
+            absolute_path = os.path.abspath(screenshot_path)
+            file_size = os.path.getsize(absolute_path)
+            
+            # 格式化檔案大小
+            if file_size > 1024 * 1024:
+                file_size_str = f"{file_size / (1024 * 1024):.1f}MB"
+            elif file_size > 1024:
+                file_size_str = f"{file_size / 1024:.1f}KB"
+            else:
+                file_size_str = f"{file_size}B"
+            
+            logger.info(f"截圖完成，檔案儲存至: {absolute_path}")
+            
+            # 計算相對路徑供前端使用
+            relative_path = os.path.relpath(screenshot_path, 'uploads')
+            
             # 提供模板使用信息
             if template == 'moptt' and size == '300x250':
                 logger.info(f"300x250 使用 MoPTT 模板截圖完成")
@@ -1074,16 +1037,16 @@ def create_native_screenshot():
                 logger.info(f"640x200 使用 PNN 模板截圖完成")
             else:
                 logger.info(f"{size} 使用 {template} 模板截圖完成")
-                
-                return jsonify({
-                    'success': True,
-                    'file_path': absolute_path,
-                    'filename': filename,
-                    'file_size': file_size_str,
-                    'device_name': device_config['name'],
-                    'preview_url': url_for('screenshot_base64', filename=relative_path),
+            
+            return jsonify({
+                'success': True,
+                'file_path': absolute_path,
+                'filename': filename,
+                'file_size': file_size_str,
+                'device_name': device_config['name'],
+                'preview_url': url_for('screenshot_base64', filename=relative_path),
                 'download_url': url_for('screenshot_base64', filename=relative_path)
-                })
+            })
             
     except Exception as e:
         import traceback
@@ -1430,7 +1393,7 @@ def create_screenshot():
                     context.add_cookies(cookies)
                     logger.info(f"已為 aotter.github.io 設置 {len(cookies)} 個專用 cookies")
                     
-            else:
+                else:
                     # 對於其他域名使用預設 cookie
                     cookies = []
                     cookie_pairs = default_cookie.split(';')
@@ -1447,7 +1410,7 @@ def create_screenshot():
                             else:
                                 # 對於 aotter 相關的 cookie，設置為目標域名或其父域名
                                 if 'aotter' in domain or 'trek' in domain:
-                                cookie_domain = '.aotter.net' if 'aotter.net' in domain else domain
+                                    cookie_domain = '.aotter.net' if 'aotter.net' in domain else domain
                                 else:
                                     cookie_domain = domain
                             
@@ -1463,9 +1426,9 @@ def create_screenshot():
                     # 設置 cookies 到 context
                     context.add_cookies(cookies)
                     logger.info(f"已設置 {len(cookies)} 個 cookies")
-                    
-                except Exception as cookie_error:
-                    logger.warning(f"設置 cookie 時發生錯誤（將繼續不使用 cookie）: {str(cookie_error)}")
+                
+            except Exception as cookie_error:
+                logger.warning(f"設置 cookie 時發生錯誤（將繼續不使用 cookie）: {str(cookie_error)}")
             
             page = context.new_page()
             
@@ -1565,7 +1528,7 @@ def create_vote_ad():
         while True:
             option_title = request.form.get(f'option_title_{index}', '')
             if not option_title:
-                            break
+                break
                 
             vote_options.append({
                 'title': option_title,
@@ -1765,7 +1728,7 @@ def create_vertical_cube_slide_ad():
         ad_data['slide_items'] = slide_items
         
         flash("垂直 Cube Slide 廣告創建功能尚未實現", 'warning')
-                
+        
     except Exception as e:
         logger.error(f"創建垂直 Cube Slide 廣告時發生錯誤: {str(e)}")
         flash(f"創建垂直 Cube Slide 廣告時發生錯誤: {str(e)}", 'error')
@@ -1795,8 +1758,8 @@ def create_countdown_ad():
             'game_border_color': request.form.get('game_border_color', '#000000')
         }
         
-            # 保存表單數據到 session
-            for key, value in ad_data.items():
+        # 保存表單數據到 session
+        for key, value in ad_data.items():
             session[f'countdown_{key}'] = value
         
         flash("倒數廣告創建功能尚未實現", 'warning')
@@ -1823,7 +1786,7 @@ def create_ad_route():
             for key, value in request.form.items():
                 if key.startswith('gif_'):
                     adjusted_form_data[key[4:]] = value  # 移除 'gif_' 前綴
-            else:
+                else:
                     adjusted_form_data[key] = value
             
             # 創建一個新的 request.form 對象
@@ -1851,4 +1814,4 @@ def create_ad_route():
         return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5002) # 使用不同的埠號 
+    app.run(debug=True, port=5002) # 使用不同的埠號

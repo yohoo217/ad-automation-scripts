@@ -129,7 +129,7 @@
         此工具會根據您提供的 UUID，從資料庫查詢 AdUnit 資料並自動建構截圖網址，然後截取手機版本的螢幕畫面。
     </div>
     
-    <form action="{{ url_for('create_screenshot') }}" method="post">
+    <form action="{{ url_for('screenshot.create_screenshot') }}" method="post">
         <label for="uuid">輸入 UUID：</label>
         <input type="text" 
                id="uuid" 
@@ -203,7 +203,7 @@
         {% endif %}
         
         {% if relative_path.endswith(('.png', '.jpg', '.jpeg', '.gif')) %}
-        <img src="{{ url_for('screenshot_base64', filename=relative_path) }}" 
+        <img src="{{ url_for('screenshot.screenshot_base64', filename=relative_path) }}" 
              alt="截圖預覽" 
              class="screenshot-preview"
              onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">

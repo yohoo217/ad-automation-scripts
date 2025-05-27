@@ -165,7 +165,7 @@
 <body>
     <div class="container">
         <div class="nav-buttons">
-            <a href="{{ url_for('index') }}" class="button nav-button">單一廣告創建</a>
+            <a href="{{ url_for('main.index') }}" class="button nav-button">單一廣告創建</a>
         </div>
         
         <h1>批量建立廣告</h1>
@@ -182,7 +182,7 @@
 
         <button type="button" id="clear-form-button" class="clear-form-btn">清除所有內容</button>
 
-        <form id="batch-form" action="{{ url_for('create_batch_ads') }}" method="post">
+        <form id="batch-form" action="{{ url_for('native_ad.create_batch_ads') }}" method="post">
             <input type="hidden" id="ads_count" name="ads_count" value="10">
             
             <div class="table-actions">

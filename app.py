@@ -885,7 +885,7 @@ def create_native_screenshot():
             
             # 截圖前檢查頁面是否仍然有效
             screenshot_success = False
-                try:
+            try:
                     # 檢查頁面是否仍然可用
                     if hasattr(page, 'is_closed') and not page.is_closed():
                         page.title()  # 這會觸發錯誤如果頁面已關閉

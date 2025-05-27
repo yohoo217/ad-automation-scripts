@@ -135,9 +135,10 @@ def countdown_ad():
 def create_vote_ad():
     """處理投票廣告創建"""
     try:
-        # 獲取表單數據
+        # 獲取基本表單數據
         ad_data = {
             'adset_id': request.form.get('adset_id', ''),
+            'display_name': request.form.get('display_name', ''),
             'advertiser': request.form.get('advertiser', ''),
             'main_title': request.form.get('main_title', ''),
             'vote_title': request.form.get('vote_title', ''),
@@ -154,25 +155,40 @@ def create_vote_ad():
             'vote_position': request.form.get('vote_position', 'bottom'),
             'min_position': request.form.get('min_position', 50),
             'max_position': request.form.get('max_position', 70),
-            'timeout': request.form.get('timeout', 2000)
+            'timeout': request.form.get('timeout', 2000),
+            'winner_bg_color': request.form.get('winner_bg_color', '#26D07C'),
+            'winner_text_color': request.form.get('winner_text_color', '#ffffff'),
+            'loser_bg_color': request.form.get('loser_bg_color', '#000000'),
+            'loser_text_color': request.form.get('loser_text_color', '#ffffff')
         }
         
         # 保存表單數據到 session
         for key, value in ad_data.items():
             session[f'vote_{key}'] = value
-        
+            
         # 處理投票選項
+        vote_options = []
         index = 0
         while True:
-            option_title = request.form.get(f'option_title_{index}')
+            option_title = request.form.get(f'option_title_{index}', '')
             if not option_title:
                 break
                 
+            vote_options.append({
+                'title': option_title,
+                'text_color': request.form.get(f'option_text_color_{index}', '#207AED'),
+                'bg_color': request.form.get(f'option_bg_color_{index}', '#E7F3FF'),
+                'target_url': request.form.get(f'option_target_url_{index}', '')
+            })
+            
+            # 保存到 session
             session[f'option_title_{index}'] = option_title
             session[f'option_text_color_{index}'] = request.form.get(f'option_text_color_{index}', '#207AED')
             session[f'option_bg_color_{index}'] = request.form.get(f'option_bg_color_{index}', '#E7F3FF')
             session[f'option_target_url_{index}'] = request.form.get(f'option_target_url_{index}', '')
             index += 1
+            
+        ad_data['vote_options'] = vote_options
         
         flash("投票廣告創建功能尚未實現", 'warning')
         
@@ -186,9 +202,10 @@ def create_vote_ad():
 def create_slide_ad():
     """處理水平 Slide 廣告創建"""
     try:
-        # 處理表單數據（暫時只保存到 session）
+        # 處理表單數據
         ad_data = {
             'adset_id': request.form.get('adset_id', ''),
+            'display_name': request.form.get('display_name', ''),
             'advertiser': request.form.get('advertiser', ''),
             'main_title': request.form.get('main_title', ''),
             'subtitle': request.form.get('subtitle', ''),
@@ -196,11 +213,33 @@ def create_slide_ad():
             'call_to_action': request.form.get('call_to_action', '立即了解'),
             'image_path_m': request.form.get('image_path_m', ''),
             'image_path_s': request.form.get('image_path_s', ''),
+            'background_image': request.form.get('background_image', '')
         }
         
         # 保存表單數據到 session
         for key, value in ad_data.items():
             session[f'slide_{key}'] = value
+            
+        # 處理滑動項目
+        slide_items = []
+        index = 0
+        while True:
+            image_url = request.form.get(f'image_url_{index}', '')
+            target_url = request.form.get(f'target_url_{index}', '')
+            if not image_url and not target_url:
+                break
+                
+            slide_items.append({
+                'image_url': image_url,
+                'target_url': target_url
+            })
+            
+            # 保存到 session
+            session[f'image_url_{index}'] = image_url
+            session[f'target_url_{index}'] = target_url
+            index += 1
+            
+        ad_data['slide_items'] = slide_items
         
         flash("水平 Slide 廣告創建功能尚未實現", 'warning')
         
@@ -213,6 +252,57 @@ def create_slide_ad():
 @main_bp.route('/create-vertical-slide-ad', methods=['POST'])
 def create_vertical_slide_ad():
     """處理垂直 Slide 廣告創建"""
+    try:
+        # 處理表單數據
+        ad_data = {
+            'adset_id': request.form.get('adset_id', ''),
+            'display_name': request.form.get('display_name', ''),
+            'advertiser': request.form.get('advertiser', ''),
+            'main_title': request.form.get('main_title', ''),
+            'subtitle': request.form.get('subtitle', ''),
+            'landing_page': request.form.get('landing_page', ''),
+            'call_to_action': request.form.get('call_to_action', '立即了解'),
+            'image_path_m': request.form.get('image_path_m', ''),
+            'image_path_s': request.form.get('image_path_s', ''),
+            'background_image': request.form.get('background_image', '')
+        }
+        
+        # 保存表單數據到 session
+        for key, value in ad_data.items():
+            session[f'vertical_slide_{key}'] = value
+            
+        # 處理滑動項目（重用相同的 key 結構）
+        slide_items = []
+        index = 0
+        while True:
+            image_url = request.form.get(f'image_url_{index}', '')
+            target_url = request.form.get(f'target_url_{index}', '')
+            if not image_url and not target_url:
+                break
+                
+            slide_items.append({
+                'image_url': image_url,
+                'target_url': target_url
+            })
+            
+            # 保存到 session
+            session[f'image_url_{index}'] = image_url
+            session[f'target_url_{index}'] = target_url
+            index += 1
+            
+        ad_data['slide_items'] = slide_items
+        
+        flash("垂直 Slide 廣告創建功能尚未實現", 'warning')
+        
+    except Exception as e:
+        logger.error(f"創建垂直 Slide 廣告時發生錯誤: {str(e)}")
+        flash(f"創建垂直 Slide 廣告時發生錯誤: {str(e)}", 'error')
+    
+    return redirect(url_for('main.vertical_slide_ad'))
+
+@main_bp.route('/create-vertical-cube-slide-ad', methods=['POST'])
+def create_vertical_cube_slide_ad():
+    """處理垂直 Cube Slide 廣告創建"""
     try:
         # 處理表單數據（暫時只保存到 session）
         ad_data = {
@@ -228,12 +318,40 @@ def create_vertical_slide_ad():
         
         # 保存表單數據到 session
         for key, value in ad_data.items():
-            session[f'vertical_slide_{key}'] = value
+            session[f'vertical_cube_slide_{key}'] = value
         
-        flash("垂直 Slide 廣告創建功能尚未實現", 'warning')
+        flash("垂直 Cube Slide 廣告創建功能尚未實現", 'warning')
         
     except Exception as e:
-        logger.error(f"創建垂直 Slide 廣告時發生錯誤: {str(e)}")
-        flash(f"創建垂直 Slide 廣告時發生錯誤: {str(e)}", 'error')
+        logger.error(f"創建垂直 Cube Slide 廣告時發生錯誤: {str(e)}")
+        flash(f"創建垂直 Cube Slide 廣告時發生錯誤: {str(e)}", 'error')
     
-    return redirect(url_for('main.vertical_slide_ad')) 
+    return redirect(url_for('main.vertical_cube_slide_ad'))
+
+@main_bp.route('/create-countdown-ad', methods=['POST'])
+def create_countdown_ad():
+    """處理倒數廣告創建"""
+    try:
+        # 處理表單數據（暫時只保存到 session）
+        ad_data = {
+            'adset_id': request.form.get('adset_id', ''),
+            'advertiser': request.form.get('advertiser', ''),
+            'main_title': request.form.get('main_title', ''),
+            'subtitle': request.form.get('subtitle', ''),
+            'landing_page': request.form.get('landing_page', ''),
+            'call_to_action': request.form.get('call_to_action', '立即了解'),
+            'image_path_m': request.form.get('image_path_m', ''),
+            'image_path_s': request.form.get('image_path_s', ''),
+        }
+        
+        # 保存表單數據到 session
+        for key, value in ad_data.items():
+            session[f'countdown_{key}'] = value
+        
+        flash("倒數廣告創建功能尚未實現", 'warning')
+        
+    except Exception as e:
+        logger.error(f"創建倒數廣告時發生錯誤: {str(e)}")
+        flash(f"創建倒數廣告時發生錯誤: {str(e)}", 'error')
+    
+    return redirect(url_for('main.countdown_ad')) 

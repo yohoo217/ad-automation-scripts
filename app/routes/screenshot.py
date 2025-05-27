@@ -776,7 +776,7 @@ def screenshot_base64(filename):
 
 @screenshot_bp.route('/create-screenshot', methods=['POST'])
 def create_screenshot():
-    """自動截圖處理"""
+    """處理截圖創建"""
     try:
         uuid = request.form.get('uuid', '').strip()
         device = request.form.get('device', 'iphone_x')
@@ -815,22 +815,193 @@ def create_screenshot():
         
         device_config = device_configs.get(device, device_configs['iphone_x'])
         
-        # 執行截圖邏輯（這裡簡化了，實際的截圖邏輯很複雜）
-        success = _perform_screenshot(url, device_config, full_page, scroll_distance, wait_time, uuid, adunit_data)
+        # 預設 cookie（用於 aotter 相關網站）
+        default_cookie = "AOTTERBD_SESSION=757418f543a95a889184e798ec5ab66d4fad04e5-lats=1724229220332&sso=PIg4zu/Vdnn/A15vMEimFlVAGliNhoWlVd5FTvtEMRAFpk/VvBGvAetanw8DLATSLexy9pee/t52uNojvoFS2Q==;aotter=eyJ1c2VyIjp7ImlkIjoiNjNkYjRkNDBjOTFiNTUyMmViMjk4YjBkIiwiZW1haWwiOiJpYW4uY2hlbkBhb3R0ZXIubmV0IiwiY3JlYXRlZEF0IjoxNjc1MzE2NTQ0LCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJsZWdhY3lJZCI6bnVsbCwibGVnYWN5U2VxSWQiOjE2NzUzMTY1NDQ3ODI5NzQwMDB9LCJhY2Nlc3NUb2tlbiI6IjJkYjQyZTNkOTM5MDUzMjdmODgyZmYwMDRiZmI4YmEzZjBhNTlmMDQwYzhiN2Y4NGY5MmZmZTIzYTU0ZTQ2MDQiLCJ1ZWEiOm51bGx9; _Secure-1PSID=vlPPgXupFroiSjP1/A02minugZVZDgIG4K; _Secure-1PSIDCC=g.a000mwhavReSVd1vN09AVTswXkPAhyuW7Tgj8-JFhj-FZya9I_l1B6W2gqTIWAtQUTQMkTxoAwACgYKAW0SARISFQHGX2MiC--NJ2PzCzDpJ0m3odxHhxoVAUF8yKr8r49abq8oe4UxCA0t_QCW0076; _Secure-3PSID=AKEyXzUuXI1zywmFmkEBEBHfg6GRkRM9cJ9BiJZxmaR46x5im_krhaPtmL4Jhw8gQsz5uFFkfbc; _Secure-3PSIDCC=sidts-CjEBUFGohzUF6oK3ZMACCk2peoDBDp6djBwJhGc4Lxgu2zOlzbVFeVpXF4q1TYZ5ba6cEAA"
         
-        if success:
-            flash('截圖成功！', 'success')
-        else:
-            flash('截圖失敗', 'error')
+        logger.info(f"開始自動截圖，目標網址: {url}, 裝置: {device_config['name']}, 完整頁面: {full_page}, UUID: {uuid}, 滾動距離: {scroll_distance}px")
+        
+        # 使用 Playwright 進行截圖
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(
+                headless=True,
+                args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-web-security']
+            )
+            context = browser.new_context(
+                viewport={'width': device_config['width'], 'height': device_config['height']},
+                user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1' if 'iphone' in device or device == 'android' else 'Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1'
+            )
+            
+            # 根據域名設置不同的 cookie
+            try:
+                from urllib.parse import urlparse
+                parsed_url = urlparse(url)
+                domain = parsed_url.netloc
+                
+                # 為 aotter.github.io 域名設置特定的 cookies
+                if domain == "aotter.github.io":
+                    # aotter.github.io 專用的 cookies
+                    github_cookie_string = "cf_clearance=tlU5YeqVtd83dMmK0D8IHFYxnf1ke1AZLLUNdlT2Tco-1748308849-1.2.1.1-pBs9egIQSSuk2aLstBcdPGPyEflNUhEqwzK_M.E8w_tqtQY2ipsJXGj6_JoBWktklctTACwdQyCuF2kfKPlBGHa3Um.OTdIkrEt_7TQ6mtm4axyyK_B7nzW.2m6HpH.u6r_J6ybaShQq3DuyG1N_rPeYTyoD8YEj5yJnWR92U39AbL2FZb19se8mg2Zsk56vy6RfwnFGbIqQKIVnC7U7SS1ESGUFudxpkIZoXP_UtfzVbKaQIa_fUu9_KUCxusZ2jjMKnnSkRUHVM2rg.ObZxjqLNdG1YluIt6PeEUsTClTB2pWs7hf5CAkt6uACsC83HtJmrV__.rS2xf8VoomnQrtklFQzcfWUTNJ4uRdYWQo;ar_debug=1;TREK_SESSION=2d139516-31b7-477b-2dba-e31c4e5e72b1"
+                    
+                    cookies = []
+                    cookie_pairs = github_cookie_string.split(';')
+                    
+                    for pair in cookie_pairs:
+                        if '=' in pair:
+                            name, value = pair.split('=', 1)
+                            name = name.strip()
+                            value = value.strip()
+                            
+                            # 根據 cookie 名稱設置適當的域名
+                            if name == 'cf_clearance':
+                                cookie_domain = domain  # 使用 aotter.github.io 域名
+                            elif name == 'ar_debug':
+                                cookie_domain = domain  # 使用 aotter.github.io 域名
+                            elif name == 'TREK_SESSION':
+                                cookie_domain = '.aotter.net'  # Trek session 使用 aotter 域名
+                            else:
+                                cookie_domain = domain
+                            
+                            cookies.append({
+                                'name': name,
+                                'value': value,
+                                'domain': cookie_domain,
+                                'path': '/',
+                                'secure': False,
+                                'httpOnly': False
+                            })
+                    
+                    context.add_cookies(cookies)
+                    logger.info(f"已為 aotter.github.io 設置 {len(cookies)} 個專用 cookies")
+                    
+                else:
+                    # 對於其他域名使用預設 cookie
+                    cookies = []
+                    cookie_pairs = default_cookie.split(';')
+                    
+                    for pair in cookie_pairs:
+                        if '=' in pair:
+                            name, value = pair.split('=', 1)
+                            name = name.strip()
+                            value = value.strip()
+                            
+                            # 針對不同的 cookie 設置適當的域名
+                            if name.startswith('_Secure-') or 'PSID' in name:
+                                cookie_domain = '.google.com'
+                            else:
+                                # 對於 aotter 相關的 cookie，設置為目標域名或其父域名
+                                if 'aotter' in domain or 'trek' in domain:
+                                    cookie_domain = '.aotter.net' if 'aotter.net' in domain else domain
+                                else:
+                                    cookie_domain = domain
+                            
+                            cookies.append({
+                                'name': name,
+                                'value': value,
+                                'domain': cookie_domain,
+                                'path': '/',
+                                'secure': name.startswith('_Secure-') or 'PSID' in name,
+                                'httpOnly': False
+                            })
+                    
+                    # 設置 cookies 到 context
+                    context.add_cookies(cookies)
+                    logger.info(f"已設置 {len(cookies)} 個 cookies")
+                    
+            except Exception as cookie_error:
+                logger.warning(f"設置 cookie 時發生錯誤（將繼續不使用 cookie）: {str(cookie_error)}")
+            
+            page = context.new_page()
+            
+            # 訪問目標網址，增加超時時間並改善錯誤處理
+            try:
+                page.goto(url, wait_until='networkidle', timeout=60000)  # 增加到 60 秒
+            except Exception as goto_error:
+                logger.warning(f"networkidle 等待超時，嘗試 domcontentloaded: {str(goto_error)}")
+                try:
+                    page.goto(url, wait_until='domcontentloaded', timeout=45000)  # 降級為 45 秒
+                except Exception as retry_error:
+                    logger.warning(f"domcontentloaded 也超時，嘗試基本載入: {str(retry_error)}")
+                    page.goto(url, wait_until='commit', timeout=30000)  # 最後降級為 30 秒
+            
+            # 等待頁面載入完成
+            page.wait_for_timeout(wait_time)
+            
+            # 如果設定了滾動距離，則向下滾動到廣告區域
+            if scroll_distance > 0:
+                logger.info(f"向下滾動 {scroll_distance} 像素到廣告區域")
+                page.evaluate(f"window.scrollTo(0, {scroll_distance})")
+                # 滾動後再等待一下讓內容穩定
+                page.wait_for_timeout(1000)
+            
+            # 創建截圖目錄
+            from datetime import datetime
+            today = datetime.now().strftime('%Y%m%d')
+            screenshot_dir = os.path.join('uploads', 'screenshots', today)
+            if not os.path.exists(screenshot_dir):
+                os.makedirs(screenshot_dir)
+            
+            # 生成檔案名稱
+            timestamp = datetime.now().strftime('%H%M%S')
+            device_suffix = device.replace('_', '-')
+            page_type = 'full' if full_page else 'viewport'
+            scroll_suffix = f'scroll-{scroll_distance}px' if scroll_distance > 0 else 'no-scroll'
+            filename = f'screenshot_{device_suffix}_{page_type}_uuid-{uuid}_{scroll_suffix}_{timestamp}.png'
+            screenshot_path = os.path.join(screenshot_dir, filename)
+            
+            # 截圖，增加重試機制
+            screenshot_success = False
+            max_retries = 3
+            
+            for attempt in range(max_retries):
+                try:
+                    logger.info(f"嘗試截圖 (第 {attempt + 1} 次)")
+                    page.screenshot(path=screenshot_path, full_page=full_page)
+                    screenshot_success = True
+                    logger.info("截圖成功")
+                    break
+                except Exception as screenshot_error:
+                    logger.warning(f"截圖失敗 (第 {attempt + 1} 次): {str(screenshot_error)}")
+                    if attempt < max_retries - 1:
+                        logger.info("等待 2 秒後重試...")
+                        page.wait_for_timeout(2000)
+                    else:
+                        logger.error("所有截圖嘗試都失敗了")
+                        raise screenshot_error
+            
+            browser.close()
+            
+            # 取得絕對路徑
+            absolute_path = os.path.abspath(screenshot_path)
+            
+            logger.info(f"截圖完成，檔案儲存至: {absolute_path}")
+            flash(f'截圖成功！檔案儲存至: {absolute_path}', 'success')
+            
+            # 將截圖路徑儲存到session，供模板顯示
+            session['last_screenshot'] = absolute_path
+            session['last_screenshot_device'] = device_config['name']
+            session['last_screenshot_full_page'] = full_page
+            session['last_screenshot_scroll_distance'] = scroll_distance
+            session['last_screenshot_uuid'] = uuid
+            session['last_screenshot_adunit_title'] = adunit_data.get('title', '')
             
     except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
         logger.error(f"自動截圖時發生錯誤: {str(e)}")
-        flash(f'截圖失敗: {str(e)}', 'error')
+        logger.error(f"錯誤詳情：\n{error_detail}")
+        
+        # 根據錯誤類型提供更友善的訊息
+        if "Timeout" in str(e):
+            user_friendly_msg = "網頁載入超時（已嘗試 60 秒），請稍後再試或檢查網址是否正確"
+        elif "net::ERR" in str(e):
+            user_friendly_msg = "網路連線錯誤，請檢查網址是否可正常訪問"
+        elif "screenshot" in str(e).lower():
+            user_friendly_msg = "截圖過程發生錯誤，請重新嘗試"
+        elif "browser" in str(e).lower() or "chromium" in str(e).lower():
+            user_friendly_msg = "瀏覽器啟動失敗，請稍後重試"
+        else:
+            user_friendly_msg = f"截圖失敗: {str(e)}"
+            
+        flash(user_friendly_msg, 'error')
     
-    return redirect(url_for('screenshot.auto_screenshot'))
-
-def _perform_screenshot(url, device_config, full_page, scroll_distance, wait_time, uuid, adunit_data):
-    """執行截圖的內部函數"""
-    # 這裡包含原來 app.py 中的截圖邏輯
-    # 為了簡化，這裡只返回 True，實際應該包含完整的截圖邏輯
-    return True 
+    return redirect(url_for('screenshot.auto_screenshot')) 

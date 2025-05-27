@@ -37,6 +37,9 @@ def create_app():
         ]
     )
     
+    # 關閉 Werkzeug HTTP 請求日誌
+    logging.getLogger('werkzeug').setLevel(logging.WARNING)
+    
     # 註冊藍圖
     from app.routes import register_blueprints
     register_blueprints(app)

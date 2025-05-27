@@ -282,11 +282,11 @@ def create_native_screenshot():
                         cdp_session = context.new_cdp_session(page)
                         cdp_session.send('Network.emulateNetworkConditions', {
                             'offline': False,
-                            'downloadThroughput': 30000,  # 1.6 Mbps 下載速度 (轉換為 bytes/s)
+                            'downloadThroughput': 31000,  # 1.6 Mbps 下載速度 (轉換為 bytes/s)
                             'uploadThroughput': 4000,  # 750 Kbps 上傳速度 (轉換為 bytes/s)
                             'latency': 150  # 150ms 延遲
                         })
-                        logger.info("3G 網路限制已設置 (下載: 1.6Mbps, 上傳: 750Kbps, 延遲: 150ms)")
+                        logger.info("3G 網路限制已設置")
                     except Exception as network_error:
                         logger.warning(f"設置 3G 網路限制失敗，但繼續: {str(network_error)}")
                     
@@ -308,8 +308,8 @@ def create_native_screenshot():
                         logger.info(f"Network Request > {request.method} {request.url}")
                     
                     # 監聽網路請求和響應（但不監聽 page close）
-                    page.on('request', on_request)
-                    page.on('response', on_response)
+                    # page.on('request', on_request)
+                    # page.on('response', on_response)
                     
                     # PNN 640x200 完全不跳錯誤的流程
                     try:
@@ -537,10 +537,13 @@ def create_native_screenshot():
                     if element_to_screenshot: 
                         logger.info(f"準備截圖，目標: {screenshot_description}")
                         # ElementHandle 和 Locator 都有 screenshot 方法
+                        page.wait_for_timeout(1000)
                         element_to_screenshot.screenshot(path=screenshot_path)
+                        
                     else:
                         # 如果 element_to_screenshot 未被設置 (例如非 MoPTT/PNN 頁面，或 body 也沒取到)
                         logger.info(f"準備截圖，目標: 主頁面 viewport (full_page=False) for {template} {size}")
+                        page.wait_for_timeout(20000)
                         page.screenshot(path=screenshot_path, full_page=False)
 
                     logger.info("截圖操作完成")

@@ -25,6 +25,33 @@ app.secret_key = 'your_very_secret_key' # 記得更換為一個安全的密鑰
 MONGO_CONNECTION_STRING = os.getenv('MONGO_CONNECTION_STRING')
 MONGO_DATABASE = os.getenv('MONGO_DATABASE', 'trek')
 
+# 日誌級別控制
+LOG_LEVEL_VERBOSE = False  # 設為 False 可關閉詳細日誌
+LOG_LEVEL_BEFORE_AFTER = False  # 設為 False 可關閉前後截圖日誌
+
+# 配置日誌
+log_level = logging.INFO if LOG_LEVEL_VERBOSE else logging.WARNING
+logging.basicConfig(
+    level=log_level,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/app.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# 自定義日誌函數
+def log_verbose(message):
+    """詳細日誌，可控制是否顯示"""
+    if LOG_LEVEL_VERBOSE:
+        logger.info(message)
+
+def log_before_after(message):
+    """前後截圖日誌，可控制是否顯示"""
+    if LOG_LEVEL_BEFORE_AFTER:
+        logger.info(message)
+
 def get_mongo_client():
     """取得 MongoDB 連接"""
     try:
@@ -105,17 +132,6 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 限制上傳大小為 16MB
-
-# 配置日誌
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('logs/app.log'),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
 
 # 確保日誌目錄存在
 if not os.path.exists('logs'):
@@ -865,10 +881,10 @@ def create_native_screenshot():
                 scroll_suffix = f'scroll-{scroll_distance}px' if scroll_distance > 0 else 'no-scroll'
             template_suffix = f'_{template}' if template not in ['ptt-article'] else ''
             filename = f'native_{size.replace("x", "_")}_device-{device_suffix}_uuid-{uuid}_{scroll_suffix}{template_suffix}_{timestamp}.png'
-                screenshot_path = os.path.join(screenshot_dir, filename)
-                
-                # 截圖前檢查頁面是否仍然有效
-                screenshot_success = False
+            screenshot_path = os.path.join(screenshot_dir, filename)
+            
+            # 截圖前檢查頁面是否仍然有效
+            screenshot_success = False
                 try:
                     # 檢查頁面是否仍然可用
                     if hasattr(page, 'is_closed') and not page.is_closed():
@@ -920,13 +936,13 @@ def create_native_screenshot():
                                     filename_before = f'native_{size.replace("x", "_")}_device-{device_suffix}_uuid-{uuid}_{scroll_suffix}{template_suffix}_BEFORE_{timestamp_before}.png'
                                     screenshot_path_before = os.path.join(screenshot_dir, filename_before)
                                     page.screenshot(path=screenshot_path_before, full_page=False)
-                                    logger.info(f"📸 PNN 640x200: 主截圖前 2 秒截圖完成: {screenshot_path_before}")
+                                    log_before_after(f"📸 PNN 640x200: 主截圖前 2 秒截圖完成: {screenshot_path_before}")
                                 except Exception as before_error:
                                     logger.warning(f"主截圖前截圖失敗: {str(before_error)}")
                                 
                                 # 等待 2 秒
                                 page.wait_for_timeout(2000)
-                                logger.info("📸 PNN 640x200: 等待 2 秒後準備主截圖")
+                                log_before_after("📸 PNN 640x200: 等待 2 秒後準備主截圖")
 
                         else:
                             # 其他情況，預設截取主頁面 viewport
@@ -951,13 +967,13 @@ def create_native_screenshot():
                             try:
                                 # 等待 2 秒
                                 page.wait_for_timeout(2000)
-                                logger.info("📸 PNN 640x200: 等待 2 秒後準備後續截圖")
+                                log_before_after("📸 PNN 640x200: 等待 2 秒後準備後續截圖")
                                 
                                 timestamp_after = datetime.now().strftime('%H%M%S')
                                 filename_after = f'native_{size.replace("x", "_")}_device-{device_suffix}_uuid-{uuid}_{scroll_suffix}{template_suffix}_AFTER_{timestamp_after}.png'
                                 screenshot_path_after = os.path.join(screenshot_dir, filename_after)
                                 page.screenshot(path=screenshot_path_after, full_page=False)
-                                logger.info(f"📸 PNN 640x200: 主截圖後 2 秒截圖完成: {screenshot_path_after}")
+                                log_before_after(f"📸 PNN 640x200: 主截圖後 2 秒截圖完成: {screenshot_path_after}")
                             except Exception as after_error:
                                 logger.warning(f"主截圖後截圖失敗: {str(after_error)}")
                         

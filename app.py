@@ -572,8 +572,20 @@ def create_native_screenshot():
         # 使用 Playwright 進行截圖
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(
+                executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",  # 指定 arm64 原生 Chrome 路徑
                 headless=True,
-                args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+                args=[
+                    "--disable-gpu",      # 保險起見先關 GPU
+                    "--no-sandbox",       # 禁用沙箱模式提高穩定性
+                    "--disable-dev-shm-usage",  # 避免共享記憶體問題
+                    "--disable-background-timer-throttling",  # 防止背景定時器被限制
+                    "--disable-backgrounding-occluded-windows",  # 防止背景視窗被限制
+                    "--disable-renderer-backgrounding",  # 防止渲染器背景化
+                    "--disable-features=TranslateUI",  # 禁用翻譯功能
+                    "--disable-extensions",  # 禁用擴充功能
+                    "--disable-plugins",    # 禁用插件
+                    "--disable-web-security",  # 禁用網頁安全限制
+                ]
             )
             
             # 根據裝置類型和網站設定不同的上下文
@@ -1005,50 +1017,50 @@ def create_native_screenshot():
                         retry_element_to_screenshot = None # Playwright Locator or ElementHandle
                         retry_screenshot_description = "主頁面 viewport (重試)"
 
-                    if template == 'moptt' and size == '300x250':
-                        # MoPTT 重試也使用極簡策略
-                        logger.info("MoPTT (重試): 採用極簡策略，截圖主頁面 viewport")
-                        retry_screenshot_description = "MoPTT 主頁面 viewport (重試極簡策略)"
-                        # retry_element_to_screenshot 保持 None
+                        if template == 'moptt' and size == '300x250':
+                            # MoPTT 重試也使用極簡策略
+                            logger.info("MoPTT (重試): 採用極簡策略，截圖主頁面 viewport")
+                            retry_screenshot_description = "MoPTT 主頁面 viewport (重試極簡策略)"
+                            # retry_element_to_screenshot 保持 None
 
-                    elif template == 'pnn-article' and size == '640x200':
-                        # PNN 640x200 重試時也截取整個手機畫面
-                        logger.info("PNN 640x200 (重試): 準備截取整個手機畫面")
+                        elif template == 'pnn-article' and size == '640x200':
+                            # PNN 640x200 重試時也截取整個手機畫面
+                            logger.info("PNN 640x200 (重試): 準備截取整個手機畫面")
+                            
+                            # 等待廣告載入（但不截取 iframe）
+                            try:
+                                iframe_el_retry = page.query_selector('iframe[src*="tkcatrun.aotter.net"]')
+                                if iframe_el_retry:
+                                    ad_frame_retry = iframe_el_retry.content_frame()
+                                    if ad_frame_retry:
+                                        logger.info("PNN (重試): 找到廣告 iframe，等待載入")
+                                        ad_frame_retry.wait_for_timeout(2000)
+                                        try:
+                                            ad_frame_retry.wait_for_selector('[data-trek-ad]', timeout=3000)
+                                            logger.info("PNN (重試): 廣告已載入")
+                                        except:
+                                            logger.warning("PNN (重試): 廣告載入超時")
+                                else:
+                                    logger.warning("PNN (重試): 未找到廣告 iframe")
+                            except Exception as retry_iframe_error:
+                                logger.warning(f"PNN (重試): iframe 處理錯誤: {str(retry_iframe_error)}")
+                            
+                            # 截取整個手機畫面
+                            retry_element_to_screenshot = None  # 使用 page.screenshot
+                            retry_screenshot_description = "PNN 整個手機畫面 (640x200 重試)"
                         
-                        # 等待廣告載入（但不截取 iframe）
-                        try:
-                            iframe_el_retry = page.query_selector('iframe[src*="tkcatrun.aotter.net"]')
-                            if iframe_el_retry:
-                                ad_frame_retry = iframe_el_retry.content_frame()
-                                if ad_frame_retry:
-                                    logger.info("PNN (重試): 找到廣告 iframe，等待載入")
-                                    ad_frame_retry.wait_for_timeout(2000)
-                                    try:
-                                        ad_frame_retry.wait_for_selector('[data-trek-ad]', timeout=3000)
-                                        logger.info("PNN (重試): 廣告已載入")
-                                    except:
-                                        logger.warning("PNN (重試): 廣告載入超時")
-                            else:
-                                logger.warning("PNN (重試): 未找到廣告 iframe")
-                        except Exception as retry_iframe_error:
-                            logger.warning(f"PNN (重試): iframe 處理錯誤: {str(retry_iframe_error)}")
-                        
-                        # 截取整個手機畫面
-                        retry_element_to_screenshot = None  # 使用 page.screenshot
-                        retry_screenshot_description = "PNN 整個手機畫面 (640x200 重試)"
-                    
-                    if retry_element_to_screenshot:
-                        logger.info(f"重試截圖，目標: {retry_screenshot_description}")
-                        retry_element_to_screenshot.screenshot(path=screenshot_path)
-                    else:
-                        logger.info(f"重試截圖，目標: 主頁面 viewport (full_page=False) for {template} {size}")
-                        page.screenshot(path=screenshot_path, full_page=False)
-                        
-                    logger.info("重新截圖成功")
-                    screenshot_success = True
-                except Exception as retry_screenshot_error:
-                    logger.error(f"重新截圖也失敗: {str(retry_screenshot_error)}")
-                    raise screenshot_error  # 重新拋出原始錯誤
+                        if retry_element_to_screenshot:
+                            logger.info(f"重試截圖，目標: {retry_screenshot_description}")
+                            retry_element_to_screenshot.screenshot(path=screenshot_path)
+                        else:
+                            logger.info(f"重試截圖，目標: 主頁面 viewport (full_page=False) for {template} {size}")
+                            page.screenshot(path=screenshot_path, full_page=False)
+                            
+                        logger.info("重新截圖成功")
+                        screenshot_success = True
+                    except Exception as retry_screenshot_error:
+                        logger.error(f"重新截圖也失敗: {str(retry_screenshot_error)}")
+                        raise screenshot_error  # 重新拋出原始錯誤
             
             # 確保瀏覽器資源被正確清理
             try:
@@ -1065,24 +1077,24 @@ def create_native_screenshot():
             # 只有成功截圖才繼續處理檔案
             if not screenshot_success:
                 raise Exception("截圖失敗")
-                
-                # 取得檔案資訊
-                absolute_path = os.path.abspath(screenshot_path)
-                file_size = os.path.getsize(absolute_path)
-                
-                # 格式化檔案大小
-                if file_size > 1024 * 1024:
-                    file_size_str = f"{file_size / (1024 * 1024):.1f}MB"
-                elif file_size > 1024:
-                    file_size_str = f"{file_size / 1024:.1f}KB"
-                else:
-                    file_size_str = f"{file_size}B"
-                
-                logger.info(f"截圖完成，檔案儲存至: {absolute_path}")
-                
-                # 計算相對路徑供前端使用
-                relative_path = os.path.relpath(screenshot_path, 'uploads')
-                
+            
+            # 取得檔案資訊
+            absolute_path = os.path.abspath(screenshot_path)
+            file_size = os.path.getsize(absolute_path)
+            
+            # 格式化檔案大小
+            if file_size > 1024 * 1024:
+                file_size_str = f"{file_size / (1024 * 1024):.1f}MB"
+            elif file_size > 1024:
+                file_size_str = f"{file_size / 1024:.1f}KB"
+            else:
+                file_size_str = f"{file_size}B"
+            
+            logger.info(f"截圖完成，檔案儲存至: {absolute_path}")
+            
+            # 計算相對路徑供前端使用
+            relative_path = os.path.relpath(screenshot_path, 'uploads')
+            
             # 提供模板使用信息
             if template == 'moptt' and size == '300x250':
                 logger.info(f"300x250 使用 MoPTT 模板截圖完成")
@@ -1090,16 +1102,16 @@ def create_native_screenshot():
                 logger.info(f"640x200 使用 PNN 模板截圖完成")
             else:
                 logger.info(f"{size} 使用 {template} 模板截圖完成")
-                
-                return jsonify({
-                    'success': True,
-                    'file_path': absolute_path,
-                    'filename': filename,
-                    'file_size': file_size_str,
-                    'device_name': device_config['name'],
-                    'preview_url': url_for('screenshot_base64', filename=relative_path),
+            
+            return jsonify({
+                'success': True,
+                'file_path': absolute_path,
+                'filename': filename,
+                'file_size': file_size_str,
+                'device_name': device_config['name'],
+                'preview_url': url_for('screenshot_base64', filename=relative_path),
                 'download_url': url_for('screenshot_base64', filename=relative_path)
-                })
+            })
             
     except Exception as e:
         import traceback

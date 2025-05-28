@@ -1,8 +1,7 @@
 # 完整版，可以正常運作且有防呆 2024/11/27 測試可以正常運作，測試人 Ian
 
 import re
-# import gspread # Removed
-# from oauth2client.service_account import ServiceAccountCredentials # Removed
+import platform,sys,subprocess,shlex,os
 from playwright.sync_api import Playwright, sync_playwright
 import logging
 import config
@@ -22,12 +21,25 @@ def run(playwright: Playwright, ad_data: dict) -> bool:
     context = None
     try:
         log_message(f"Processing ad: {ad_data.get('display_name', 'N/A')}")
-        log_message("Launching brower")
-        browser = playwright.chromium.launch(headless=True)
+        log_message("啟動 arm64 原生 Chrome 穩定版瀏覽器")
+        browser = playwright.chromium.launch(
+            executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",  # 指定 arm64 原生 Chrome 路徑
+            headless=False,           # 還是想跑 headless
+            args=[
+                "--disable-gpu",      # 保險起見先關 GPU
+                "--no-sandbox",       # 禁用沙箱模式提高穩定性
+                "--disable-dev-shm-usage",  # 避免共享記憶體問題
+                "--disable-background-timer-throttling",  # 防止背景定時器被限制
+                "--disable-backgrounding-occluded-windows",  # 防止背景視窗被限制
+                "--disable-renderer-backgrounding",  # 防止渲染器背景化
+                "--disable-features=TranslateUI",  # 禁用翻譯功能
+                "--disable-extensions",  # 禁用擴充功能
+                "--disable-plugins",    # 禁用插件
+                "--disable-web-security",  # 禁用網頁安全限制
+            ],
+        )
         context = browser.new_context()
         
-        # 增加超時設定，以避免在網絡不穩定時過早失敗
-        context.set_default_timeout(60000)  # 設置為 60 秒
         
         page = context.new_page()
 
@@ -91,8 +103,9 @@ def run(playwright: Playwright, ad_data: dict) -> bool:
         page.get_by_role("button", name="儲存").click()
 
     # 插入圖片 - 第二次，因為 input 位置名稱都重複，位置順序又會因為新增插入選項而變動，所以順序現在看起來怪怪的，但可以 work
-        log_message("插入第二張圖片 - 1200x628")
+        log_message("插入第二張圖片 - 300x300")
         page.get_by_placeholder("請選擇").nth(1).click()
+        page.wait_for_timeout(500)
         page.get_by_text("* 正方形圖片 (300 × 300)").nth(3).click()
 
         log_message(f"設置第二張圖片: {ad_data['image_path_p']}")
@@ -110,7 +123,7 @@ def run(playwright: Playwright, ad_data: dict) -> bool:
         page.get_by_role("button", name="儲存").click()
 
         # 插入圖片 - 第四次
-        log_message("插入第四張圖片 - 300x300")
+        log_message("插入第四張圖片 - 336x280")
         page.get_by_placeholder("請選擇").nth(3).click()
         page.get_by_text("* 橫幅336 (336 × 280)").nth(3).click()
 
@@ -140,29 +153,7 @@ def run(playwright: Playwright, ad_data: dict) -> bool:
                 context.close()
             if browser:
                 browser.close()
+                log_message("瀏覽器已關閉")
         except Exception as e:
             log_message(f"關閉瀏覽器時發生錯誤: {str(e)}")
 
-# 主程序 - Removed
-# worksheet, sheet_data = get_sheet_data(sheet_url, range_name, worksheet_index)
-
-# with sync_playwright() as playwright:
-#     while row_number <= len(sheet_data):
-#         try:
-#             if check_a_column(worksheet, row_number):
-#                 log_message(f"Row {row_number} already processed, skipping")
-#             elif check_g_column(sheet_data, row_number):
-#                 log_message(f"Row {row_number} skipped as adtype 是 'suprad'")
-#             else:
-#                 log_message(f"Starting to process row {row_number}")
-#                 success = run(playwright, row_number, sheet_data)
-#                 log_message(f"Finished processing row {row_number}, success: {success}")
-#                 update_sheet_status(worksheet, row_number, success)
-
-#         except Exception as e:
-#             log_message(f"Unexpected error processing row {row_number}: {str(e)}")
-#             update_sheet_status(worksheet, row_number, False)
-#         finally:
-#             row_number += 1
-
-# log_message("所有行處理完畢")

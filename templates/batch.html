@@ -210,9 +210,9 @@
                             <th style="width: 120px;">按鈕文字</th>
                             <th style="width: 130px;">追蹤URL</th>
                             <th class="required-header" style="width: 160px;">1200x628</th>
-                            <th class="required-header" style="width: 160px;">336x280</th>
-                            <th class="required-header" style="width: 160px;">640x100</th>
                             <th class="required-header" style="width: 160px;">300x300</th>
+                            <th class="required-header" style="width: 160px;">640x100</th>
+                            <th class="required-header" style="width: 160px;">336x280</th>
                         </tr>
                     </thead>
                     <tbody id="ad-table-body">
@@ -299,40 +299,63 @@
                     const previewId = `preview_${rowId}_${fieldName.split('_').pop()}`;
                     const preview = document.getElementById(previewId);
                     
+                    console.log('Upload debug info:', {
+                        rowId,
+                        fieldName,
+                        targetInputId,
+                        previewId,
+                        previewExists: !!preview
+                    });
+                    
                     // 創建FormData並添加文件
                     const formData = new FormData();
                     formData.append('file', file);
                     
-                    // 顯示上傳中視覺回饋
-                    preview.style.display = 'block';
-                    preview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDNi40NzcgMiAyIDYuNDc3IDIgMTJDMiAxNy41MjMgNi40NzcgMjIgMTIgMjJDMTcuNTIzIDIyIDIyIDE3LjUyMyAyMiAxMkMyMiA2LjQ3NyAxNy41MjMgMiAxMiAyWk0xMiA2QzEzLjEwNSA2IDE0IDYuODk1IDE0IDhDMTQgOS4xMDUgMTMuMTA1IDEwIDEyIDEwQzEwLjg5NSAxMCAxMCA5LjEwNSAxMCA4QzEwIDYuODk1IDEwLjg5NSA2IDEyIDZaTTE4LjQwNiAxNC43MThDMTguNTYgMTQuODI3IDE4LjQwNiAxNSAxOC4yNSAxNUg1Ljc2QzUuNjA0IDE1IDUuNDUgMTQuODI3IDUuNzE2IDE0LjcxOEM3LjY2OCAxMy42NDIgOS41ODcgMTMgMTIgMTNDMTQuMzgxIDEzIDE2LjI2NyAxMy42NDIgMTguNDA2IDE0LjcxOFoiIGZpbGw9IiM1Y2I4NWMiLz4KPC9zdmc+Cg==';
+                    // 顯示上傳中視覺回饋（如果preview元素存在）
+                    if (preview) {
+                        preview.style.display = 'block';
+                        preview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDNi40NzcgMiAyIDYuNDc3IDIgMTJDMiAxNy41MjMgNi40NzcgMjIgMTIgMjJDMTcuNTIzIDIyIDIyIDE3LjUyMyAyMiAxMkMyMiA2LjQ3NyAxNy41MjMgMiAxMiAyWk0xMiA2QzEzLjEwNSA2IDE0IDYuODk1IDE0IDhDMTQgOS4xMDUgMTMuMTA1IDEwIDEyIDEwQzEwLjg5NSAxMCAxMCA5LjEwNSAxMCA4QzEwIDYuODk1IDEwLjg5NSA2IDEyIDZaTTE4LjQwNiAxNC43MThDMTguNTYgMTQuODI3IDE4LjQwNiAxNSAxOC4yNSAxNUg1Ljc2QzUuNjA0IDE1IDUuNDUgMTQuODI3IDUuNzE2IDE0LjcxOEM3LjY2OCAxMy42NDIgOS41ODcgMTMgMTIgMTNDMTQuMzgxIDEzIDE2LjI2NyAxMy42NDIgMTguNDA2IDE0LjcxOFoiIGZpbGw9IiM1Y2I4NWMiLz4KPC9zdmc+Cg==';
+                    }
                     
                     // 發送上傳請求
                     fetch('/upload', {
                         method: 'POST',
                         body: formData
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(data => {
+                        console.log('Upload response:', data);
                         if (data.success) {
                             // 更新文件路徑
-                            document.getElementById(targetInputId).value = data.file_path;
+                            const targetInput = document.getElementById(targetInputId);
+                            if (targetInput) {
+                                targetInput.value = data.file_path;
+                            } else {
+                                console.error('Target input not found:', targetInputId);
+                            }
                             
                             // 顯示圖片預覽
-                            const reader = new FileReader();
-                            reader.onload = function(e) {
-                                preview.src = e.target.result;
-                            };
-                            reader.readAsDataURL(file);
+                            if (preview) {
+                                const reader = new FileReader();
+                                reader.onload = function(e) {
+                                    preview.src = e.target.result;
+                                };
+                                reader.readAsDataURL(file);
+                            }
                         } else {
-                            alert('上傳失敗: ' + data.error);
-                            preview.style.display = 'none';
+                            alert('上傳失敗: ' + (data.error || '未知錯誤'));
+                            if (preview) preview.style.display = 'none';
                         }
                     })
                     .catch(error => {
-                        console.error('Error:', error);
-                        alert('上傳過程中發生錯誤');
-                        preview.style.display = 'none';
+                        console.error('Upload error:', error);
+                        alert('上傳過程中發生錯誤: ' + error.message);
+                        if (preview) preview.style.display = 'none';
                     });
                 });
             }

@@ -180,7 +180,23 @@ def run_automation(playwright: Playwright, row_number: int, sheet_data: list) ->
     target_row = row_number - 1  # 因為索引從0開始
 
     log_message(f"Processing row {row_number}")
-    browser = playwright.chromium.launch(headless=HEADLESS_MODE)
+    log_message("啟動 arm64 原生 Chrome 穩定版瀏覽器")
+    browser = playwright.chromium.launch(
+        executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",  # 指定 arm64 原生 Chrome 路徑
+        headless=HEADLESS_MODE,
+        args=[
+            "--disable-gpu",      # 保險起見先關 GPU
+            "--no-sandbox",       # 禁用沙箱模式提高穩定性
+            "--disable-dev-shm-usage",  # 避免共享記憶體問題
+            "--disable-background-timer-throttling",  # 防止背景定時器被限制
+            "--disable-backgrounding-occluded-windows",  # 防止背景視窗被限制
+            "--disable-renderer-backgrounding",  # 防止渲染器背景化
+            "--disable-features=TranslateUI",  # 禁用翻譯功能
+            "--disable-extensions",  # 禁用擴充功能
+            "--disable-plugins",    # 禁用插件
+            "--disable-web-security",  # 禁用網頁安全限制
+        ]
+    )
     context = browser.new_context()
     
     # 設置慢速模式

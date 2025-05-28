@@ -53,16 +53,24 @@ def run(playwright: Playwright, ad_data: dict, ad_type: str = 'gif') -> bool:
     log_message(f"開始創建 {actual_ad_type} 類型廣告 - 接收到資料: {str(ad_data)}")
     
     try:
-        log_message("啟動瀏覽器")
-        # 使用 headless 模式並添加額外的啟動參數以提高穩定性
+        log_message("啟動 arm64 原生 Chrome 穩定版瀏覽器")
+        # 使用 arm64 原生 Chrome 穩定版
         browser = playwright.chromium.launch(
-            headless=True,  # 改為 headless 模式
+            executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",  # 指定 arm64 原生 Chrome 路徑
+            headless=False,  # 改為非 headless 模式以便觀察
+            slow_mo=250,  # 添加 slow_mo 參數，每個操作延遲 250 毫秒
             args=[
                 '--disable-dev-shm-usage',  # 禁用 /dev/shm 使用，在某些系統上更穩定
                 '--no-sandbox',  # 禁用沙箱模式
                 '--disable-setuid-sandbox',  # 禁用 setuid 沙箱
                 '--disable-gpu',  # 禁用 GPU 加速
-                '--disable-software-rasterizer'  # 禁用軟件光柵化
+                '--disable-software-rasterizer',  # 禁用軟件光柵化
+                '--disable-background-timer-throttling',  # 防止背景定時器被限制
+                '--disable-backgrounding-occluded-windows',  # 防止背景視窗被限制
+                '--disable-renderer-backgrounding',  # 防止渲染器背景化
+                '--disable-features=TranslateUI',  # 禁用翻譯功能
+                '--disable-extensions',  # 禁用擴充功能
+                '--disable-plugins',    # 禁用插件
             ]
         )
         # 增加超時時間並忽略 HTTPS 錯誤

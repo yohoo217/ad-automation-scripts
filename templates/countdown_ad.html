@@ -39,6 +39,12 @@
                 </td>
             </tr>
             <tr>
+                <td><label for="display_name">廣告單元顯示名稱</label></td>
+                <td><input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}">
+                    <div class="help-text">僅顯示於後台，可選</div>
+                </td>
+            </tr>
+            <tr>
                 <td><label for="advertiser">廣告商 <span class="required">*</span></label></td>
                 <td><input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required>
                     <div class="help-text">廣告主名稱，必填</div>
@@ -126,6 +132,12 @@
         </div>
         
         <h4>倒數計時器設定</h4>
+        <div class="form-row">
+            <label for="end_datetime">結束時間 <span class="required">*</span></label>
+            <input type="datetime-local" id="end_datetime" name="end_datetime" required>
+            <div class="help-text">倒數計時的結束時間，必填</div>
+        </div>
+        
         <div class="form-row">
             <label for="description_text">描述文字</label>
             <input type="text" id="description_text" name="description_text" value="活動截止倒數">
@@ -221,7 +233,7 @@
 
         // 添加事件監聽器，當相關輸入改變時更新 payload
         const payloadInputs = [
-            'background_url', 'target_url', 'description_text', 'position',
+            'background_url', 'target_url', 'end_datetime', 'description_text', 'position',
             'date_number_color', 'description_color', 'date_word_color',
             'date_number_size', 'description_size', 'date_word_size',
             'show_day', 'show_hour', 'show_min', 'show_sec'
@@ -276,6 +288,9 @@
         // 重設描述文字
         document.getElementById('description_text').value = '活動截止倒數';
         
+        // 清空結束時間
+        document.getElementById('end_datetime').value = '';
+        
         // 清空 payload
         document.getElementById('payload_game_widget').value = '';
     }
@@ -283,13 +298,12 @@
     function updateGameWidgetPayload() {
         const backgroundUrl = document.getElementById('background_url').value;
         const targetUrl = document.getElementById('target_url').value;
+        const endDateTime = document.getElementById('end_datetime').value;
 
-        if (!backgroundUrl || !targetUrl) return; // 如果必要的輸入缺失，不更新
+        if (!backgroundUrl || !targetUrl || !endDateTime) return; // 如果必要的輸入缺失，不更新
 
-        // 計算當前時間加一天的時間戳 (毫秒)
-        const now = new Date();
-        const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-        const targetTimestamp = oneDayLater.getTime();
+        // 將使用者輸入的結束時間轉換為時間戳 (毫秒)
+        const targetTimestamp = new Date(endDateTime).getTime();
         
         // 獲取使用者設定的值
         const descriptionText = document.getElementById('description_text').value;

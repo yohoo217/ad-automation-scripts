@@ -57,6 +57,12 @@
                 </td>
             </tr>
             <tr>
+                <td><label for="display_name">廣告單元顯示名稱</label></td>
+                <td><input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}">
+                    <div class="help-text">僅顯示於後台，可選</div>
+                </td>
+            </tr>
+            <tr>
                 <td><label for="advertiser">廣告商 <span class="required">*</span></label></td>
                 <td><input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required>
                     <div class="help-text">廣告主名稱，必填</div>

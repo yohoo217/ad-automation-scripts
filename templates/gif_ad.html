@@ -39,6 +39,12 @@
                 </td>
             </tr>
             <tr>
+                <td><label for="display_name">廣告單元顯示名稱</label></td>
+                <td><input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}">
+                    <div class="help-text">僅顯示於後台，可選</div>
+                </td>
+            </tr>
+            <tr>
                 <td><label for="advertiser">廣告商 <span class="required">*</span></label></td>
                 <td><input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required>
                     <div class="help-text">廣告主名稱，必填</div>
@@ -165,6 +171,9 @@
         
         // 清空 payload
         document.getElementById('payload_game_widget').value = '';
+        
+        // 重新設置預設值
+        document.getElementById('call_to_action').value = '立即購買';
     }
 
     function updateGameWidgetPayload() {
@@ -174,9 +183,9 @@
         if (!backgroundUrl || !targetUrl) return; // 如果必要的輸入缺失，不更新
 
         const payload = {
-            "type": "SUPER_GIF",
+            "type": "SIMPLE",
             "data": {
-                "background_url": backgroundUrl
+                "img_background": backgroundUrl
             },
             "invokes": [
                 {
@@ -185,13 +194,24 @@
                         "url": targetUrl
                     }
                 }
-            ]
+            ],
+            "_sys": {
+                "popupActionKeys": [
+                "a"
+                ]
+            }
         };
 
         document.getElementById('payload_game_widget').value = JSON.stringify(payload, null, 2);
     }
 
     function parseInfoText(inputText) {
+        // 解析活動名稱作為顯示名稱
+        let activityMatch = inputText.match(/-活動名稱：(.*?)($|\n)/);
+        if (activityMatch && activityMatch[1]) {
+            document.getElementById('display_name').value = activityMatch[1].trim();
+        }
+        
         // 解析廣告主
         let advertiserMatch = inputText.match(/-廣告主：(.*?)($|\n)/);
         if (advertiserMatch && advertiserMatch[1]) {

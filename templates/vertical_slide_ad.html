@@ -33,7 +33,9 @@
 {% endblock %}
 
 {% block content %}
-<button type="button" id="clear-form-button" class="clear-form-btn">清除所有內容</button>
+<form action="{{ url_for('main.clear_vertical_slide_form') }}" method="post" style="display: inline;">
+    <button type="submit" class="clear-form-btn" onclick="return confirm('確定要清除所有填寫的內容嗎？')">清除所有內容</button>
+</form>
 
 <form action="{{ url_for('main.create_vertical_slide_ad') }}" method="post" id="ad-form">
     <div class="field-group">
@@ -47,6 +49,12 @@
                 <td><label for="adset_id">Adset ID <span class="required">*</span></label></td>
                 <td><input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required>
                     <div class="help-text">廣告組ID，必填，例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7</div>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="display_name">廣告單元顯示名稱</label></td>
+                <td><input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}">
+                    <div class="help-text">僅顯示於後台，可選</div>
                 </td>
             </tr>
             <tr>
@@ -133,6 +141,9 @@
             <button type="button" id="remove-vertical-slide-item" class="button" style="background-color: #d9534f;">移除最後一個項目</button>
         </div>
         <input type="hidden" id="payload_game_widget" name="payload_game_widget">
+        
+        <!-- 隱藏的數據傳遞 -->
+        <input type="hidden" id="slide_items_data" value="{{ slide_items | tojson | e }}">
     </div>
     
     <input type="submit" value="建立垂直 Slide 廣告">
@@ -147,67 +158,61 @@
     document.addEventListener('DOMContentLoaded', function() {
         // 初始化滑動項目
         initializeSlideItems();
-        
-        // 添加清除表單按鈕的事件監聽器
-        document.getElementById('clear-form-button').addEventListener('click', function() {
-            if(confirm('確定要清除所有填寫的內容嗎？')) {
-                clearFormInputs();
-            }
-        });
     });
     
-    // 清除表單所有輸入欄位的函數
-    function clearFormInputs() {
-        // 清除文本輸入、URL、數字輸入
-        document.querySelectorAll('input[type="text"], input[type="url"], input[type="number"]').forEach(input => {
-            input.value = '';
-        });
-        
-        // 清除預覽圖片
-        document.querySelectorAll('.upload-preview').forEach(img => {
-            img.style.display = 'none';
-            img.src = '';
-        });
-        
-        // 清空滑動項目容器
-        const container = document.getElementById('slide-items-container');
-        container.innerHTML = '';
-        slideItemCount = 0;
-        
-        // 重新初始化一個滑動項目
-        initializeSlideItems();
-        
-        // 清空 payload
-        document.getElementById('payload_game_widget').value = '';
-    }
-    
     function initializeSlideItems() {
-        // 如果沒有項目，添加一個
-        if (slideItemCount === 0) {
+        // 從隱藏元素中讀取滑動項目數據
+        const slideItemsDataElement = document.getElementById('slide_items_data');
+        let slideItemsData = [];
+        
+        if (slideItemsDataElement && slideItemsDataElement.value) {
+            try {
+                slideItemsData = JSON.parse(slideItemsDataElement.value);
+            } catch (e) {
+                console.error('解析滑動項目數據失敗:', e);
+            }
+        }
+        
+        if (slideItemsData && slideItemsData.length > 0) {
+            // 恢復現有的滑動項目
+            slideItemsData.forEach(function(item) {
+                addSlideItemWithData(item.index, item.image_url, item.target_url);
+            });
+        } else {
+            // 如果沒有項目，添加一個空的
             addSlideItem();
         }
+        
+        // 更新 payload
+        updatePayload();
     }
     
     function addSlideItem() {
-        slideItemCount++;
+        addSlideItemWithData(slideItemCount, '', '');
+    }
+    
+    function addSlideItemWithData(index, imageUrl, targetUrl) {
+        if (index >= slideItemCount) {
+            slideItemCount = index + 1;
+        }
+        
         const container = document.getElementById('vertical-slide-items-container');
         const newItem = document.createElement('div');
         newItem.className = 'vertical-slide-item';
-        newItem.setAttribute('data-index', slideItemCount - 1);
+        newItem.setAttribute('data-index', index);
         
-        const index = slideItemCount - 1;
         newItem.innerHTML = `
-            <h4>滑動項目 #${slideItemCount}</h4>
+            <h4>滑動項目 #${index + 1}</h4>
             <div class="form-row">
                 <label for="image_url_${index}">圖片網址 <span class="required">*</span></label>
                 <input type="url" id="image_url_${index}" name="image_url_${index}" class="vertical-slide-image-url" 
-                       placeholder="https://example.com/image${slideItemCount}.jpg" value="" required>
+                       placeholder="https://example.com/image${index + 1}.jpg" value="${imageUrl}" required>
                 <div class="help-text">滑動廣告圖片的URL，必填</div>
             </div>
             <div class="form-row">
                 <label for="target_url_${index}">目標網址 <span class="required">*</span></label>
                 <input type="url" id="target_url_${index}" name="target_url_${index}" class="vertical-slide-target-url"
-                       placeholder="https://example.com/page${slideItemCount}" value="" required>
+                       placeholder="https://example.com/page${index + 1}" value="${targetUrl}" required>
                 <div class="help-text">點擊圖片後跳轉的目標網址，必填</div>
             </div>
         `;

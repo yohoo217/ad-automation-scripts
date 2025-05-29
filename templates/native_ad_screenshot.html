@@ -316,6 +316,7 @@
         <li><strong>UUID 輸入：</strong>輸入 AdUnit 的 UUID，系統會自動從資料庫查詢相關資料</li>
         <li><strong>多尺寸截圖：</strong>一次點擊會自動截取所有 5 種尺寸的廣告圖片</li>
         <li><strong>智慧配置：</strong>每種尺寸會自動使用最適合的裝置類型、滾動距離和預覽頁面</li>
+        <li><strong>智慧滾動：</strong>1200x628 尺寸會自動定位到廣告元素並將其置於畫面中央，無需手動調整滾動位置</li>
         <li><strong>即時預覽：</strong>截圖完成後可立即預覽所有結果</li>
         <li><strong>選擇下載：</strong>可選擇要下載哪些截圖</li>
         <li><strong>自動命名：</strong>檔案會自動以尺寸和時間戳命名</li>
@@ -325,6 +326,7 @@
     <ul>
         <li>請確保輸入的 UUID 存在於資料庫中</li>
         <li>完整的 5 尺寸截圖可能需要 30-60 秒</li>
+        <li>1200x628 尺寸使用智慧元素定位，可能需要額外的載入時間</li>
         <li>請耐心等待所有截圖完成</li>
         <li>大尺寸圖片載入可能較慢</li>
     </ul>
@@ -373,7 +375,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 device: 'iphone_x',
                 scroll: 10000,
                 template: 'ptt-article',
-                displayInfo: { device: 'iPhone X', scroll: '4800px', template: 'PTT 文章頁面' }
+                displayInfo: { device: 'iPhone X', scroll: '雙層 iframe 智慧定位', template: 'PTT 文章頁面' }
             },
             {
                 size: '300x300',

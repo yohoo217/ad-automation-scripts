@@ -271,6 +271,7 @@ def create_native_screenshot():
                         else:
                             # 嘗試不同的廣告容器selector
                             selectors_to_try = [
+                                'button:has-text("觀看更多")',               # 最精準：包含"觀看更多"文字的按鈕
                                 'button[class*="_aotter_tk_text-sm"]',      # 包含特定aotter class的按鈕
                                 'button[style*="width: 100px"]',            # 包含特定寬度的按鈕
                                 'button[class*="_aotter_tk_bg-black"]',     # 包含黑色背景class的按鈕
@@ -290,62 +291,178 @@ def create_native_screenshot():
                                     logger.info(f"   📊 找到{count}個匹配元素")
                                     
                                     if count > 0:
-                                        logger.info(f"✅ 廣告容器找到! 使用selector: {selector}")
-                                        
                                         # 記錄找到的元素詳情
-                                        for j in range(min(count, 3)):  # 最多記錄前3個
-                                            element = elements.nth(j)
-                                            try:
-                                                element_id = element.get_attribute("id") or "無id"
-                                                element_class = element.get_attribute("class") or "無class"
-                                                element_data_trek = element.get_attribute("data-trek-id") or element.get_attribute("data-trek-ad") or "無trek屬性"
-                                                logger.info(f"   🎯 元素[{j}]: id='{element_id}', class='{element_class}', trek='{element_data_trek}'")
-                                            except Exception as element_error:
-                                                logger.warning(f"   ⚠️  無法取得元素[{j}]詳情: {element_error}")
-                                        
-                                        ad_container_found = True
-                                        break
+                                        element = elements.first
+                                        try:
+                                            element_id = element.get_attribute("id") or "無id"
+                                            element_class = element.get_attribute("class") or "無class"
+                                            tag_name = element.evaluate("el => el.tagName")
+                                            logger.info(f"   ✅ 找到目標元素: <{tag_name}> id='{element_id}' class='{element_class}'")
+                                            
+                                            # 檢查元素是否可見
+                                            is_visible = element.is_visible()
+                                            logger.info(f"   👁️  元素可見性: {is_visible}")
+                                            
+                                            if is_visible:
+                                                ad_selector = selector
+                                                ad_container_found = True
+                                                logger.info(f"✅ 步驟2完成: 將使用selector '{selector}'")
+                                                break
+                                            else:
+                                                logger.info(f"   ⚠️  元素不可見，嘗試下一個selector")
+                                                
+                                        except Exception as element_error:
+                                            logger.warning(f"   ⚠️  無法取得元素詳情: {element_error}")
                                     else:
                                         logger.info(f"   ❌ 無匹配元素")
                                         
                                 except Exception as selector_error:
                                     logger.warning(f"   ⚠️  selector錯誤: {selector_error}")
-                    
-                    except Exception as ad_search_error:
-                        logger.warning(f"🔍 廣告容器搜尋過程發生錯誤: {ad_search_error}")
-                    
-                    if not ad_container_found:
-                        logger.warning(f"⚠️  頁面 ({template}): 未找到任何廣告容器，繼續進行截圖")
                         
-                        # 額外檢查：列出頁面上所有可能相關的元素
-                        try:
-                            logger.info("🔍 進行全頁面元素掃描...")
-                            
-                            # 檢查所有有id的元素
-                            elements_with_id = page.locator("[id]")
-                            id_count = elements_with_id.count()
-                            logger.info(f"📊 頁面有{id_count}個帶id的元素")
-                            
-                            # 檢查包含trek的元素
-                            trek_elements = page.locator("[id*='trek'], [class*='trek'], [data*='trek']")
-                            trek_count = trek_elements.count()
-                            logger.info(f"🎯 頁面有{trek_count}個包含'trek'的元素")
-                            
-                            if trek_count > 0:
-                                for i in range(min(trek_count, 5)):  # 最多列出前5個
-                                    element = trek_elements.nth(i)
-                                    tag_name = element.evaluate("el => el.tagName")
-                                    element_id = element.get_attribute("id") or ""
-                                    element_class = element.get_attribute("class") or ""
-                                    logger.info(f"   🎯 trek元素[{i}]: <{tag_name}> id='{element_id}' class='{element_class}'")
-                            
-                        except Exception as scan_error:
-                            logger.warning(f"🔍 全頁面掃描失敗: {scan_error}")
-                    else:
-                        logger.info("✅ 廣告容器搜尋完成")
+                        if not ad_container_found:
+                            logger.error("❌ 步驟2失敗: 未找到任何可見的目標元素")
+                            raise RuntimeError("未找到目標元素")
+                        
+                        # ── 3. 計算並執行置中滾動 ──
+                        logger.info("📐 步驟3: 計算並執行置中滾動...")
+                        logger.info(f"   使用selector: {ad_selector}")
+                        
+                        scroll_result = page.evaluate(
+                            """
+                            (sel) => {
+                                console.log('🎯 開始置中計算，selector:', sel);
+                                const el = document.querySelector(sel);
+                                if (!el) {
+                                    console.error('❌ 找不到廣告元素');
+                                    return { success: false, error: '找不到元素' };
+                                }
+                                
+                                const rect = el.getBoundingClientRect();
+                                const viewportHeight = window.innerHeight;
+                                const currentScrollY = window.pageYOffset;
+                                const elementTop = rect.top + currentScrollY;
+                                const elementHeight = rect.height;
+                                const viewportMiddle = viewportHeight / 2;
+                                const targetScrollY = elementTop - viewportMiddle + (elementHeight / 2);
+                                
+                                const result = {
+                                    success: true,
+                                    viewportHeight: viewportHeight,
+                                    currentScrollY: currentScrollY,
+                                    elementTop: elementTop,
+                                    elementHeight: elementHeight,
+                                    targetScrollY: targetScrollY,
+                                    beforeTop: rect.top
+                                };
+                                
+                                console.log('📊 置中計算結果:', result);
+                                
+                                // 執行滾動
+                                window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' });
+                                
+                                // 檢查滾動後的位置
+                                const newRect = el.getBoundingClientRect();
+                                result.afterTop = newRect.top;
+                                result.actualScrollY = window.pageYOffset;
+                                
+                                console.log('✅ 滾動執行完成，最終位置:', {
+                                    afterTop: result.afterTop,
+                                    actualScrollY: result.actualScrollY
+                                });
+                                
+                                return result;
+                            }
+                            """,
+                            ad_selector
+                        )
+                        
+                        if scroll_result['success']:
+                            logger.info("✅ 步驟3完成: 置中滾動已執行")
+                            logger.info(f"   📊 滾動前元素距頂部: {scroll_result['beforeTop']}px")
+                            logger.info(f"   📊 滾動後元素距頂部: {scroll_result['afterTop']}px")
+                            logger.info(f"   📊 目標滾動位置: {scroll_result['targetScrollY']}px")
+                            logger.info(f"   📊 實際滾動位置: {scroll_result['actualScrollY']}px")
+                        else:
+                            logger.error(f"❌ 步驟3失敗: {scroll_result.get('error', '未知錯誤')}")
+                            raise RuntimeError("置中滾動失敗")
+                        
+                        # ── 4. 驗證置中結果 ──
+                        logger.info("⏱️  步驟4: 驗證元素是否成功置中...")
+                        page.wait_for_timeout(500)  # 等待滾動完成
+                        
+                        verification_result = page.evaluate(
+                            """
+                            (sel, tolerance) => {
+                                const el = document.querySelector(sel);
+                                if (!el) {
+                                    return { success: false, error: '驗證時找不到元素' };
+                                }
+                                
+                                const rect = el.getBoundingClientRect();
+                                const viewportMiddle = window.innerHeight / 2;
+                                const elementMiddle = rect.top + rect.height / 2;
+                                const distance = Math.abs(elementMiddle - viewportMiddle);
+                                const isCentered = distance <= tolerance;
+                                
+                                const result = {
+                                    success: isCentered,
+                                    elementTop: rect.top,
+                                    elementBottom: rect.bottom,
+                                    elementMiddle: elementMiddle,
+                                    viewportMiddle: viewportMiddle,
+                                    distance: distance,
+                                    tolerance: tolerance
+                                };
+                                
+                                console.log('📏 置中驗證結果:', result);
+                                return result;
+                            }
+                            """,
+                            ad_selector,
+                            30  # 30px容錯範圍
+                        )
+                        
+                        if verification_result['success']:
+                            logger.info("✅ 步驟4完成: 元素已成功置中")
+                            logger.info(f"   📏 元素中心點: {verification_result['elementMiddle']:.1f}px")
+                            logger.info(f"   📏 視窗中心點: {verification_result['viewportMiddle']:.1f}px")
+                            logger.info(f"   📏 偏差距離: {verification_result['distance']:.1f}px")
+                        else:
+                            logger.warning("⚠️  步驟4警告: 元素未完全置中，但繼續進行")
+                            logger.info(f"   📏 偏差距離: {verification_result['distance']:.1f}px (容錯: 30px)")
+                        
+                        # ── 5. 等待廣告完全載入 ──
+                        logger.info("🔄 步驟5: 等待廣告完全載入...")
+                        page.wait_for_timeout(1500)
+                        logger.info("✅ 步驟5完成: 廣告載入等待結束")
+                        logger.info("🎉 1200×628 廣告元素置中流程全部完成!")
+                        
+                    except PwTimeout as te:
+                        logger.warning(f"⏰ Timeout錯誤: {te} → 使用fallback滾動")
+                        page.mouse.wheel(0, scroll_distance)
+                        page.wait_for_timeout(1500)
+                    except Exception as e:
+                        logger.warning(f"❌ 1200×628 置中流程失敗: {e} → 使用fallback滾動")
+                        page.mouse.wheel(0, scroll_distance)
+                        page.wait_for_timeout(1500)
                 
-                logger.info("🌐 頁面載入策略執行完成")
-                
+                elif template == 'moptt':
+                    # 用滑鼠滾輪，MoPTT 不會把它復原，且 lazy-load 仍能觸發
+                    logger.info("🏷️  MoPTT模板 - 使用滑鼠滾輪滾動")
+                    page.mouse.wheel(0, scroll_distance)
+                    logger.info("✅ MoPTT滑鼠滾輪滾動完成")
+
+                else:
+                    # 其他網站保持原來的做法
+                    logger.info("🏷️  標準模板 - 使用window.scrollTo滾動")
+                    page.evaluate(f"window.scrollTo(0, {scroll_distance})")
+                    logger.info("✅ 標準滾動完成")
+
+                # 等待滾動完成（1200x628 除外，因為已經用 wait_for_function 確認）
+                if not (size == '1200x628' and template in ['ptt-article']):
+                    logger.info("⏳ 等待滾動完成...")
+                    page.wait_for_timeout(1000)
+                    logger.info("✅ 滾動流程完成")
             except Exception as page_error:
                 logger.warning(f"頁面載入過程中發生警告: {str(page_error)}")
                 
@@ -405,131 +522,359 @@ def create_native_screenshot():
                             '[data-trek-ad]'                            # 備用：trek廣告屬性
                         ]
                         
-                        for selector in selectors_to_try:
-                            elements = page.locator(selector)
-                            if elements.count() > 0 and elements.first.is_visible():
-                                ad_selector = selector
-                                logger.info(f"✅ 重試-步驟2完成: 找到目標元素 '{selector}'")
-                                break
+                        for i, selector in enumerate(selectors_to_try, 1):
+                            logger.info(f"   🔎 嘗試selector {i}/{len(selectors_to_try)}: {selector}")
+                            try:
+                                elements = page.locator(selector)
+                                count = elements.count()
+                                logger.info(f"   📊 找到{count}個匹配元素")
+                                
+                                if count > 0:
+                                    # 記錄找到的元素詳情
+                                    element = elements.first
+                                    try:
+                                        element_id = element.get_attribute("id") or "無id"
+                                        element_class = element.get_attribute("class") or "無class"
+                                        tag_name = element.evaluate("el => el.tagName")
+                                        logger.info(f"   ✅ 找到目標元素: <{tag_name}> id='{element_id}' class='{element_class}'")
+                                        
+                                        # 檢查元素是否可見
+                                        is_visible = element.is_visible()
+                                        logger.info(f"   👁️  元素可見性: {is_visible}")
+                                        
+                                        if is_visible:
+                                            ad_selector = selector
+                                            ad_container_found = True
+                                            logger.info(f"✅ 步驟2完成: 將使用selector '{selector}'")
+                                            break
+                                        else:
+                                            logger.info(f"   ⚠️  元素不可見，嘗試下一個selector")
+                                            
+                                    except Exception as element_error:
+                                        logger.warning(f"   ⚠️  無法取得元素詳情: {element_error}")
+                                else:
+                                    logger.info(f"   ❌ 無匹配元素")
+                                    
+                            except Exception as selector_error:
+                                logger.warning(f"   ⚠️  selector錯誤: {selector_error}")
                         
-                        if ad_selector:
-                            # 執行置中滾動
-                            logger.info("📐 步驟3: 執行置中滾動...")
-                            scroll_result = page.evaluate(
-                                """
-                                (sel) => {
-                                    const el = document.querySelector(sel);
-                                    if (!el) return { success: false };
-                                    
-                                    const rect = el.getBoundingClientRect();
-                                    const viewportHeight = window.innerHeight;
-                                    const currentScrollY = window.pageYOffset;
-                                    const elementTop = rect.top + currentScrollY;
-                                    const elementHeight = rect.height;
-                                    const viewportMiddle = viewportHeight / 2;
-                                    const targetScrollY = elementTop - viewportMiddle + (elementHeight / 2);
-                                    
-                                    window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' });
-                                    return { success: true };
+                        if not ad_container_found:
+                            logger.error("❌ 步驟2失敗: 未找到任何可見的目標元素")
+                            raise RuntimeError("未找到目標元素")
+                        
+                        # ── 3. 計算並執行置中滾動 ──
+                        logger.info("📐 步驟3: 計算並執行置中滾動...")
+                        logger.info(f"   使用selector: {ad_selector}")
+                        
+                        scroll_result = page.evaluate(
+                            """
+                            (sel) => {
+                                console.log('🎯 開始置中計算，selector:', sel);
+                                const el = document.querySelector(sel);
+                                if (!el) {
+                                    console.error('❌ 找不到廣告元素');
+                                    return { success: false, error: '找不到元素' };
                                 }
-                                """,
-                                ad_selector
-                            )
-                            
-                            if scroll_result['success']:
-                                logger.info("✅ 步驟3完成: 置中滾動成功")
-                                page.wait_for_timeout(1500)
-                                logger.info("✅ 1200×628 廣告元素置中完成!")
-                            else:
-                                logger.warning("⚠️  重試-置中滾動失敗，使用fallback")
-                                page.mouse.wheel(0, scroll_distance)
+                                
+                                const rect = el.getBoundingClientRect();
+                                const viewportHeight = window.innerHeight;
+                                const currentScrollY = window.pageYOffset;
+                                const elementTop = rect.top + currentScrollY;
+                                const elementHeight = rect.height;
+                                const viewportMiddle = viewportHeight / 2;
+                                const targetScrollY = elementTop - viewportMiddle + (elementHeight / 2);
+                                
+                                const result = {
+                                    success: true,
+                                    viewportHeight: viewportHeight,
+                                    currentScrollY: currentScrollY,
+                                    elementTop: elementTop,
+                                    elementHeight: elementHeight,
+                                    targetScrollY: targetScrollY,
+                                    beforeTop: rect.top
+                                };
+                                
+                                console.log('📊 置中計算結果:', result);
+                                
+                                // 執行滾動
+                                window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' });
+                                
+                                // 檢查滾動後的位置
+                                const newRect = el.getBoundingClientRect();
+                                result.afterTop = newRect.top;
+                                result.actualScrollY = window.pageYOffset;
+                                
+                                console.log('✅ 滾動執行完成，最終位置:', {
+                                    afterTop: result.afterTop,
+                                    actualScrollY: result.actualScrollY
+                                });
+                                
+                                return result;
+                            }
+                            """,
+                            ad_selector
+                        )
+                        
+                        if scroll_result['success']:
+                            logger.info("✅ 步驟3完成: 置中滾動已執行")
+                            logger.info(f"   📊 滾動前元素距頂部: {scroll_result['beforeTop']}px")
+                            logger.info(f"   📊 滾動後元素距頂部: {scroll_result['afterTop']}px")
+                            logger.info(f"   📊 目標滾動位置: {scroll_result['targetScrollY']}px")
+                            logger.info(f"   📊 實際滾動位置: {scroll_result['actualScrollY']}px")
                         else:
-                            logger.warning("⚠️  重試-未找到廣告容器，使用fallback滾動")
-                            page.mouse.wheel(0, scroll_distance)
-                            
+                            logger.error(f"❌ 步驟3失敗: {scroll_result.get('error', '未知錯誤')}")
+                            raise RuntimeError("置中滾動失敗")
+                        
+                        # ── 4. 驗證置中結果 ──
+                        logger.info("⏱️  步驟4: 驗證元素是否成功置中...")
+                        page.wait_for_timeout(500)  # 等待滾動完成
+                        
+                        verification_result = page.evaluate(
+                            """
+                            (sel, tolerance) => {
+                                const el = document.querySelector(sel);
+                                if (!el) {
+                                    return { success: false, error: '驗證時找不到元素' };
+                                }
+                                
+                                const rect = el.getBoundingClientRect();
+                                const viewportMiddle = window.innerHeight / 2;
+                                const elementMiddle = rect.top + rect.height / 2;
+                                const distance = Math.abs(elementMiddle - viewportMiddle);
+                                const isCentered = distance <= tolerance;
+                                
+                                const result = {
+                                    success: isCentered,
+                                    elementTop: rect.top,
+                                    elementBottom: rect.bottom,
+                                    elementMiddle: elementMiddle,
+                                    viewportMiddle: viewportMiddle,
+                                    distance: distance,
+                                    tolerance: tolerance
+                                };
+                                
+                                console.log('📏 置中驗證結果:', result);
+                                return result;
+                            }
+                            """,
+                            ad_selector,
+                            30  # 30px容錯範圍
+                        )
+                        
+                        if verification_result['success']:
+                            logger.info("✅ 步驟4完成: 元素已成功置中")
+                            logger.info(f"   📏 元素中心點: {verification_result['elementMiddle']:.1f}px")
+                            logger.info(f"   📏 視窗中心點: {verification_result['viewportMiddle']:.1f}px")
+                            logger.info(f"   📏 偏差距離: {verification_result['distance']:.1f}px")
+                        else:
+                            logger.warning("⚠️  步驟4警告: 元素未完全置中，但繼續進行")
+                            logger.info(f"   📏 偏差距離: {verification_result['distance']:.1f}px (容錯: 30px)")
+                        
+                        # ── 5. 等待廣告完全載入 ──
+                        logger.info("🔄 步驟5: 等待廣告完全載入...")
+                        page.wait_for_timeout(1500)
+                        logger.info("✅ 步驟5完成: 廣告載入等待結束")
+                        logger.info("🎉 1200×628 廣告元素置中流程全部完成!")
+                        
+                    except PwTimeout as te:
+                        logger.warning(f"⏰ Timeout錯誤: {te} → 使用fallback滾動")
+                        page.mouse.wheel(0, scroll_distance)
+                        page.wait_for_timeout(1500)
                     except Exception as e:
                         logger.warning(f"❌ 1200×628 置中流程失敗: {e} → 使用fallback滾動")
                         page.mouse.wheel(0, scroll_distance)
-                
-                # 特殊處理 300x250 尺寸：滾動到廣告元素並置中
-                elif size == '300x250':
-                    logger.info("🎯 300x250 → 開始廣告元素置中流程")
+                        page.wait_for_timeout(1500)
+
+                # 特殊處理 300x250 尺寸：滾動到「立即申請」按鈕並置中
+                elif size == '300x250' and template == 'moptt':
+                    logger.info("🎯 300x250 → 開始「立即申請」按鈕置中流程")
                     try:
-                        # ------ 新的 300x250 廣告元素置中流程 ------
-                        
                         # ── 1. 等待頁面和廣告載入 ──
                         logger.info("📱 步驟1: 等待頁面和廣告載入...")
-                        page.wait_for_timeout(2000)  # 給廣告更多載入時間
+                        page.wait_for_timeout(2000)
                         logger.info("✅ 步驟1完成: 等待時間結束")
                         
-                        # ── 2. 搜尋目標元素 ──
-                        logger.info("🔍 步驟2: 搜尋300x250廣告容器元素...")
-                        ad_container_found = False
-                        ad_selector = None
+                        # ── 2. 搜尋「立即申請」按鈕元素 ──
+                        logger.info("🔍 步驟2: 搜尋「立即申請」按鈕元素...")
+                        button_found = False
+                        button_selector = None
                         
-                        # 嘗試不同的300x250廣告容器selector
-                        selectors_to_try = [
-                            'button[class*="_aotter_tk_text-sm"][class*="_aotter_tk_text-white"][class*="_aotter_tk_bg-black"]',  # 完整按鈕class組合
-                            'button[style*="width: 100px"][style*="height: 30px"]', # 包含特定尺寸的按鈕
-                            'div._aotter_tk_w-full div._aotter_tk_w-full button',    # 嵌套結構中的按鈕
-                            'div[class*="_aotter_tk_w-full"] button[class*="_aotter_tk_bg-black"]',  # 父容器+按鈕組合
-                            'div[style*="background-image"]',                        # 包含背景圖片的div
-                            'div[class*="_aotter_tk_bg-center"][class*="_aotter_tk_bg-cover"]',  # 背景圖片容器的特定class
-                            'div[style*="padding-top: 83.3333%"]',                  # 特定padding比例的容器
-                            'button[class*="_aotter_tk_rounded-md"]',                # 圓角按鈕
-                            '#trek-ad-ptt-article-middle',                          # 備用：原廣告容器
-                            'div[data-trek-id]',                                     # 備用：通用trek容器
-                            'iframe[src*="/300x250"]',                               # 備用：300x250廣告iframe
-                            'iframe[src*="tkcatrun"]',                               # 備用：catrun iframe
-                            'iframe[title="Advertisement"]',                         # 備用：廣告iframe
-                            '[data-trek-ad]'                                         # 備用：trek廣告屬性
+                        # 嘗試不同的按鈕selector
+                        button_selectors_to_try = [
+                            'button:has-text("立即申請")',               # 最精準：包含"立即申請"文字的按鈕
+                            'button[class*="_aotter_tk_text-sm"]',      # 包含特定aotter class的按鈕
+                            'button[style*="width: 100px"]',            # 包含特定寬度的按鈕
+                            'button[class*="_aotter_tk_bg-black"]',     # 包含黑色背景class的按鈕
+                            'div[class*="_aotter_tk_justify-end"] button', # 在justify-end容器內的按鈕
+                            'div[data-trek-id] button',                 # trek容器內的按鈕
+                            'iframe[src*="/300x250"]',                  # 備用：300x250廣告iframe
+                            'iframe[src*="tkcatrun"]',                  # 備用：catrun iframe
+                            '[data-trek-ad]'                            # 備用：trek廣告屬性
                         ]
                         
-                        for selector in selectors_to_try:
-                            elements = page.locator(selector)
-                            if elements.count() > 0 and elements.first.is_visible():
-                                ad_selector = selector
-                                logger.info(f"✅ 步驟2完成: 找到目標元素 '{selector}'")
-                                break
+                        for i, selector in enumerate(button_selectors_to_try, 1):
+                            logger.info(f"   🔎 嘗試selector {i}/{len(button_selectors_to_try)}: {selector}")
+                            try:
+                                elements = page.locator(selector)
+                                count = elements.count()
+                                logger.info(f"   📊 找到{count}個匹配元素")
+                                
+                                if count > 0:
+                                    # 記錄找到的元素詳情
+                                    element = elements.first
+                                    try:
+                                        element_id = element.get_attribute("id") or "無id"
+                                        element_class = element.get_attribute("class") or "無class"
+                                        tag_name = element.evaluate("el => el.tagName")
+                                        element_text = element.text_content() or "無文字"
+                                        logger.info(f"   ✅ 找到目標元素: <{tag_name}> id='{element_id}' class='{element_class}' text='{element_text}'")
+                                        
+                                        # 檢查元素是否可見
+                                        is_visible = element.is_visible()
+                                        logger.info(f"   👁️  元素可見性: {is_visible}")
+                                        
+                                        if is_visible:
+                                            button_selector = selector
+                                            button_found = True
+                                            logger.info(f"✅ 步驟2完成: 將使用selector '{selector}'")
+                                            break
+                                        else:
+                                            logger.info(f"   ⚠️  元素不可見，嘗試下一個selector")
+                                            
+                                    except Exception as element_error:
+                                        logger.warning(f"   ⚠️  無法取得元素詳情: {element_error}")
+                                else:
+                                    logger.info(f"   ❌ 無匹配元素")
+                                    
+                            except Exception as selector_error:
+                                logger.warning(f"   ⚠️  selector錯誤: {selector_error}")
                         
-                        if ad_selector:
-                            # 執行置中滾動
-                            logger.info("📐 步驟3: 執行置中滾動...")
-                            scroll_result = page.evaluate(
-                                """
-                                (sel) => {
-                                    const el = document.querySelector(sel);
-                                    if (!el) return { success: false };
-                                    
-                                    const rect = el.getBoundingClientRect();
-                                    const viewportHeight = window.innerHeight;
-                                    const currentScrollY = window.pageYOffset;
-                                    const elementTop = rect.top + currentScrollY;
-                                    const elementHeight = rect.height;
-                                    const viewportMiddle = viewportHeight / 2;
-                                    const targetScrollY = elementTop - viewportMiddle + (elementHeight / 2);
-                                    
-                                    window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' });
-                                    return { success: true };
+                        if not button_found:
+                            logger.error("❌ 步驟2失敗: 未找到任何可見的「立即申請」按鈕")
+                            raise RuntimeError("未找到立即申請按鈕")
+                        
+                        # ── 3. 計算並執行置中滾動 ──
+                        logger.info("📐 步驟3: 計算並執行置中滾動...")
+                        logger.info(f"   使用selector: {button_selector}")
+                        
+                        scroll_result = page.evaluate(
+                            """
+                            (sel) => {
+                                console.log('🎯 開始置中計算，selector:', sel);
+                                const el = document.querySelector(sel);
+                                if (!el) {
+                                    console.error('❌ 找不到按鈕元素');
+                                    return { success: false, error: '找不到元素' };
                                 }
-                                """,
-                                ad_selector
-                            )
-                            
-                            if scroll_result['success']:
-                                logger.info("✅ 步驟3完成: 置中滾動成功")
-                                page.wait_for_timeout(1500)
-                                logger.info("✅ 300×250 廣告元素置中完成!")
-                            else:
-                                logger.warning("⚠️  置中滾動失敗，使用fallback")
-                                page.mouse.wheel(0, scroll_distance)
+                                
+                                const rect = el.getBoundingClientRect();
+                                const viewportHeight = window.innerHeight;
+                                const currentScrollY = window.pageYOffset;
+                                const elementTop = rect.top + currentScrollY;
+                                const elementHeight = rect.height;
+                                const viewportMiddle = viewportHeight / 2;
+                                const targetScrollY = elementTop - viewportMiddle + (elementHeight / 2);
+                                
+                                const result = {
+                                    success: true,
+                                    viewportHeight: viewportHeight,
+                                    currentScrollY: currentScrollY,
+                                    elementTop: elementTop,
+                                    elementHeight: elementHeight,
+                                    targetScrollY: targetScrollY,
+                                    beforeTop: rect.top
+                                };
+                                
+                                console.log('📊 置中計算結果:', result);
+                                
+                                // 執行滾動
+                                window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' });
+                                
+                                // 檢查滾動後的位置
+                                const newRect = el.getBoundingClientRect();
+                                result.afterTop = newRect.top;
+                                result.actualScrollY = window.pageYOffset;
+                                
+                                console.log('✅ 滾動執行完成，最終位置:', {
+                                    afterTop: result.afterTop,
+                                    actualScrollY: result.actualScrollY
+                                });
+                                
+                                return result;
+                            }
+                            """,
+                            button_selector
+                        )
+                        
+                        if scroll_result['success']:
+                            logger.info("✅ 步驟3完成: 置中滾動已執行")
+                            logger.info(f"   📊 滾動前元素距頂部: {scroll_result['beforeTop']}px")
+                            logger.info(f"   📊 滾動後元素距頂部: {scroll_result['afterTop']}px")
+                            logger.info(f"   📊 目標滾動位置: {scroll_result['targetScrollY']}px")
+                            logger.info(f"   📊 實際滾動位置: {scroll_result['actualScrollY']}px")
                         else:
-                            logger.warning("⚠️  未找到300x250廣告容器，使用fallback滾動")
-                            page.mouse.wheel(0, scroll_distance)
-                            
+                            logger.error(f"❌ 步驟3失敗: {scroll_result.get('error', '未知錯誤')}")
+                            raise RuntimeError("置中滾動失敗")
+                        
+                        # ── 4. 驗證置中結果 ──
+                        logger.info("⏱️  步驟4: 驗證按鈕是否成功置中...")
+                        page.wait_for_timeout(500)  # 等待滾動完成
+                        
+                        verification_result = page.evaluate(
+                            """
+                            (sel, tolerance) => {
+                                const el = document.querySelector(sel);
+                                if (!el) {
+                                    return { success: false, error: '驗證時找不到元素' };
+                                }
+                                
+                                const rect = el.getBoundingClientRect();
+                                const viewportMiddle = window.innerHeight / 2;
+                                const elementMiddle = rect.top + rect.height / 2;
+                                const distance = Math.abs(elementMiddle - viewportMiddle);
+                                const isCentered = distance <= tolerance;
+                                
+                                const result = {
+                                    success: isCentered,
+                                    elementTop: rect.top,
+                                    elementBottom: rect.bottom,
+                                    elementMiddle: elementMiddle,
+                                    viewportMiddle: viewportMiddle,
+                                    distance: distance,
+                                    tolerance: tolerance
+                                };
+                                
+                                console.log('📏 置中驗證結果:', result);
+                                return result;
+                            }
+                            """,
+                            button_selector,
+                            30  # 30px容錯範圍
+                        )
+                        
+                        if verification_result['success']:
+                            logger.info("✅ 步驟4完成: 按鈕已成功置中")
+                            logger.info(f"   📏 按鈕中心點: {verification_result['elementMiddle']:.1f}px")
+                            logger.info(f"   📏 視窗中心點: {verification_result['viewportMiddle']:.1f}px")
+                            logger.info(f"   📏 偏差距離: {verification_result['distance']:.1f}px")
+                        else:
+                            logger.warning("⚠️  步驟4警告: 按鈕未完全置中，但繼續進行")
+                            logger.info(f"   📏 偏差距離: {verification_result['distance']:.1f}px (容錯: 30px)")
+                        
+                        # ── 5. 等待廣告完全載入 ──
+                        logger.info("🔄 步驟5: 等待廣告完全載入...")
+                        page.wait_for_timeout(1500)
+                        logger.info("✅ 步驟5完成: 廣告載入等待結束")
+                        logger.info("🎉 300×250「立即申請」按鈕置中流程全部完成!")
+                        
+                    except PwTimeout as te:
+                        logger.warning(f"⏰ Timeout錯誤: {te} → 使用fallback滾動")
+                        page.mouse.wheel(0, scroll_distance)
+                        page.wait_for_timeout(1500)
                     except Exception as e:
                         logger.warning(f"❌ 300×250 置中流程失敗: {e} → 使用fallback滾動")
                         page.mouse.wheel(0, scroll_distance)
+                        page.wait_for_timeout(1500)
 
                 elif template in ['ptt-article', 'ptt-article-list']:
                     # PTT預覽頁面，嘗試在iframe內滾動
@@ -575,14 +920,14 @@ def create_native_screenshot():
                     page.evaluate(f"window.scrollTo(0, {scroll_distance})")
                     logger.info("✅ 標準滾動完成")
 
-                # 等待滾動完成（1200x628 和 300x250 除外，因為已經有自己的等待機制）
-                if not (size == '1200x628' and template in ['ptt-article']) and size != '300x250':
+                # 等待滾動完成（1200x628和300x250置中流程除外，因為已經有自己的等待）
+                if not ((size == '1200x628' and template in ['ptt-article']) or (size == '300x250' and template == 'moptt')):
                     logger.info("⏳ 等待滾動完成...")
                     page.wait_for_timeout(1000)
                     logger.info("✅ 滾動流程完成")
             else:
                 logger.info("🚫 未設定滾動距離，跳過滾動")
-            
+
             # 創建截圖目錄
             today = datetime.now().strftime('%Y%m%d')
             screenshot_dir = os.path.join('uploads', 'screenshots', today)
@@ -596,8 +941,8 @@ def create_native_screenshot():
             # 特殊處理 1200x628 和 300x250 的檔案名稱
             if size == '1200x628' and template in ['ptt-article']:
                 scroll_suffix = 'element-scroll'
-            elif size == '300x250':
-                scroll_suffix = 'element-scroll'
+            elif size == '300x250' and template == 'moptt':
+                scroll_suffix = 'button-scroll'
             else:
                 scroll_suffix = f'scroll-{scroll_distance}px' if scroll_distance > 0 else 'no-scroll'
             
@@ -648,204 +993,69 @@ def create_native_screenshot():
                     if scroll_distance > 0:
                         logger.info(f"🔄 重試時開始滾動流程，距離: {scroll_distance}px")
 
-                        # 特殊處理 1200x628 尺寸：滾動到廣告元素並置中
+                        # 特殊處理置中流程的重試
                         if size == '1200x628' and template in ['ptt-article']:
-                            logger.info("🎯 重試-1200x628 → 開始廣告元素置中流程")
+                            logger.info("🎯 重試-1200x628 → 簡化置中流程")
                             try:
-                                # 等待頁面和廣告載入
-                                logger.info("📱 重試-步驟1: 等待頁面和廣告載入...")
-                                page.wait_for_timeout(2000)
-                                logger.info("✅ 重試-步驟1完成: 等待時間結束")
-                                
-                                # 搜尋目標元素
-                                logger.info("🔍 重試-步驟2: 搜尋「觀看更多」按鈕元素...")
-                                # 嘗試不同的廣告容器selector
                                 selectors_to_try = [
-                                    'button:has-text("觀看更多")',               # 最精準：包含"觀看更多"文字的按鈕
-                                    'button[class*="_aotter_tk_text-sm"]',      # 包含特定aotter class的按鈕
-                                    'button[style*="width: 100px"]',            # 包含特定寬度的按鈕
-                                    'button[class*="_aotter_tk_bg-black"]',     # 包含黑色背景class的按鈕
-                                    '#trek-ad-ptt-article-middle',              # 備用：原廣告容器
-                                    'div[data-trek-id]',                        # 備用：通用trek容器
-                                    'iframe[src*="/1200x628"]',                 # 備用：1200x628廣告iframe
-                                    'iframe[src*="tkcatrun"]',                  # 備用：catrun iframe
-                                    'iframe[title="Advertisement"]',             # 備用：廣告iframe
-                                    '[data-trek-ad]'                            # 備用：trek廣告屬性
+                                    'button[class*="_aotter_tk_text-sm"]',
+                                    'button[style*="width: 100px"]',
+                                    '#trek-ad-ptt-article-middle',
+                                    'div[data-trek-id]'
                                 ]
                                 
-                                ad_selector = None
                                 for selector in selectors_to_try:
                                     elements = page.locator(selector)
                                     if elements.count() > 0 and elements.first.is_visible():
-                                        ad_selector = selector
-                                        logger.info(f"✅ 重試-步驟2完成: 找到目標元素 '{selector}'")
+                                        page.evaluate(f"""
+                                            const el = document.querySelector('{selector}');
+                                            if (el) {{
+                                                const rect = el.getBoundingClientRect();
+                                                const targetY = rect.top + window.pageYOffset - window.innerHeight/2 + rect.height/2;
+                                                window.scrollTo({{top: Math.max(0, targetY), behavior: 'instant'}});
+                                            }}
+                                        """)
+                                        page.wait_for_timeout(1000)
+                                        logger.info("✅ 重試-1200x628簡化置中完成")
                                         break
-                                
-                                if ad_selector:
-                                    # 執行置中滾動
-                                    logger.info("📐 重試-步驟3: 執行置中滾動...")
-                                    scroll_result = page.evaluate(
-                                        """
-                                        (sel) => {
-                                            const el = document.querySelector(sel);
-                                            if (!el) return { success: false };
-                                            
-                                            const rect = el.getBoundingClientRect();
-                                            const viewportHeight = window.innerHeight;
-                                            const currentScrollY = window.pageYOffset;
-                                            const elementTop = rect.top + currentScrollY;
-                                            const elementHeight = rect.height;
-                                            const viewportMiddle = viewportHeight / 2;
-                                            const targetScrollY = elementTop - viewportMiddle + (elementHeight / 2);
-                                            
-                                            window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' });
-                                            return { success: true };
-                                        }
-                                        """,
-                                        ad_selector
-                                    )
-                                    
-                                    if scroll_result['success']:
-                                        logger.info("✅ 重試-步驟3完成: 置中滾動成功")
-                                        page.wait_for_timeout(1500)
-                                        logger.info("✅ 重試-1200×628 廣告元素置中完成!")
-                                    else:
-                                        logger.warning("⚠️  重試-置中滾動失敗，使用fallback")
-                                        page.mouse.wheel(0, scroll_distance)
                                 else:
-                                    logger.warning("⚠️  重試-未找到廣告容器，使用fallback滾動")
                                     page.mouse.wheel(0, scroll_distance)
-                                    
-                            except Exception as e:
-                                logger.warning(f"❌ 重試-1200×628置中流程失敗: {e} → 使用fallback滾動")
+                            except:
                                 page.mouse.wheel(0, scroll_distance)
-
-                        # 特殊處理 300x250 尺寸：滾動到廣告元素並置中
-                        elif size == '300x250':
-                            logger.info("🎯 重試-300x250 → 開始廣告元素置中流程")
+                        
+                        elif size == '300x250' and template == 'moptt':
+                            logger.info("🎯 重試-300x250 → 簡化置中流程")
                             try:
-                                # 等待頁面和廣告載入
-                                logger.info("📱 重試-步驟1: 等待頁面和廣告載入...")
-                                page.wait_for_timeout(2000)
-                                logger.info("✅ 重試-步驟1完成: 等待時間結束")
-                                
-                                # 搜尋目標元素
-                                logger.info("🔍 重試-步驟2: 搜尋300x250廣告容器元素...")
-                                # 嘗試不同的300x250廣告容器selector
-                                selectors_to_try = [
-                                    'button:has-text("立即申請")',                           # 最精準：包含"立即申請"文字的按鈕
-                                    'button[class*="_aotter_tk_text-sm"][class*="_aotter_tk_text-white"][class*="_aotter_tk_bg-black"]',  # 完整按鈕class組合
-                                    'button[style*="width: 100px"][style*="height: 30px"]', # 包含特定尺寸的按鈕
-                                    'div._aotter_tk_w-full div._aotter_tk_w-full button',    # 嵌套結構中的按鈕
-                                    'div[class*="_aotter_tk_w-full"] button[class*="_aotter_tk_bg-black"]',  # 父容器+按鈕組合
-                                    'div[style*="background-image"]',                        # 包含背景圖片的div
-                                    'div[class*="_aotter_tk_bg-center"][class*="_aotter_tk_bg-cover"]',  # 背景圖片容器的特定class
-                                    'div[style*="padding-top: 83.3333%"]',                  # 特定padding比例的容器
-                                    'button[class*="_aotter_tk_rounded-md"]',                # 圓角按鈕
-                                    '#trek-ad-ptt-article-middle',                          # 備用：原廣告容器
-                                    'div[data-trek-id]',                                     # 備用：通用trek容器
-                                    'iframe[src*="/300x250"]',                               # 備用：300x250廣告iframe
-                                    'iframe[src*="tkcatrun"]',                               # 備用：catrun iframe
-                                    'iframe[title="Advertisement"]',                         # 備用：廣告iframe
-                                    '[data-trek-ad]'                                         # 備用：trek廣告屬性
+                                button_selectors = [
+                                    'button:has-text("立即申請")',
+                                    'button[class*="_aotter_tk_text-sm"]',
+                                    'button[style*="width: 100px"]'
                                 ]
                                 
-                                ad_selector = None
-                                for selector in selectors_to_try:
+                                for selector in button_selectors:
                                     elements = page.locator(selector)
                                     if elements.count() > 0 and elements.first.is_visible():
-                                        ad_selector = selector
-                                        logger.info(f"✅ 重試-步驟2完成: 找到目標元素 '{selector}'")
+                                        page.evaluate(f"""
+                                            const el = document.querySelector('{selector}');
+                                            if (el) {{
+                                                const rect = el.getBoundingClientRect();
+                                                const targetY = rect.top + window.pageYOffset - window.innerHeight/2 + rect.height/2;
+                                                window.scrollTo({{top: Math.max(0, targetY), behavior: 'instant'}});
+                                            }}
+                                        """)
+                                        page.wait_for_timeout(1000)
+                                        logger.info("✅ 重試-300x250簡化置中完成")
                                         break
-                                
-                                if ad_selector:
-                                    # 執行置中滾動
-                                    logger.info("📐 重試-步驟3: 執行置中滾動...")
-                                    scroll_result = page.evaluate(
-                                        """
-                                        (sel) => {
-                                            const el = document.querySelector(sel);
-                                            if (!el) return { success: false };
-                                            
-                                            const rect = el.getBoundingClientRect();
-                                            const viewportHeight = window.innerHeight;
-                                            const currentScrollY = window.pageYOffset;
-                                            const elementTop = rect.top + currentScrollY;
-                                            const elementHeight = rect.height;
-                                            const viewportMiddle = viewportHeight / 2;
-                                            const targetScrollY = elementTop - viewportMiddle + (elementHeight / 2);
-                                            
-                                            window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' });
-                                            return { success: true };
-                                        }
-                                        """,
-                                        ad_selector
-                                    )
-                                    
-                                    if scroll_result['success']:
-                                        logger.info("✅ 重試-步驟3完成: 置中滾動成功")
-                                        page.wait_for_timeout(1500)
-                                        logger.info("✅ 重試-300×250 廣告元素置中完成!")
-                                    else:
-                                        logger.warning("⚠️  重試-置中滾動失敗，使用fallback")
-                                        page.mouse.wheel(0, scroll_distance)
                                 else:
-                                    logger.warning("⚠️  重試-未找到300x250廣告容器，使用fallback滾動")
                                     page.mouse.wheel(0, scroll_distance)
-                                    
-                            except Exception as e:
-                                logger.warning(f"❌ 重試-300×250置中流程失敗: {e} → 使用fallback滾動")
+                            except:
                                 page.mouse.wheel(0, scroll_distance)
-
-                        elif template in ['ptt-article', 'ptt-article-list']:
-                            # PTT預覽頁面，嘗試在iframe內滾動
-                            logger.info("🏷️  重試-PTT模板 - 嘗試iframe內滾動")
-                            try:
-                                # 首先檢查iframe是否存在
-                                logger.info("🔍 重試-檢查ptt-viewer iframe是否存在...")
-                                ptt_iframe_count = page.locator('iframe#ptt-viewer').count()
-                                logger.info(f"📊 重試-找到{ptt_iframe_count}個ptt-viewer iframe")
-                                
-                                if ptt_iframe_count > 0:
-                                    # 取得iframe的實際Frame物件
-                                    logger.info("📦 重試-取得iframe Frame物件...")
-                                    iframe_element = page.locator('iframe#ptt-viewer').first
-                                    frame = iframe_element.content_frame()
-                                    
-                                    if frame:
-                                        logger.info("✅ 重試-成功取得iframe Frame物件")
-                                        logger.info(f"🎲 重試-在iframe內執行滾動: {scroll_distance}px")
-                                        frame.evaluate(f"window.scrollTo(0, {scroll_distance})")
-                                        logger.info("✅ 重試-iframe內滾動成功")
-                                    else:
-                                        logger.warning("⚠️  重試-無法取得iframe Frame物件，使用fallback滾動")
-                                        page.mouse.wheel(0, scroll_distance)
-                                else:
-                                    logger.warning("⚠️  重試-未找到ptt-viewer iframe，使用fallback滾動")
-                                    page.mouse.wheel(0, scroll_distance)
-                                    
-                            except Exception as e:
-                                logger.warning(f"❌ 重試-PTT iframe滾動失敗: {e}")
-                                logger.info("🔄 重試-使用fallback滾動方案...")
-                                page.mouse.wheel(0, scroll_distance)
-
-                        elif template == 'moptt':
-                            # 用滑鼠滾輪，MoPTT 不會把它復原，且 lazy-load 仍能觸發
-                            logger.info("🏷️  重試-MoPTT模板 - 使用滑鼠滾輪滾動")
-                            page.mouse.wheel(0, scroll_distance)
-                            logger.info("✅ 重試-MoPTT滑鼠滾輪滾動完成")
-
+                        
                         else:
-                            # 其他網站保持原來的做法
-                            logger.info("🏷️  重試-標準模板 - 使用window.scrollTo滾動")
-                            page.evaluate(f"window.scrollTo(0, {scroll_distance})")
-                            logger.info("✅ 重試-標準滾動完成")
-
-                        # 等待滾動完成（1200x628和300x250置中流程除外，因為已經有自己的等待）
-                        if not (size == '1200x628' and template in ['ptt-article']) and size != '300x250':
-                            logger.info("⏳ 重試-等待滾動完成...")
-                            page.wait_for_timeout(1000)
-                            logger.info("✅ 重試-滾動流程完成")
+                            # 其他情況使用標準滾動
+                            page.mouse.wheel(0, scroll_distance)
+                        
+                        page.wait_for_timeout(1000)
                     
                     page.screenshot(path=screenshot_path, full_page=False)
                     logger.info("重新截圖成功")
@@ -869,34 +1079,16 @@ def create_native_screenshot():
             # 取得檔案資訊
             absolute_path = os.path.abspath(screenshot_path)
             
-            # 安全獲取檔案大小
-            try:
-                file_size = os.path.getsize(absolute_path)
-            except:
-                file_size = 0
-            
-            # 格式化檔案大小
-            if file_size > 1024 * 1024:
-                file_size_str = f"{file_size / (1024 * 1024):.1f}MB"
-            elif file_size > 1024:
-                file_size_str = f"{file_size / 1024:.1f}KB"
-            else:
-                file_size_str = f"{file_size}B"
-            
             logger.info(f"截圖完成，檔案儲存至: {absolute_path}")
+            flash(f'截圖成功！檔案儲存至: {absolute_path}', 'success')
             
-            # 計算相對路徑供前端使用
-            relative_path = os.path.relpath(screenshot_path, 'uploads')
-            
-            return jsonify({
-                'success': True,
-                'file_path': absolute_path,
-                'filename': filename,
-                'file_size': file_size_str,
-                'device_name': device_config['name'],
-                'preview_url': url_for('screenshot.screenshot_base64', filename=relative_path),
-                'download_url': url_for('screenshot.screenshot_base64', filename=relative_path)
-            })
+            # 將截圖路徑儲存到session，供模板顯示
+            session['last_screenshot'] = absolute_path
+            session['last_screenshot_device'] = device_config['name']
+            session['last_screenshot_full_page'] = False
+            session['last_screenshot_scroll_distance'] = scroll_distance
+            session['last_screenshot_uuid'] = uuid
+            session['last_screenshot_adunit_title'] = adunit_data.get('title', '')
             
     except Exception as e:
         import traceback

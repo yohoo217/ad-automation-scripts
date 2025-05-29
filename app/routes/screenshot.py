@@ -469,6 +469,7 @@ def create_native_screenshot():
                         
                         # 嘗試不同的300x250廣告容器selector
                         selectors_to_try = [
+                            'iframe[src*="tkcatrun"]:nth-of-type(2)',                # 🎯 最優先：第二個tkcatrun iframe
                             'button[class*="_aotter_tk_text-sm"][class*="_aotter_tk_text-white"][class*="_aotter_tk_bg-black"]',  # 完整按鈕class組合
                             'button[style*="width: 100px"][style*="height: 30px"]', # 包含特定尺寸的按鈕
                             'div._aotter_tk_w-full div._aotter_tk_w-full button',    # 嵌套結構中的按鈕
@@ -480,41 +481,85 @@ def create_native_screenshot():
                             '#trek-ad-ptt-article-middle',                          # 備用：原廣告容器
                             'div[data-trek-id]',                                     # 備用：通用trek容器
                             'iframe[src*="/300x250"]',                               # 備用：300x250廣告iframe
-                            'iframe[src*="tkcatrun"]',                               # 備用：catrun iframe
+                            'iframe[src*="tkcatrun"]',                               # 備用：任意catrun iframe
                             'iframe[title="Advertisement"]',                         # 備用：廣告iframe
                             '[data-trek-ad]'                                         # 備用：trek廣告屬性
                         ]
                         
                         for selector in selectors_to_try:
-                            elements = page.locator(selector)
-                            if elements.count() > 0 and elements.first.is_visible():
-                                ad_selector = selector
-                                logger.info(f"✅ 步驟2完成: 找到目標元素 '{selector}'")
-                                break
+                            # 特殊處理第二個iframe的情況
+                            if selector == 'iframe[src*="tkcatrun"]:nth-of-type(2)':
+                                elements = page.locator('iframe[src*="tkcatrun"]')
+                                element_count = elements.count()
+                                logger.info(f"🔍 找到{element_count}個tkcatrun iframe")
+                                
+                                if element_count >= 2:
+                                    # 檢查第二個iframe是否可見
+                                    second_iframe = elements.nth(1)  # 索引1 = 第二個
+                                    if second_iframe.is_visible():
+                                        ad_selector = selector
+                                        logger.info(f"✅ 步驟2完成: 找到第二個tkcatrun iframe")
+                                        break
+                                    else:
+                                        logger.info(f"⚠️  第二個tkcatrun iframe不可見，嘗試下一個選擇器")
+                                else:
+                                    logger.info(f"⚠️  tkcatrun iframe數量不足({element_count}個)，嘗試下一個選擇器")
+                            else:
+                                # 一般的選擇器處理
+                                elements = page.locator(selector)
+                                if elements.count() > 0 and elements.first.is_visible():
+                                    ad_selector = selector
+                                    logger.info(f"✅ 步驟2完成: 找到目標元素 '{selector}'")
+                                    break
                         
                         if ad_selector:
                             # 執行置中滾動
                             logger.info("📐 步驟3: 執行置中滾動...")
-                            scroll_result = page.evaluate(
-                                """
-                                (sel) => {
-                                    const el = document.querySelector(sel);
-                                    if (!el) return { success: false };
-                                    
-                                    const rect = el.getBoundingClientRect();
-                                    const viewportHeight = window.innerHeight;
-                                    const currentScrollY = window.pageYOffset;
-                                    const elementTop = rect.top + currentScrollY;
-                                    const elementHeight = rect.height;
-                                    const viewportMiddle = viewportHeight / 2;
-                                    const targetScrollY = elementTop - viewportMiddle + (elementHeight / 2);
-                                    
-                                    window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' });
-                                    return { success: true };
-                                }
-                                """,
-                                ad_selector
-                            )
+                            
+                            # 特殊處理第二個iframe的滾動
+                            if ad_selector == 'iframe[src*="tkcatrun"]:nth-of-type(2)':
+                                scroll_result = page.evaluate(
+                                    """
+                                    () => {
+                                        const iframes = document.querySelectorAll('iframe[src*="tkcatrun"]');
+                                        if (iframes.length < 2) return { success: false };
+                                        
+                                        const el = iframes[1]; // 第二個iframe
+                                        const rect = el.getBoundingClientRect();
+                                        const viewportHeight = window.innerHeight;
+                                        const currentScrollY = window.pageYOffset;
+                                        const elementTop = rect.top + currentScrollY;
+                                        const elementHeight = rect.height;
+                                        const viewportMiddle = viewportHeight / 2;
+                                        const targetScrollY = elementTop - viewportMiddle + (elementHeight / 2);
+                                        
+                                        window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' });
+                                        return { success: true };
+                                    }
+                                    """
+                                )
+                            else:
+                                # 一般元素的滾動
+                                scroll_result = page.evaluate(
+                                    """
+                                    (sel) => {
+                                        const el = document.querySelector(sel);
+                                        if (!el) return { success: false };
+                                        
+                                        const rect = el.getBoundingClientRect();
+                                        const viewportHeight = window.innerHeight;
+                                        const currentScrollY = window.pageYOffset;
+                                        const elementTop = rect.top + currentScrollY;
+                                        const elementHeight = rect.height;
+                                        const viewportMiddle = viewportHeight / 2;
+                                        const targetScrollY = elementTop - viewportMiddle + (elementHeight / 2);
+                                        
+                                        window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' });
+                                        return { success: true };
+                                    }
+                                    """,
+                                    ad_selector if ad_selector != 'iframe[src*="tkcatrun"]:nth-of-type(2)' else 'iframe[src*="tkcatrun"]'
+                                )
                             
                             if scroll_result['success']:
                                 logger.info("✅ 步驟3完成: 置中滾動成功")
@@ -733,6 +778,7 @@ def create_native_screenshot():
                                 logger.info("🔍 重試-步驟2: 搜尋300x250廣告容器元素...")
                                 # 嘗試不同的300x250廣告容器selector
                                 selectors_to_try = [
+                                    'iframe[src*="tkcatrun"]:nth-of-type(2)',                # 🎯 最優先：第二個tkcatrun iframe
                                     'button:has-text("立即申請")',                           # 最精準：包含"立即申請"文字的按鈕
                                     'button[class*="_aotter_tk_text-sm"][class*="_aotter_tk_text-white"][class*="_aotter_tk_bg-black"]',  # 完整按鈕class組合
                                     'button[style*="width: 100px"][style*="height: 30px"]', # 包含特定尺寸的按鈕
@@ -745,42 +791,86 @@ def create_native_screenshot():
                                     '#trek-ad-ptt-article-middle',                          # 備用：原廣告容器
                                     'div[data-trek-id]',                                     # 備用：通用trek容器
                                     'iframe[src*="/300x250"]',                               # 備用：300x250廣告iframe
-                                    'iframe[src*="tkcatrun"]',                               # 備用：catrun iframe
+                                    'iframe[src*="tkcatrun"]',                               # 備用：任意catrun iframe
                                     'iframe[title="Advertisement"]',                         # 備用：廣告iframe
                                     '[data-trek-ad]'                                         # 備用：trek廣告屬性
                                 ]
                                 
                                 ad_selector = None
                                 for selector in selectors_to_try:
-                                    elements = page.locator(selector)
-                                    if elements.count() > 0 and elements.first.is_visible():
-                                        ad_selector = selector
-                                        logger.info(f"✅ 重試-步驟2完成: 找到目標元素 '{selector}'")
-                                        break
+                                    # 特殊處理第二個iframe的情況
+                                    if selector == 'iframe[src*="tkcatrun"]:nth-of-type(2)':
+                                        elements = page.locator('iframe[src*="tkcatrun"]')
+                                        element_count = elements.count()
+                                        logger.info(f"🔍 找到{element_count}個tkcatrun iframe")
+                                        
+                                        if element_count >= 2:
+                                            # 檢查第二個iframe是否可見
+                                            second_iframe = elements.nth(1)  # 索引1 = 第二個
+                                            if second_iframe.is_visible():
+                                                ad_selector = selector
+                                                logger.info(f"✅ 步驟2完成: 找到第二個tkcatrun iframe")
+                                                break
+                                            else:
+                                                logger.info(f"⚠️  第二個tkcatrun iframe不可見，嘗試下一個選擇器")
+                                        else:
+                                            logger.info(f"⚠️  tkcatrun iframe數量不足({element_count}個)，嘗試下一個選擇器")
+                                    else:
+                                        # 一般的選擇器處理
+                                        elements = page.locator(selector)
+                                        if elements.count() > 0 and elements.first.is_visible():
+                                            ad_selector = selector
+                                            logger.info(f"✅ 步驟2完成: 找到目標元素 '{selector}'")
+                                            break
                                 
                                 if ad_selector:
                                     # 執行置中滾動
                                     logger.info("📐 重試-步驟3: 執行置中滾動...")
-                                    scroll_result = page.evaluate(
-                                        """
-                                        (sel) => {
-                                            const el = document.querySelector(sel);
-                                            if (!el) return { success: false };
-                                            
-                                            const rect = el.getBoundingClientRect();
-                                            const viewportHeight = window.innerHeight;
-                                            const currentScrollY = window.pageYOffset;
-                                            const elementTop = rect.top + currentScrollY;
-                                            const elementHeight = rect.height;
-                                            const viewportMiddle = viewportHeight / 2;
-                                            const targetScrollY = elementTop - viewportMiddle + (elementHeight / 2);
-                                            
-                                            window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' });
-                                            return { success: true };
-                                        }
-                                        """,
-                                        ad_selector
-                                    )
+                                    
+                                    # 特殊處理第二個iframe的滾動
+                                    if ad_selector == 'iframe[src*="tkcatrun"]:nth-of-type(2)':
+                                        scroll_result = page.evaluate(
+                                            """
+                                            () => {
+                                                const iframes = document.querySelectorAll('iframe[src*="tkcatrun"]');
+                                                if (iframes.length < 2) return { success: false };
+                                                
+                                                const el = iframes[1]; // 第二個iframe
+                                                const rect = el.getBoundingClientRect();
+                                                const viewportHeight = window.innerHeight;
+                                                const currentScrollY = window.pageYOffset;
+                                                const elementTop = rect.top + currentScrollY;
+                                                const elementHeight = rect.height;
+                                                const viewportMiddle = viewportHeight / 2;
+                                                const targetScrollY = elementTop - viewportMiddle + (elementHeight / 2);
+                                                
+                                                window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' });
+                                                return { success: true };
+                                            }
+                                            """
+                                        )
+                                    else:
+                                        # 一般元素的滾動
+                                        scroll_result = page.evaluate(
+                                            """
+                                            (sel) => {
+                                                const el = document.querySelector(sel);
+                                                if (!el) return { success: false };
+                                                
+                                                const rect = el.getBoundingClientRect();
+                                                const viewportHeight = window.innerHeight;
+                                                const currentScrollY = window.pageYOffset;
+                                                const elementTop = rect.top + currentScrollY;
+                                                const elementHeight = rect.height;
+                                                const viewportMiddle = viewportHeight / 2;
+                                                const targetScrollY = elementTop - viewportMiddle + (elementHeight / 2);
+                                                
+                                                window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'instant' });
+                                                return { success: true };
+                                            }
+                                            """,
+                                            ad_selector if ad_selector != 'iframe[src*="tkcatrun"]:nth-of-type(2)' else 'iframe[src*="tkcatrun"]'
+                                        )
                                     
                                     if scroll_result['success']:
                                         logger.info("✅ 重試-步驟3完成: 置中滾動成功")

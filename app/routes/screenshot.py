@@ -3,6 +3,7 @@ from playwright.sync_api import sync_playwright, TimeoutError as PwTimeout
 import logging
 import os
 import base64
+import subprocess
 from datetime import datetime
 from urllib.parse import urlparse
 import time
@@ -629,8 +630,7 @@ def create_native_screenshot():
                 logger.info("🚫 未設定滾動距離，跳過滾動")
             
             # 創建截圖目錄
-            today = datetime.now().strftime('%Y%m%d')
-            screenshot_dir = os.path.join('uploads', 'screenshots', today)
+            screenshot_dir = os.path.join('uploads', 'screenshots', uuid)
             if not os.path.exists(screenshot_dir):
                 os.makedirs(screenshot_dir)
             
@@ -1197,8 +1197,7 @@ def create_screenshot():
                 page.wait_for_timeout(1000)
             
             # 創建截圖目錄
-            today = datetime.now().strftime('%Y%m%d')
-            screenshot_dir = os.path.join('uploads', 'screenshots', today)
+            screenshot_dir = os.path.join('uploads', 'screenshots', uuid)
             if not os.path.exists(screenshot_dir):
                 os.makedirs(screenshot_dir)
             
@@ -1266,3 +1265,66 @@ def create_screenshot():
         flash(user_friendly_msg, 'error')
     
     return redirect(url_for('screenshot.auto_screenshot')) 
+
+@screenshot_bp.route('/open-folder', methods=['POST'])
+def open_folder():
+    """開啟檔案夾位置"""
+    try:
+        # 解析 JSON 請求
+        data = request.get_json()
+        folder_path = data.get('folder_path', '').strip()
+        
+        if not folder_path:
+            return jsonify({'success': False, 'error': '未提供文件夾路徑'}), 400
+        
+        # 檢查路徑是否存在
+        if not os.path.exists(folder_path):
+            return jsonify({'success': False, 'error': f'文件夾不存在: {folder_path}'}), 404
+        
+        # 檢查是否為目錄
+        if not os.path.isdir(folder_path):
+            return jsonify({'success': False, 'error': f'路徑不是一個有效的文件夾: {folder_path}'}), 400
+        
+        # 安全檢查：確保路徑在專案目錄內或為絕對路徑
+        abs_folder_path = os.path.abspath(folder_path)
+        
+        # 根據作業系統開啟文件夾
+        try:
+            # macOS
+            if os.name == 'posix' and os.uname().sysname == 'Darwin':
+                subprocess.run(['open', abs_folder_path], check=True)
+                logger.info(f"成功開啟文件夾 (macOS): {abs_folder_path}")
+            # Windows
+            elif os.name == 'nt':
+                subprocess.run(['explorer', abs_folder_path], check=True)
+                logger.info(f"成功開啟文件夾 (Windows): {abs_folder_path}")
+            # Linux
+            else:
+                subprocess.run(['xdg-open', abs_folder_path], check=True)
+                logger.info(f"成功開啟文件夾 (Linux): {abs_folder_path}")
+            
+            return jsonify({
+                'success': True, 
+                'message': f'已開啟文件夾: {abs_folder_path}'
+            })
+            
+        except subprocess.CalledProcessError as cmd_error:
+            logger.error(f"開啟文件夾命令執行失敗: {str(cmd_error)}")
+            return jsonify({
+                'success': False, 
+                'error': f'無法開啟文件夾，系統命令執行失敗: {str(cmd_error)}'
+            }), 500
+            
+        except FileNotFoundError:
+            logger.error("系統未找到對應的檔案管理程式")
+            return jsonify({
+                'success': False, 
+                'error': '系統未找到對應的檔案管理程式'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"開啟文件夾時發生未預期的錯誤: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'error': f'開啟文件夾時發生錯誤: {str(e)}'
+        }), 500

@@ -216,30 +216,6 @@
     {% endif %}
 </div>
 
-<div class="help-section">
-    <h3>📋 使用說明</h3>
-    <ul>
-        <li><strong>UUID 輸入：</strong>輸入 AdUnit 的 UUID，系統會自動從資料庫查詢相關資料並建構截圖網址</li>
-        <li><strong>裝置選擇：</strong>支援多種裝置尺寸，包括 iPhone X、iPhone SE、iPhone Plus、Android 標準和平板電腦</li>
-        <li><strong>截圖模式：</strong>可選擇可視區域截圖或完整頁面截圖</li>
-        <li><strong>自動使用 Cookie：</strong>系統會自動使用登入 Cookie，適用於需要認證的頁面</li>
-        <li><strong>滾動功能：</strong>可設定向下滾動距離（0-5000像素），預設滾動4800像素到廣告區域</li>
-        <li><strong>等待時間：</strong>可自訂頁面載入等待時間（1-30秒）</li>
-        <li><strong>瀏覽器：</strong>使用 Chrome 模擬手機瀏覽器進行截圖</li>
-        <li><strong>儲存位置：</strong>截圖會自動儲存在 uploads/screenshots/ 目錄下</li>
-        <li><strong>檔案命名：</strong>檔案名稱格式為 screenshot_[裝置]_[類型]_uuid-[UUID]_[滾動距離]_HHMMSS.png</li>
-    </ul>
-    
-    <h3>⚠️ 注意事項</h3>
-    <ul>
-        <li>請確保輸入的 UUID 存在於資料庫中</li>
-        <li>UUID 格式應為標準的 GUID 格式（如：84ab2622-dc2b-402d-b42b-b3ea54f9faeb）</li>
-        <li>截圖可能需要幾秒鐘時間，請耐心等待</li>
-        <li>完整頁面截圖可能會產生較大的圖片檔案</li>
-        <li>等待時間越長，越能確保動態內容完全載入</li>
-        <li>滾動後會等待 1 秒讓內容穩定再截圖</li>
-    </ul>
-</div>
 {% endblock %}
 
 {% block additional_scripts %}

@@ -61,34 +61,6 @@
         cursor: not-allowed;
     }
     
-    .size-config {
-        background-color: #fff;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        padding: 15px;
-        margin-bottom: 20px;
-    }
-    
-    .size-config h4 {
-        margin: 0 0 10px 0;
-        color: #333;
-    }
-    
-    .config-details {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
-        font-size: 14px;
-        color: #666;
-    }
-    
-    .config-item {
-        background-color: #f5f5f5;
-        padding: 8px;
-        border-radius: 4px;
-        text-align: center;
-    }
-    
     .progress-container {
         background-color: #fff;
         border: 1px solid #e0e0e0;
@@ -136,73 +108,38 @@
     }
     
     .screenshot-result h4 {
-        margin: 0 0 10px 0;
+        margin: 0 0 15px 0;
         color: #333;
     }
     
-    .screenshot-meta {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
-        margin-bottom: 15px;
+    .file-path {
+        background-color: #f5f5f5;
+        padding: 12px;
+        border-radius: 4px;
+        font-family: monospace;
+        word-break: break-all;
+        margin: 10px 0 15px 0;
+        border: 1px solid #ddd;
         font-size: 14px;
     }
-    
-    .meta-item {
-        background-color: #fff;
-        padding: 8px;
-        border-radius: 4px;
-        border: 1px solid #eee;
-    }
-    
-    .meta-label {
-        font-weight: bold;
-        color: #666;
-        display: block;
-    }
-    
-    .meta-value {
-        color: #333;
-    }
-    
-    .screenshot-preview {
-        max-width: 100%;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        margin-bottom: 15px;
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-        cursor: pointer;
-    }
-    
-    .download-btn {
+
+    .open-location-btn {
         background-color: #007bff;
         color: white;
-        padding: 8px 16px;
+        padding: 10px 20px;
         border: none;
         border-radius: 4px;
         cursor: pointer;
         text-decoration: none;
         display: inline-block;
         font-size: 14px;
+        font-weight: bold;
     }
     
-    .download-btn:hover {
+    .open-location-btn:hover {
         background-color: #0056b3;
         color: white;
         text-decoration: none;
-    }
-    
-    .file-path {
-        background-color: #f5f5f5;
-        padding: 8px;
-        border-radius: 4px;
-        font-family: monospace;
-        word-break: break-all;
-        margin: 10px 0;
-        border: 1px solid #ddd;
-        font-size: 12px;
     }
     
     .info-box {
@@ -217,37 +154,6 @@
         color: #0066cc;
         font-weight: bold;
         margin-right: 5px;
-    }
-
-    .adunit-info {
-        background-color: #f0f8f0;
-        border: 1px solid #c6e8c6;
-        border-radius: 6px;
-        padding: 12px;
-        margin-bottom: 15px;
-    }
-    
-    .help-section {
-        background-color: #fff;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        padding: 15px;
-        margin-top: 20px;
-    }
-    
-    .help-section h3 {
-        color: #333;
-        margin-top: 0;
-    }
-    
-    .help-section ul {
-        margin: 10px 0;
-        padding-left: 20px;
-    }
-    
-    .help-section li {
-        margin: 5px 0;
-        color: #666;
     }
     
     .error-message {
@@ -291,11 +197,6 @@
         <button type="submit" class="screenshot-btn" id="submit-btn">開始多尺寸截圖</button>
     </form>
     
-    <div class="size-config">
-        <h4>📐 支援的廣告尺寸配置</h4>
-        <div id="config-container"></div>
-    </div>
-    
     <div class="progress-container" id="progress-container">
         <h3>截圖進度</h3>
         <div class="progress-bar">
@@ -310,27 +211,6 @@
     </div>
 </div>
 
-<div class="help-section">
-    <h3>📋 使用說明</h3>
-    <ul>
-        <li><strong>UUID 輸入：</strong>輸入 AdUnit 的 UUID，系統會自動從資料庫查詢相關資料</li>
-        <li><strong>多尺寸截圖：</strong>一次點擊會自動截取所有 5 種尺寸的廣告圖片</li>
-        <li><strong>智慧配置：</strong>每種尺寸會自動使用最適合的裝置類型、滾動距離和預覽頁面</li>
-        <li><strong>智慧滾動：</strong>1200x628 尺寸會自動定位到廣告元素並將其置於畫面中央，無需手動調整滾動位置</li>
-        <li><strong>即時預覽：</strong>截圖完成後可立即預覽所有結果</li>
-        <li><strong>選擇下載：</strong>可選擇要下載哪些截圖</li>
-        <li><strong>自動命名：</strong>檔案會自動以尺寸和時間戳命名</li>
-    </ul>
-    
-    <h3>⚠️ 注意事項</h3>
-    <ul>
-        <li>請確保輸入的 UUID 存在於資料庫中</li>
-        <li>完整的 5 尺寸截圖可能需要 30-60 秒</li>
-        <li>1200x628 尺寸使用智慧元素定位，可能需要額外的載入時間</li>
-        <li>請耐心等待所有截圖完成</li>
-        <li>大尺寸圖片載入可能較慢</li>
-    </ul>
-</div>
 {% endblock %}
 
 {% block additional_scripts %}
@@ -343,7 +223,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const progressText = document.getElementById('progress-text');
     const resultsContainer = document.getElementById('results-container');
     const screenshotsList = document.getElementById('screenshots-list');
-    const configContainer = document.getElementById('config-container');
     
     form.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -365,7 +244,6 @@ document.addEventListener('DOMContentLoaded', function() {
         progressContainer.style.display = 'block';
         resultsContainer.style.display = 'none';
         screenshotsList.innerHTML = '';
-        configContainer.innerHTML = '';
         
         // 截圖配置
         const configs = [
@@ -374,45 +252,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 name: '大圖廣告',
                 device: 'iphone_x',
                 scroll: 10000,
-                template: 'ptt-article',
-                displayInfo: { device: 'iPhone X', scroll: '雙層 iframe 智慧定位', template: 'PTT 文章頁面' }
+                template: 'ptt-article'
             },
             {
                 size: '300x300',
                 name: '方形廣告',
                 device: 'iphone_x',
                 scroll: 0,
-                template: 'ptt-article-list',
-                displayInfo: { device: 'iPhone X', scroll: '不滾動', template: 'PTT 文章列表' }
+                template: 'ptt-article-list'
             },
             {
                 size: '320x50',
                 name: '橫幅廣告',
                 device: 'iphone_x',
                 scroll: 0,
-                template: 'ptt-article',
-                displayInfo: { device: 'iPhone X', scroll: '不滾動', template: 'PTT 文章頁面' }
+                template: 'ptt-article'
             },
             {
                 size: '300x250',
                 name: '中等廣告',
                 device: 'iphone_x',
                 scroll: 6000,
-                template: 'moptt',
-                displayInfo: { device: 'iPhone X', scroll: '4800px', template: 'MoPTT 文章頁面' }
+                template: 'moptt'
             },
             {
                 size: '640x200',
                 name: '寬幅廣告',
                 device: 'iphone_x',
                 scroll: 0,
-                template: 'pnn-article',
-                displayInfo: { device: 'iPhone X', scroll: '不滾動', template: 'PNN 文章頁面' }
+                template: 'pnn-article'
             }
         ];
-        
-        // 顯示配置
-        displayConfig(configs);
         
         let currentIndex = 0;
         const results = [];
@@ -496,6 +366,27 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayResults(results) {
         screenshotsList.innerHTML = '';
         
+        // 統計成功和失敗的數量
+        const successCount = results.filter(r => !r.error).length;
+        const failCount = results.filter(r => r.error).length;
+        
+        // 創建總結區塊
+        const summaryDiv = document.createElement('div');
+        summaryDiv.className = 'screenshot-result';
+        summaryDiv.innerHTML = `
+            <h4>📊 截圖總結</h4>
+            <div class="file-path">
+                <strong>成功：</strong>${successCount} 個，<strong>失敗：</strong>${failCount} 個
+            </div>
+            ${successCount > 0 ? `
+                <button class="open-location-btn" onclick="openScreenshotFolder()">
+                    📁 開啟所有截圖儲存位置
+                </button>
+            ` : ''}
+        `;
+        screenshotsList.appendChild(summaryDiv);
+        
+        // 詳細結果列表
         results.forEach((result, index) => {
             const resultDiv = document.createElement('div');
             resultDiv.className = 'screenshot-result';
@@ -508,38 +399,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 `;
             } else {
-                const data = result.data;
                 resultDiv.innerHTML = `
-                    <h4>${result.config.name} (${result.config.size})</h4>
-                    <div class="screenshot-meta">
-                        <div class="meta-item">
-                            <span class="meta-label">裝置類型</span>
-                            <span class="meta-value">${data.device_name}</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">滾動距離</span>
-                            <span class="meta-value">${result.config.scroll}px</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">檔案大小</span>
-                            <span class="meta-value">${data.file_size || '未知'}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="file-path">
-                        <strong>檔案位置：</strong>${data.file_path}
-                    </div>
-                    
-                    <img src="${data.preview_url}" 
-                         alt="${result.config.name} 截圖" 
-                         class="screenshot-preview"
-                         onclick="window.open('${data.preview_url}', '_blank')">
-                    
-                    <a href="${data.download_url}" 
-                       class="download-btn" 
-                       download="${data.filename}">
-                        📥 下載 ${result.config.size} 截圖
-                    </a>
+                    <h4>✅ ${result.config.name} (${result.config.size}) - 截圖成功</h4>
                 `;
             }
             
@@ -547,28 +408,46 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         resultsContainer.style.display = 'block';
+        
+        // 儲存當前的 UUID 以供開啟資料夾使用
+        if (successCount > 0) {
+            window.currentScreenshotUuid = document.getElementById('uuid').value.trim();
+        }
     }
-
-    function displayConfig(configs) {
-        configContainer.innerHTML = configs.map((config, index) => `
-            <div class="config-item">
-                <div class="config-header">
-                    <h4>${index + 1}. ${config.size} ${config.name}</h4>
-                    <div class="config-details">
-                        <span class="config-badge">📱 ${config.displayInfo.device}</span>
-                        <span class="config-badge">📏 ${config.displayInfo.scroll}</span>
-                        <span class="config-badge">🌐 ${config.displayInfo.template}</span>
-                    </div>
-                </div>
-                <div class="screenshot-result" id="result-${index}" style="display: none;">
-                    <div class="result-loading">
-                        <div class="spinner"></div>
-                        <span>截圖中...</span>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
+    
+    // 開啟截圖資料夾的函數
+    window.openScreenshotFolder = function() {
+        const uuid = window.currentScreenshotUuid;
+        if (!uuid) {
+            alert('無法取得 UUID');
+            return;
+        }
+        
+        const folderPath = `uploads/screenshots/${uuid}`;
+        
+        // 發送請求到後端開啟文件夾
+        fetch('/open-folder', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                folder_path: folderPath
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('截圖資料夾已開啟');
+            } else {
+                alert('無法開啟截圖資料夾: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('開啟截圖資料夾時發生錯誤:', error);
+            alert('開啟截圖資料夾時發生錯誤');
+        });
+    };
 });
 </script>
 {% endblock %} 

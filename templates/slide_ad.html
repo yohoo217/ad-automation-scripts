@@ -2,7 +2,7 @@
 
 {% block title %}水平 Slide 廣告建立{% endblock %}
 
-{% block page_title %}建立水平 Slide 廣告{% endblock %}
+{% block page_title %}🎯 建立水平 Slide 廣告{% endblock %}
 
 {% block additional_styles %}
 <style>
@@ -34,119 +34,139 @@
 
 {% block content %}
 <form action="{{ url_for('main.clear_slide_form') }}" method="post" style="display: inline;">
-    <button type="submit" class="clear-form-btn" onclick="return confirm('確定要清除所有填寫的內容嗎？')">清除所有內容</button>
+    <button type="submit" class="clear-form-btn" onclick="return confirm('確定要清除所有填寫的內容嗎？')">🗑️ 清除所有內容</button>
 </form>
 
 <form action="{{ url_for('main.create_slide_ad') }}" method="post" id="ad-form">
     <div class="field-group">
-        <h3>廣告資訊</h3>
-        <table>
-            <tr>
-                <th width="30%">欄位名稱</th>
-                <th>內容</th>
-            </tr>
-            <tr>
-                <td><label for="adset_id">Adset ID <span class="required">*</span></label></td>
-                <td><input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required>
-                    <div class="help-text">廣告組ID，必填，例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="display_name">廣告單元顯示名稱</label></td>
-                <td><input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}">
-                    <div class="help-text">僅顯示於後台，可選</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="advertiser">廣告商 <span class="required">*</span></label></td>
-                <td><input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required>
-                    <div class="help-text">廣告主名稱，必填</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="main_title">主標題 <span class="required">*</span></label></td>
-                <td><input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required>
-                    <div class="help-text">廣告主標題，必填</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="subtitle">文字敘述</label></td>
-                <td><input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}">
-                    <div class="help-text">廣告副標題，可選</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="landing_page">到達頁面網址 <span class="required">*</span></label></td>
-                <td><input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" value="{{ landing_page or '' }}" required>
-                    <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="call_to_action">行動呼籲按鈕文字</label></td>
-                <td><input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '立即了解' }}">
-                    <div class="help-text">CTA按鈕文字，預設為「立即了解」</div>
-                </td>
-            </tr>
-        </table>
-    </div>
-
-    <div class="field-group">
-        <h3>廣告素材 <span class="required">*</span></h3>
-        <p>所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。</p>
+        <h3>📋 基本廣告資訊</h3>
         
-        <div class="form-row">
-            <label for="image_path_m">圖片 1200x628 <span class="required">*</span></label>
-            <div class="file-upload-container">
-                <input type="text" id="image_path_m" name="image_path_m" placeholder="/path/to/your/image_1200x628.jpg" value="{{ image_path_m or '' }}" required>
-                <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
-                <div class="preview-container">
-                    <label class="custom-file-upload">
-                        上傳圖片
-                        <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
-                    </label>
-                    <img id="preview_m" class="upload-preview" style="display: none;">
-                </div>
+        <div class="form-grid-2">
+            <div class="form-row">
+                <label for="adset_id">Adset ID <span class="required">*</span></label>
+                <input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required
+                       placeholder="例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7">
+                <div class="help-text">廣告組ID，必填</div>
+            </div>
+            
+            <div class="form-row">
+                <label for="display_name">廣告單元顯示名稱</label>
+                <input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}"
+                       placeholder="僅供後台顯示使用">
+                <div class="help-text">僅顯示於後台，可選</div>
+            </div>
+        </div>
+        
+        <div class="form-grid-2">
+            <div class="form-row">
+                <label for="advertiser">廣告商 <span class="required">*</span></label>
+                <input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required
+                       placeholder="廣告主名稱">
+                <div class="help-text">廣告主名稱，必填</div>
+            </div>
+            
+            <div class="form-row">
+                <label for="main_title">主標題 <span class="required">*</span></label>
+                <input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required
+                       placeholder="廣告主標題">
+                <div class="help-text">廣告主標題，必填</div>
+            </div>
+        </div>
+        
+        <div class="form-grid-2">
+            <div class="form-row">
+                <label for="subtitle">文字敘述</label>
+                <input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}"
+                       placeholder="廣告副標題（可選）">
+                <div class="help-text">廣告副標題，可選</div>
+            </div>
+            
+            <div class="form-row">
+                <label for="call_to_action">行動呼籲按鈕文字</label>
+                <input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '立即了解' }}"
+                       placeholder="立即了解">
+                <div class="help-text">CTA按鈕文字，預設為「立即了解」</div>
             </div>
         </div>
         
         <div class="form-row">
-            <label for="image_path_s">圖片 300x300 <span class="required">*</span></label>
-            <div class="file-upload-container">
-                <input type="text" id="image_path_s" name="image_path_s" placeholder="/path/to/your/image_300x300.jpg" value="{{ image_path_s or '' }}" required>
-                <div class="help-text">方形圖片，尺寸300x300像素</div>
-                <div class="preview-container">
-                    <label class="custom-file-upload">
-                        上傳圖片
-                        <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
-                    </label>
-                    <img id="preview_s" class="upload-preview" style="display: none;">
+            <label for="landing_page">到達頁面網址 <span class="required">*</span></label>
+            <input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" 
+                   value="{{ landing_page or '' }}" required>
+            <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+        </div>
+    </div>
+
+    <div class="field-group">
+        <h3>🖼️ 廣告素材</h3>
+        <p style="margin-bottom: 20px; color: #666; font-style: italic;">
+            所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。
+        </p>
+        
+        <div class="form-grid-2">
+            <div class="form-row">
+                <label for="image_path_m">大尺寸圖片 1200x628 <span class="required">*</span></label>
+                <div class="file-upload-container">
+                    <input type="text" id="image_path_m" name="image_path_m" 
+                           placeholder="/path/to/your/image_1200x628.jpg" 
+                           value="{{ image_path_m or '' }}" required>
+                    <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                    <div class="preview-container">
+                        <label class="custom-file-upload">
+                            📁 上傳圖片
+                            <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
+                        </label>
+                        <img id="preview_m" class="upload-preview" style="display: none;" alt="預覽圖">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <label for="image_path_s">小尺寸圖片 300x300 <span class="required">*</span></label>
+                <div class="file-upload-container">
+                    <input type="text" id="image_path_s" name="image_path_s" 
+                           placeholder="/path/to/your/image_300x300.jpg" 
+                           value="{{ image_path_s or '' }}" required>
+                    <div class="help-text">方形圖片，尺寸300x300像素</div>
+                    <div class="preview-container">
+                        <label class="custom-file-upload">
+                            📁 上傳圖片
+                            <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
+                        </label>
+                        <img id="preview_s" class="upload-preview" style="display: none;" alt="預覽圖">
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="form-row">
             <label for="background_image">遊戲套件預設背景 <span class="required">*</span></label>
-            <input type="text" id="background_image" name="background_image" placeholder="請輸入背景圖片網址" value="{{ background_image or '' }}" required>
+            <input type="text" id="background_image" name="background_image" 
+                   placeholder="請輸入背景圖片網址" value="{{ background_image or '' }}" required>
             <div class="help-text">遊戲套件預設背景圖片網址</div>
         </div>
     </div>
 
     <div class="field-group">
-        <h3>滑動廣告設定 <span class="required">*</span></h3>
-        <div id="slide-items-container">
-            <!-- 默認顯示一個滑動項目，將由 JavaScript 動態填充 -->
+        <h3>🎯 滑動項目設定</h3>
+        <div class="dynamic-items-container">
+            <div id="slide-items-container">
+                <!-- 滑動項目將由 JavaScript 動態生成 -->
+            </div>
+            
+            <div class="vote-controls">
+                <button type="button" id="add-slide-item" class="add-item-btn">➕ 新增滑動項目</button>
+                <button type="button" id="remove-slide-item" class="clear-form-btn">➖ 移除最後一個項目</button>
+            </div>
         </div>
-        <div class="slide-controls">
-            <button type="button" id="add-slide-item" class="button nav-button">新增滑動項目</button>
-            <button type="button" id="remove-slide-item" class="button" style="background-color: #d9534f;">移除最後一個項目</button>
-        </div>
+        
         <input type="hidden" id="payload_game_widget" name="payload_game_widget">
         
         <!-- 隱藏的數據傳遞 -->
         <input type="hidden" id="slide_items_data" value="{{ slide_items | tojson | e }}">
     </div>
     
-    <input type="submit" value="建立水平 Slide 廣告">
+    <input type="submit" value="🎯 建立水平 Slide 廣告">
 </form>
 {% endblock %}
 
@@ -158,9 +178,19 @@
     document.addEventListener('DOMContentLoaded', function() {
         // 初始化滑動項目
         initializeSlideItems();
+        
+        // 添加/移除滑動項目按鈕
+        document.getElementById('add-slide-item').addEventListener('click', function() {
+            addSlideItem();
+        });
+        
+        document.getElementById('remove-slide-item').addEventListener('click', function() {
+            removeSlideItem();
+        });
+        
+        // 更新 payload
+        updatePayload();
     });
-    
-
     
     function initializeSlideItems() {
         // 從隱藏元素中讀取滑動項目數據
@@ -200,128 +230,183 @@
         
         const container = document.getElementById('slide-items-container');
         const newItem = document.createElement('div');
-        newItem.className = 'slide-item';
+        newItem.className = 'dynamic-item';
         newItem.setAttribute('data-index', index);
         
         newItem.innerHTML = `
+            <button type="button" class="remove-item-btn" onclick="removeSpecificSlideItem(${index})" title="移除此項目">×</button>
             <h4>滑動項目 #${index + 1}</h4>
-            <div class="form-row">
-                <label for="image_url_${index}">圖片網址 <span class="required">*</span></label>
-                <input type="url" id="image_url_${index}" name="image_url_${index}" class="slide-image-url" 
-                       placeholder="https://example.com/image${index + 1}.jpg" value="${imageUrl}" required>
-                <div class="help-text">滑動廣告圖片的URL，必填</div>
-            </div>
-            <div class="form-row">
-                <label for="target_url_${index}">目標網址 <span class="required">*</span></label>
-                <input type="url" id="target_url_${index}" name="target_url_${index}" class="slide-target-url"
-                       placeholder="https://example.com/page${index + 1}" value="${targetUrl}" required>
-                <div class="help-text">點擊圖片後跳轉的目標網址，必填</div>
+            <div class="form-grid-2">
+                <div class="form-row">
+                    <label for="image_url_${index}">圖片網址 <span class="required">*</span></label>
+                    <input type="url" id="image_url_${index}" name="image_url_${index}" 
+                           placeholder="https://example.com/slide${index + 1}.jpg" 
+                           value="${imageUrl}" required>
+                    <div class="help-text">滑動項目的圖片網址</div>
+                </div>
+                
+                <div class="form-row">
+                    <label for="target_url_${index}">目標網址 <span class="required">*</span></label>
+                    <input type="url" id="target_url_${index}" name="target_url_${index}" 
+                           placeholder="https://example.com/target${index + 1}" 
+                           value="${targetUrl}" required>
+                    <div class="help-text">點擊此滑動項目後跳轉的網址</div>
+                </div>
             </div>
         `;
         
         container.appendChild(newItem);
-
-        // 為新添加的輸入欄位綁定 change 事件以更新 payload
-        newItem.querySelectorAll('.slide-image-url, .slide-target-url').forEach(input => {
+        
+        // 為新添加的輸入欄位綁定事件
+        newItem.querySelectorAll('input').forEach(input => {
             input.addEventListener('change', () => updatePayload());
         });
-        updatePayload(); // 添加新項目後更新 payload
+        
+        updatePayload();
     }
     
     function removeSlideItem() {
         const container = document.getElementById('slide-items-container');
-        if (slideItemCount > 1) {
-            // 保留至少一個項目
+        if (container.children.length > 1) {
             container.removeChild(container.lastChild);
             slideItemCount--;
             updatePayload();
+        } else {
+            alert('至少需要保留一個滑動項目！');
         }
     }
     
-    function updatePayload() {
-        const imageUrlsInputs = document.querySelectorAll('.slide-image-url');
-        const targetUrlsInputs = document.querySelectorAll('.slide-target-url');
+    function removeSpecificSlideItem(index) {
+        const container = document.getElementById('slide-items-container');
+        if (container.children.length > 1) {
+            const item = container.querySelector(`[data-index="${index}"]`);
+            if (item) {
+                container.removeChild(item);
+                // 重新編號其餘項目
+                renumberSlideItems();
+                updatePayload();
+            }
+        } else {
+            alert('至少需要保留一個滑動項目！');
+        }
+    }
+    
+    function renumberSlideItems() {
+        const container = document.getElementById('slide-items-container');
+        const items = container.querySelectorAll('.dynamic-item');
         
-        const slides = [];
-        const invokes = [];
-        
-        for (let i = 0; i < imageUrlsInputs.length; i++) {
-            const imageUrl = imageUrlsInputs[i].value;
-            const targetUrl = targetUrlsInputs[i].value;
+        items.forEach((item, newIndex) => {
+            item.setAttribute('data-index', newIndex);
+            item.querySelector('h4').textContent = `滑動項目 #${newIndex + 1}`;
             
-            if (imageUrl && imageUrl.trim() !== '') {
-                slides.push(imageUrl);
-                if (targetUrl && targetUrl.trim() !== '') {
-                    invokes.push({
-                        action: "OPEN_EXTERNAL_BROWSER",
-                        payload: {
-                            url: targetUrl
-                        }
-                    });
+            // 更新所有相關的 ID 和 name
+            const inputs = item.querySelectorAll('input');
+            inputs.forEach(input => {
+                const oldName = input.getAttribute('name');
+                const oldId = input.getAttribute('id');
+                
+                if (oldName) {
+                    const baseName = oldName.replace(/_\d+$/, '');
+                    input.setAttribute('name', `${baseName}_${newIndex}`);
                 }
+                
+                if (oldId) {
+                    const baseId = oldId.replace(/_\d+$/, '');
+                    input.setAttribute('id', `${baseId}_${newIndex}`);
+                }
+                
+                // 更新對應的 label
+                const label = item.querySelector(`label[for="${oldId}"]`);
+                if (label) {
+                    label.setAttribute('for', input.id);
+                }
+            });
+            
+            // 更新移除按鈕的 onclick
+            const removeBtn = item.querySelector('.remove-item-btn');
+            if (removeBtn) {
+                removeBtn.setAttribute('onclick', `removeSpecificSlideItem(${newIndex})`);
+            }
+        });
+        
+        slideItemCount = items.length;
+    }
+    
+    function updatePayload() {
+        const imageUrlInputs = document.querySelectorAll('input[name^="image_url_"]');
+        const targetUrlInputs = document.querySelectorAll('input[name^="target_url_"]');
+        
+        const slideItems = [];
+        
+        for (let i = 0; i < imageUrlInputs.length; i++) {
+            const imageUrl = imageUrlInputs[i].value;
+            const targetUrl = targetUrlInputs[i].value;
+            
+            if (imageUrl && targetUrl) {
+                slideItems.push({
+                    imageUrl: imageUrl,
+                    targetUrl: targetUrl
+                });
             }
         }
         
         const payload = {
             type: "SLIDE",
             data: {
-                slides: slides // Array of image URLs
+                slideItems: slideItems,
+                direction: "horizontal",
+                autoPlay: true,
+                autoPlayInterval: 3000
             },
-            invokes: invokes // Array of invoke objects
+            invokes: slideItems.map(item => ({
+                action: "OPEN_EXTERNAL_BROWSER",
+                payload: {
+                    url: item.targetUrl
+                }
+            }))
         };
         
-        document.getElementById('payload_game_widget').value = JSON.stringify(payload, null, 2);
+        document.getElementById('payload_game_widget').value = JSON.stringify(payload);
     }
-    
-    // 添加事件監聽器給按鈕
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('add-slide-item').addEventListener('click', addSlideItem);
-        document.getElementById('remove-slide-item').addEventListener('click', removeSlideItem);
-    });
-    
-    function parseInfoText(inputText) {
-        // 解析廣告主
-        let advertiserMatch = inputText.match(/-廣告主：(.*?)($|\n)/);
-        if (advertiserMatch && advertiserMatch[1]) {
-            document.getElementById('advertiser').value = advertiserMatch[1].trim();
-        }
-        
-        // 解析標題
-        let titleMatch = inputText.match(/-\s*標題：(.*?)($|\n)/);
-        if (titleMatch && titleMatch[1]) {
-            document.getElementById('main_title').value = titleMatch[1].trim();
-        }
-        
-        // 解析導連
-        let landingMatch = inputText.match(/導連：(https?:\/\/[^\s]+)/);
-        if (landingMatch && landingMatch[1]) {
-            document.getElementById('landing_page').value = landingMatch[1].trim();
-            
-            // 同時填入第一個滑動項目的目標URL
-            const firstTargetUrlInput = document.querySelector('.slide-target-url');
-            if (firstTargetUrlInput) {
-                firstTargetUrlInput.value = landingMatch[1].trim();
+
+    // 快速資訊解析函數
+    function parseInfoText(text) {
+        try {
+            // 解析廣告主
+            const advertiserMatch = text.match(/[-·]\s*廣告主[:：]\s*(.+)/);
+            if (advertiserMatch) {
+                document.getElementById('advertiser').value = advertiserMatch[1].trim();
             }
-        }
-        
-        // 解析 CTA
-        let ctaMatch = inputText.match(/-\s*CTA：(.*?)($|\n)/);
-        if (ctaMatch && ctaMatch[1]) {
-            document.getElementById('call_to_action').value = ctaMatch[1].trim();
-        }
-        
-        // 解析素材，作為背景圖片和第一個滑動項目的圖片
-        let materialMatch = inputText.match(/素材：(https?:\/\/[^\s]+)/);
-        if (materialMatch && materialMatch[1]) {
-            document.getElementById('background_image').value = materialMatch[1].trim();
-            
-            // 填入第一個滑動項目的圖片URL
-            const firstImageUrlInput = document.querySelector('.slide-image-url');
-            if (firstImageUrlInput) {
-                firstImageUrlInput.value = materialMatch[1].trim();
+
+            // 解析活動名稱作為主標題
+            const titleMatch = text.match(/[-·]\s*活動名稱[:：]\s*(.+)/);
+            if (titleMatch) {
+                document.getElementById('main_title').value = titleMatch[1].trim();
             }
-            
+
+            // 解析標題
+            const headlineMatch = text.match(/[-·]\s*標題[:：]\s*(.+)/);
+            if (headlineMatch) {
+                document.getElementById('subtitle').value = headlineMatch[1].trim();
+            }
+
+            // 解析 CTA
+            const ctaMatch = text.match(/[-·]\s*CTA[:：]\s*(.+)/);
+            if (ctaMatch) {
+                document.getElementById('call_to_action').value = ctaMatch[1].trim();
+            }
+
+            // 解析導連
+            const landingMatch = text.match(/(?:導連|到達頁面)[:：]\s*(https?:\/\/[^\s]+)/);
+            if (landingMatch) {
+                document.getElementById('landing_page').value = landingMatch[1].trim();
+            }
+
             updatePayload();
+            alert('✅ 資訊解析完成！請檢查填入的內容是否正確。');
+        } catch (error) {
+            console.error('解析錯誤:', error);
+            alert('❌ 解析過程中發生錯誤，請檢查輸入格式。');
         }
     }
 </script>

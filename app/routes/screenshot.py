@@ -778,8 +778,6 @@ def create_native_screenshot():
                                 logger.info("🔍 重試-步驟2: 搜尋300x250廣告容器元素...")
                                 # 嘗試不同的300x250廣告容器selector
                                 selectors_to_try = [
-                                    'iframe[src*="tkcatrun"]:nth-of-type(2)',                # 🎯 最優先：第二個tkcatrun iframe
-                                    'button:has-text("立即申請")',                           # 最精準：包含"立即申請"文字的按鈕
                                     'button[class*="_aotter_tk_text-sm"][class*="_aotter_tk_text-white"][class*="_aotter_tk_bg-black"]',  # 完整按鈕class組合
                                     'button[style*="width: 100px"][style*="height: 30px"]', # 包含特定尺寸的按鈕
                                     'div._aotter_tk_w-full div._aotter_tk_w-full button',    # 嵌套結構中的按鈕
@@ -791,7 +789,7 @@ def create_native_screenshot():
                                     '#trek-ad-ptt-article-middle',                          # 備用：原廣告容器
                                     'div[data-trek-id]',                                     # 備用：通用trek容器
                                     'iframe[src*="/300x250"]',                               # 備用：300x250廣告iframe
-                                    'iframe[src*="tkcatrun"]',                               # 備用：任意catrun iframe
+                                    'iframe[src*="tkcatrun"]:nth-of-type(2)',                # 🎯 最優先：第二個tkcatrun iframe
                                     'iframe[title="Advertisement"]',                         # 備用：廣告iframe
                                     '[data-trek-ad]'                                         # 備用：trek廣告屬性
                                 ]

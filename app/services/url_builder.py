@@ -45,7 +45,7 @@ def build_native_screenshot_url(adunit_data, size, template):
     media_cta = adunit_data.get('callToAction', '')
     url_original = adunit_data.get('url_original', '')
     uuid = adunit_data.get('uuid', '')
-    media_img = adunit_data.get('image_path_m', '')
+    media_img = adunit_data.get('img_icon', '')
     
     # 建構 catrun 網址
     catrun_url = f"https://tkcatrun.aotter.net/b/{uuid}/{size}"
@@ -102,8 +102,21 @@ def build_native_screenshot_url(adunit_data, size, template):
     if not size_config:
         return None
     
+    # 處理 320x50 特殊情況
+    if size == '320x50':
+        template_config = size_config
+        base_url = template_config['base_url']
+        
+        params = [
+            f"trek-debug-place=f62fc7ee-2629-4977-be97-c92f4ac4ec23",
+            f"trek-debug-catrun={quote_plus(catrun_url)}",
+            f"dataSrcUrl={template_config.get('dataSrcUrl', '')}"
+        ]
+        
+        return f"{base_url}?{'&'.join(params)}"
+    
     # 處理 300x300 特殊情況
-    if size == '300x300':
+    elif size == '300x300':
         if template == 'ptt-article-list':
             template_config = size_config['ptt-article-list']
         else:

@@ -1,7 +1,12 @@
-from flask import Blueprint, render_template, redirect, url_for, session, request, flash
+from flask import Blueprint, render_template, redirect, url_for, session, request, flash, jsonify
 import logging
 import os
 from playwright.sync_api import sync_playwright
+import requests
+from urllib.parse import quote_plus
+
+# 導入 MongoDB 連接
+from app.models.database import get_mongo_client
 
 # 導入 suprad 自動化腳本
 try:
@@ -24,6 +29,154 @@ def index():
 def batch():
     """批量廣告頁面"""
     return render_template('batch.html')
+
+@main_bp.route('/report')
+def report():
+    """報表頁面"""
+    return render_template('report.html')
+
+@main_bp.route('/test-adset-info')
+def test_adset_info():
+    """廣告集資訊查詢測試頁面"""
+    with open('test_integration.html', 'r', encoding='utf-8') as f:
+        return f.read()
+
+@main_bp.route('/api/adset-info')
+def get_adset_info():
+    """根據廣告集 ID 查詢 MongoDB 中的計價方式和價格資訊"""
+    try:
+        # 獲取查詢參數
+        adset_id = request.args.get('adsetId')
+        
+        if not adset_id:
+            return jsonify({'error': '缺少必要參數：adsetId'}), 400
+        
+        logger.info(f"查詢廣告集資訊: {adset_id}")
+        
+        # 連接 MongoDB
+        client = get_mongo_client()
+        if not client:
+            return jsonify({'error': 'MongoDB 連接失敗'}), 500
+        
+        # 選擇資料庫和集合
+        db = client['trek']
+        collection = db['AdSet']
+        
+        # 查詢廣告集資料
+        adset_data = collection.find_one({'uuid': adset_id})
+        
+        if not adset_data:
+            return jsonify({'error': f'找不到廣告集 ID: {adset_id}'}), 404
+        
+        # 提取計價方式和價格
+        b_mode = adset_data.get('bMode', '')
+        pricing_info = {
+            'bMode': b_mode,
+            'price': 0,
+            'currency': adset_data.get('curr', 'TWD')
+        }
+        
+        # 根據計價方式取得對應的價格
+        if b_mode == 'CPC':
+            pricing_info['price'] = adset_data.get('cpc', 0)
+        elif b_mode == 'CPM':
+            pricing_info['price'] = adset_data.get('cpm', 0)
+        elif b_mode == 'CPV':
+            pricing_info['price'] = adset_data.get('cpv', 0)
+        
+        # 額外資訊
+        additional_info = {
+            'name': adset_data.get('name', ''),
+            'budget': adset_data.get('budget', 0),
+            'adType': adset_data.get('adType', ''),
+            'state': adset_data.get('state', '')
+        }
+        
+        logger.info(f"查詢成功: {adset_id} - {b_mode} ${pricing_info['price']}")
+        
+        return jsonify({
+            'success': True,
+            'adsetId': adset_id,
+            'pricing': pricing_info,
+            'info': additional_info
+        })
+        
+    except Exception as e:
+        logger.error(f"查詢廣告集資訊時發生錯誤: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'查詢失敗: {str(e)}'
+        }), 500
+
+@main_bp.route('/api/report-proxy')
+def report_proxy():
+    """報表 API 代理路由，用於解決 CORS 問題"""
+    try:
+        # 獲取查詢參數
+        set_id = request.args.get('setId')
+        since_date = request.args.get('sinceDate')
+        to_date = request.args.get('toDate')
+        
+        if not all([set_id, since_date, to_date]):
+            return jsonify({'error': '缺少必要參數：setId, sinceDate, toDate'}), 400
+        
+        # 構建目標 URL
+        target_url = f"https://trek.aotter.net/dontblockme/action_adset_read/getadsetreporttemplate/?setId={quote_plus(set_id)}&sinceDate={quote_plus(since_date)}&toDate={quote_plus(to_date)}"
+        
+        # 設置請求標頭，包含認證信息
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Cookie': 'AOTTERBD_SESSION=757418f543a95a889184e798ec5ab66d4fad04e5-lats=1724229220332&sso=PIg4zu/Vdnn/A15vMEimFlVAGliNhoWlVd5FTvtEMRAFpk/VvBGvAetanw8DLATSLexy9pee/t52uNojvoFS2Q==;aotter=eyJ1c2VyIjp7ImlkIjoiNjNkYjRkNDBjOTFiNTUyMmViMjk4YjBkIiwiZW1haWwiOiJpYW4uY2hlbkBhb3R0ZXIubmV0IiwiY3JlYXRlZEF0IjoxNjc1MzE2NTQ0LCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJsZWdhY3lJZCI6bnVsbCwibGVnYWN5U2VxSWQiOjE2NzUzMTY1NDQ3ODI5NzQwMDB9LCJhY2Nlc3NUb2tlbiI6IjJkYjQyZTNkOTM5MDUzMjdmODgyZmYwMDRiZmI4YmEzZjBhNTlmMDQwYzhiN2Y4NGY5MmZmZTIzYTU0ZTQ2MDQiLCJ1ZWEiOm51bGx9; _Secure-1PSID=vlPPgXupFroiSjP1/A02minugZVZDgIG4K; _Secure-1PSIDCC=g.a000mwhavReSVd1vN09AVTswXkPAhyuW7Tgj8-JFhj-FZya9I_l1B6W2gqTIWAtQUTQMkTxoAwACgYKAW0SARISFQHGX2MiC--NJ2PzCzDpJ0m3odxHhxoVAUF8yKr8r49abq8oe4UxCA0t_QCW0076; _Secure-3PSID=AKEyXzUuXI1zywmFmkEBEBHfg6GRkRM9cJ9BiJZxmaR46x5im_krhaPtmL4Jhw8gQsz5uFFkfbc; _Secure-3PSIDCC=sidts-CjEBUFGohzUF6oK3ZMACCk2peoDBDp6djBwJhGc4Lxgu2zOlzbVFeVpXF4q1TYZ5ba6cEAA'
+        }
+        
+        logger.info(f"代理請求目標 URL: {target_url}")
+        
+        # 發送請求到目標 API
+        response = requests.get(target_url, headers=headers, timeout=30)
+        
+        if response.status_code == 200:
+            # 成功獲取資料，返回 HTML 內容
+            return jsonify({
+                'success': True,
+                'content': response.text,
+                'content_type': response.headers.get('content-type', 'text/html')
+            })
+        else:
+            # API 返回錯誤
+            logger.error(f"目標 API 返回錯誤: {response.status_code} - {response.text}")
+            return jsonify({
+                'success': False,
+                'error': f'API 請求失敗: HTTP {response.status_code}',
+                'details': response.text[:500] if response.text else 'No response content'
+            }), response.status_code
+            
+    except requests.exceptions.Timeout:
+        logger.error("請求超時")
+        return jsonify({
+            'success': False,
+            'error': '請求超時，請稍後再試'
+        }), 408
+        
+    except requests.exceptions.ConnectionError:
+        logger.error("連線錯誤")
+        return jsonify({
+            'success': False,
+            'error': '無法連接到目標伺服器'
+        }), 503
+        
+    except Exception as e:
+        logger.error(f"代理請求時發生錯誤: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'伺服器內部錯誤: {str(e)}'
+        }), 500
 
 @main_bp.route('/vote-ad')
 def vote_ad():

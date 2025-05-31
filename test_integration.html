@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>廣告集資訊查詢測試</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        .test-container {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8faff 0%, #f1f5ff 100%);
+            border-radius: 12px;
+            border: 1px solid #e0e6ed;
+        }
+        .result {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            color: #721c24;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 廣告集資訊查詢功能測試</h1>
+        <p>此頁面測試從 MongoDB 查詢廣告集計價方式和價格資訊的功能</p>
+        
+        <div class="test-section">
+            <h3>📊 測試項目</h3>
+            <p><strong>1. CPM 計價方式測試</strong></p>
+            <button onclick="testAdset('07465f27-fd65-412d-843d-1f422bccda19', 'cpm-result')">
+                測試 CPM (預期：$10.0 TWD)
+            </button>
+            <div id="cpm-result"></div>
+            
+            <p><strong>2. CPC 計價方式測試</strong></p>
+            <button onclick="testAdset('f808fb79-9364-4f97-baf2-78f9bf80a960', 'cpc-result')">
+                測試 CPC (預期：$6.0 TWD)
+            </button>
+            <div id="cpc-result"></div>
+            
+            <p><strong>3. CPV 計價方式測試</strong></p>
+            <button onclick="testAdset('d570d914-d4ed-415d-887a-6a6a5912054d', 'cpv-result')">
+                測試 CPV (預期：$0.5 TWD)
+            </button>
+            <div id="cpv-result"></div>
+            
+            <p><strong>4. 錯誤處理測試</strong></p>
+            <button onclick="testAdset('non-existent-id', 'error-result')">
+                測試不存在的 ID (預期：錯誤訊息)
+            </button>
+            <div id="error-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔍 自訂測試</h3>
+            <input type="text" id="custom-id" placeholder="輸入廣告集 UUID" />
+            <button onclick="testCustomAdset()">查詢自訂廣告集</button>
+            <div id="custom-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📈 模擬報表功能</h3>
+            <p>這個測試會模擬在報表頁面中如何使用廣告集資訊來動態填入 Excel 報表</p>
+            <input type="text" id="report-id" placeholder="輸入廣告集 UUID" />
+            <button onclick="simulateReportGeneration()">模擬產出報表</button>
+            <div id="report-result"></div>
+        </div>
+    </div>
+
+    <script>
+        async function testAdset(adsetId, resultId) {
+            const resultDiv = document.getElementById(resultId);
+            resultDiv.innerHTML = '⏳ 查詢中...';
+            
+            try {
+                const response = await fetch(`/api/adset-info?adsetId=${encodeURIComponent(adsetId)}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const pricing = result.pricing;
+                    const info = result.info;
+                    const currency = pricing.currency === 'TWD' ? '$' : pricing.currency;
+                    
+                    resultDiv.className = 'result';
+                    resultDiv.innerHTML = `✅ 查詢成功！
+廣告集 ID: ${result.adsetId}
+活動名稱: ${info.name}
+計價方式: ${pricing.bMode}
+價格: ${currency}${pricing.price}
+廣告類型: ${info.adType}
+預算: ${currency}${info.budget.toLocaleString()}
+狀態: ${info.state}`;
+                } else {
+                    resultDiv.className = 'error';
+                    resultDiv.innerHTML = `❌ 查詢失敗: ${result.error}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.innerHTML = `❌ 網路錯誤: ${error.message}`;
+            }
+        }
+        
+        function testCustomAdset() {
+            const adsetId = document.getElementById('custom-id').value.trim();
+            if (!adsetId) {
+                alert('請輸入廣告集 UUID');
+                return;
+            }
+            testAdset(adsetId, 'custom-result');
+        }
+        
+        async function simulateReportGeneration() {
+            const adsetId = document.getElementById('report-id').value.trim();
+            const resultDiv = document.getElementById('report-result');
+            
+            if (!adsetId) {
+                alert('請輸入廣告集 UUID');
+                return;
+            }
+            
+            resultDiv.innerHTML = '⏳ 模擬報表產出中...';
+            
+            try {
+                const response = await fetch(`/api/adset-info?adsetId=${encodeURIComponent(adsetId)}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const pricing = result.pricing;
+                    const info = result.info;
+                    const currency = pricing.currency === 'TWD' ? '$' : pricing.currency;
+                    
+                    // 模擬 Excel 報表中會使用的資料
+                    const activityName = info.name || '未知活動';
+                    let adTypeDisplay = info.adType || 'NATIVE';
+                    if (adTypeDisplay === 'NATIVE') {
+                        adTypeDisplay = '原生互動廣告SLIDE';
+                    } else if (adTypeDisplay === 'NATIVE_VIDEO') {
+                        adTypeDisplay = '原生影音廣告';
+                    }
+                    const totalBudget = info.budget || 0;
+                    const pricingMode = pricing.bMode || 'CPC';
+                    const pricingPrice = pricing.price || 0;
+                    
+                    // 根據計價方式調整廣告目標單位
+                    let targetUnit = 'clicks';
+                    if (pricingMode === 'CPM') {
+                        targetUnit = 'impressions';
+                    } else if (pricingMode === 'CPV') {
+                        targetUnit = 'views';
+                    }
+                    
+                    resultDiv.className = 'result';
+                    resultDiv.innerHTML = `✅ 報表資料模擬成功！
+
+📊 Excel 報表中會顯示的資訊：
+-----------------------------------------------
+活動名稱: ${activityName}
+廣告類型: ${adTypeDisplay}
+總預算: ${currency}${totalBudget.toLocaleString()}
+走期預算: ${currency}${totalBudget.toLocaleString()}
+計價方式: ${pricingMode}
+價格: ${currency}${pricingPrice}
+廣告目標單位: ${targetUnit}
+
+📋 這些資訊會自動填入 Excel 報表的對應欄位中`;
+                } else {
+                    resultDiv.className = 'error';
+                    resultDiv.innerHTML = `❌ 模擬失敗: ${result.error}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.innerHTML = `❌ 模擬錯誤: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html> 

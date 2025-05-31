@@ -375,6 +375,11 @@ def auto_screenshot():
 def native_ad_screenshot():
     return render_template('native_ad_screenshot.html')
 
+# 報表頁面
+@app.route('/report')
+def report():
+    return render_template('report.html')
+
 # 建構 native 廣告截圖網址
 def build_native_screenshot_url(adunit_data, size, template):
     """根據 AdUnit 資料和尺寸建構 native 廣告截圖網址"""

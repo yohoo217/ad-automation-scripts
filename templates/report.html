@@ -1,0 +1,794 @@
+{% extends "base.html" %}
+
+{% block title %}廣告報表{% endblock %}
+{% block page_title %}廣告報表{% endblock %}
+
+{% block additional_styles %}
+<!-- 添加 SheetJS 庫 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+    .report-container {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .input-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        background: linear-gradient(135deg, #f8faff 0%, #f1f5ff 100%);
+        border-radius: 12px;
+        border: 1px solid #e0e6ed;
+    }
+    
+    .report-content {
+        margin-top: 20px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .report-content iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        min-height: 500px;
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+    }
+    
+    .error {
+        color: #dc3545;
+        background-color: #f8d7da;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .daily-report-section {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+        border-left: 4px solid #007bff;
+    }
+    
+    .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+    
+    .report-table th,
+    .report-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .report-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .report-table tr:hover {
+        background-color: #f5f5f5;
+    }
+    
+    .cookie-status {
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    
+    .cookie-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .cookie-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .export-button {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-left: 10px;
+    }
+    
+    .export-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+    }
+    
+    .export-button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="report-container">
+    <div id="cookie-status" class="cookie-status cookie-success">
+        ✓ Cookie 已自動設置成功
+    </div>
+    
+    <div class="input-section">
+        <h3>📊 廣告報表查詢</h3>
+        <div class="form-row">
+            <label for="setId">廣告集 ID <span class="required">*</span></label>
+            <input type="text" id="setId" name="setId" placeholder="請輸入廣告集 ID，例如：82000801-b829-4812-aefb-eae6a9b27040" required>
+            <div class="help-text">輸入您要查詢的廣告集 ID</div>
+        </div>
+        
+        <div class="form-grid-2">
+            <div class="form-row">
+                <label for="sinceDate">開始日期 (timestamp)</label>
+                <input type="number" id="sinceDate" name="sinceDate" value="1746028740000" placeholder="毫秒時間戳">
+                <div class="help-text">預設為當前時間前30天</div>
+            </div>
+            
+            <div class="form-row">
+                <label for="toDate">結束日期 (timestamp)</label>
+                <input type="number" id="toDate" name="toDate" value="1748534340000" placeholder="毫秒時間戳">
+                <div class="help-text">預設為當前時間</div>
+            </div>
+        </div>
+        
+        <button type="button" id="fetchReport" class="button">📈 取得報表</button>
+        <button type="button" id="resetDates" class="button nav-button">🔄 重置為預設日期</button>
+        <button type="button" id="exportExcel" class="export-button" disabled>📊 產出 XLSX 報表</button>
+    </div>
+    
+    <div id="reportContent" class="report-content" style="display: none;">
+        <h3>📈 每日報表</h3>
+        <div id="dailyReportContainer">
+            <!-- 報表內容將在這裡顯示 -->
+        </div>
+    </div>
+    
+    <div id="loadingMessage" class="loading" style="display: none;">
+        <p>📊 正在載入報表資料...</p>
+        <div style="margin-top: 10px;">
+            <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #667eea; animation: spin 1s linear infinite;"></div>
+        </div>
+    </div>
+    
+    <div id="errorMessage" class="error" style="display: none;">
+        <!-- 錯誤訊息將在這裡顯示 -->
+    </div>
+</div>
+
+<style>
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 自動設置 Cookie
+    const defaultCookie = "AOTTERBD_SESSION=757418f543a95a889184e798ec5ab66d4fad04e5-lats=1724229220332&sso=PIg4zu/Vdnn/A15vMEimFlVAGliNhoWlVd5FTvtEMRAFpk/VvBGvAetanw8DLATSLexy9pee/t52uNojvoFS2Q==;aotter=eyJ1c2VyIjp7ImlkIjoiNjNkYjRkNDBjOTFiNTUyMmViMjk4YjBkIiwiZW1haWwiOiJpYW4uY2hlbkBhb3R0ZXIubmV0IiwiY3JlYXRlZEF0IjoxNjc1MzE2NTQ0LCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJsZWdhY3lJZCI6bnVsbCwibGVnYWN5U2VxSWQiOjE2NzUzMTY1NDQ3ODI5NzQwMDB9LCJhY2Nlc3NUb2tlbiI6IjJkYjQyZTNkOTM5MDUzMjdmODgyZmYwMDRiZmI4YmEzZjBhNTlmMDQwYzhiN2Y4NGY5MmZmZTIzYTU0ZTQ2MDQiLCJ1ZWEiOm51bGx9; _Secure-1PSID=vlPPgXupFroiSjP1/A02minugZVZDgIG4K; _Secure-1PSIDCC=g.a000mwhavReSVd1vN09AVTswXkPAhyuW7Tgj8-JFhj-FZya9I_l1B6W2gqTIWAtQUTQMkTxoAwACgYKAW0SARISFQHGX2MiC--NJ2PzCzDpJ0m3odxHhxoVAUF8yKr8r49abq8oe4UxCA0t_QCW0076; _Secure-3PSID=AKEyXzUuXI1zywmFmkEBEBHfg6GRkRM9cJ9BiJZxmaR46x5im_krhaPtmL4Jhw8gQsz5uFFkfbc; _Secure-3PSIDCC=sidts-CjEBUFGohzUF6oK3ZMACCk2peoDBDp6djBwJhGc4Lxgu2zOlzbVFeVpXF4q1TYZ5ba6cEAA";
+    
+    try {
+        // 解析並設置各個 cookie
+        const cookies = defaultCookie.split(';');
+        cookies.forEach(cookie => {
+            if (cookie.trim()) {
+                document.cookie = cookie.trim() + "; path=/; SameSite=Lax";
+            }
+        });
+        
+        document.getElementById('cookie-status').className = 'cookie-status cookie-success';
+        document.getElementById('cookie-status').innerHTML = '✓ Cookie 已自動設置成功';
+    } catch (error) {
+        console.error('設置 Cookie 時發生錯誤:', error);
+        document.getElementById('cookie-status').className = 'cookie-status cookie-error';
+        document.getElementById('cookie-status').innerHTML = '✗ Cookie 設置失敗: ' + error.message;
+    }
+    
+    // 設置預設日期（當前時間前30天到當前時間）
+    function setDefaultDates() {
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+        
+        document.getElementById('sinceDate').value = thirtyDaysAgo.getTime();
+        document.getElementById('toDate').value = now.getTime();
+    }
+    
+    // 重置日期按鈕
+    document.getElementById('resetDates').addEventListener('click', setDefaultDates);
+    
+    // 取得報表按鈕
+    document.getElementById('fetchReport').addEventListener('click', function() {
+        const setId = document.getElementById('setId').value.trim();
+        const sinceDate = document.getElementById('sinceDate').value;
+        const toDate = document.getElementById('toDate').value;
+        
+        if (!setId) {
+            alert('請輸入廣告集 ID');
+            return;
+        }
+        
+        if (!sinceDate || !toDate) {
+            alert('請輸入有效的開始和結束日期');
+            return;
+        }
+        
+        fetchReportData(setId, sinceDate, toDate);
+    });
+    
+    // 產出 Excel 報表按鈕
+    document.getElementById('exportExcel').addEventListener('click', function() {
+        exportToExcel();
+    });
+    
+    // 儲存報表資料供導出使用
+    let currentReportData = null;
+    let currentAdsetInfo = null; // 儲存廣告集資訊
+    
+    // 取得報表資料
+    async function fetchReportData(setId, sinceDate, toDate) {
+        const loadingElement = document.getElementById('loadingMessage');
+        const reportElement = document.getElementById('reportContent');
+        const errorElement = document.getElementById('errorMessage');
+        
+        // 顯示載入中
+        loadingElement.style.display = 'block';
+        reportElement.style.display = 'none';
+        errorElement.style.display = 'none';
+        
+        try {
+            // 並行查詢報表資料和廣告集資訊
+            const [reportResponse, adsetResponse] = await Promise.all([
+                // 查詢報表資料
+                fetch(`/api/report-proxy?setId=${encodeURIComponent(setId)}&sinceDate=${encodeURIComponent(sinceDate)}&toDate=${encodeURIComponent(toDate)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                }),
+                // 查詢廣告集資訊
+                fetch(`/api/adset-info?adsetId=${encodeURIComponent(setId)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                })
+            ]);
+            
+            console.log('正在發送請求到代理路由:', `/api/report-proxy?setId=${encodeURIComponent(setId)}&sinceDate=${encodeURIComponent(sinceDate)}&toDate=${encodeURIComponent(toDate)}`);
+            console.log('正在查詢廣告集資訊:', `/api/adset-info?adsetId=${encodeURIComponent(setId)}`);
+            
+            // 處理報表回應
+            if (!reportResponse.ok) {
+                throw new Error(`報表請求失敗: HTTP ${reportResponse.status}: ${reportResponse.statusText}`);
+            }
+            
+            const jsonResponse = await reportResponse.json();
+            console.log('收到代理回應:', jsonResponse);
+            
+            // 處理廣告集資訊回應
+            let adsetInfo = null;
+            if (adsetResponse.ok) {
+                adsetInfo = await adsetResponse.json();
+                console.log('收到廣告集資訊:', adsetInfo);
+                currentAdsetInfo = adsetInfo; // 儲存廣告集資訊
+            } else {
+                console.warn('查詢廣告集資訊失敗，將使用預設值');
+                currentAdsetInfo = {
+                    success: false,
+                    pricing: { bMode: 'CPC', price: 7.0, currency: 'TWD' },
+                    info: { name: '未知活動', adType: '原生互動廣告', budget: 0 }
+                };
+            }
+            
+            if (jsonResponse.success) {
+                const htmlContent = jsonResponse.content;
+                console.log('收到 HTML 內容，長度:', htmlContent.length);
+                
+                // 解析並顯示每日報表
+                displayDailyReport(htmlContent);
+            } else {
+                throw new Error(jsonResponse.error || '代理請求失敗');
+            }
+            
+        } catch (error) {
+            console.error('取得報表時發生錯誤:', error);
+            
+            loadingElement.style.display = 'none';
+            errorElement.style.display = 'block';
+            errorElement.innerHTML = `
+                <h4>❌ 取得報表失敗</h4>
+                <p><strong>錯誤詳情:</strong> ${error.message}</p>
+                <p><strong>可能原因:</strong></p>
+                <ul>
+                    <li>網路連線問題</li>
+                    <li>廣告集 ID 不正確</li>
+                    <li>Cookie 可能已過期</li>
+                    <li>伺服器代理服務異常</li>
+                </ul>
+                <p><strong>建議解決方法:</strong></p>
+                <ul>
+                    <li>確認廣告集 ID 是否正確</li>
+                    <li>檢查網路連線</li>
+                    <li>嘗試重新整理頁面</li>
+                    <li>如果問題持續，請聯絡技術支援</li>
+                </ul>
+            `;
+        }
+    }
+    
+    // 顯示每日報表
+    function displayDailyReport(htmlContent) {
+        const loadingElement = document.getElementById('loadingMessage');
+        const reportElement = document.getElementById('reportContent');
+        const dailyReportContainer = document.getElementById('dailyReportContainer');
+        
+        loadingElement.style.display = 'none';
+        
+        try {
+            // 創建臨時 DOM 來解析 HTML
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            
+            // 專門查找每日報表的表格
+            let dailyReportTable = null;
+            
+            // 查找包含"每日報表"文字的元素
+            const allElements = doc.querySelectorAll('*');
+            let dailyReportSection = null;
+            
+            for (let element of allElements) {
+                if (element.textContent && element.textContent.includes('每日報表')) {
+                    dailyReportSection = element;
+                    break;
+                }
+            }
+            
+            if (dailyReportSection) {
+                // 找到每日報表標題，尋找其後的表格
+                let nextElement = dailyReportSection.nextElementSibling;
+                
+                // 循環查找表格，可能需要跨越一些 div 容器
+                while (nextElement) {
+                    if (nextElement.tagName === 'TABLE') {
+                        dailyReportTable = nextElement;
+                        break;
+                    } else if (nextElement.tagName === 'DIV') {
+                        // 在 div 容器內查找表格
+                        const tableInDiv = nextElement.querySelector('table');
+                        if (tableInDiv) {
+                            dailyReportTable = tableInDiv;
+                            break;
+                        }
+                    }
+                    nextElement = nextElement.nextElementSibling;
+                }
+            }
+            
+            if (dailyReportTable) {
+                // 找到每日報表表格，只顯示這個表格
+                let dailyReportContent = `
+                    <div class="daily-report-section">
+                        <h4>📊 每日報表數據</h4>
+                        ${dailyReportTable.outerHTML}
+                    </div>
+                `;
+                
+                dailyReportContainer.innerHTML = dailyReportContent;
+                
+                // 美化表格
+                const table = dailyReportContainer.querySelector('table');
+                if (table) {
+                    table.className = 'report-table';
+                }
+                
+                reportElement.style.display = 'block';
+                
+                // 添加成功訊息
+                const successMsg = document.createElement('div');
+                successMsg.className = 'cookie-status cookie-success';
+                successMsg.innerHTML = '✓ 每日報表載入成功！';
+                dailyReportContainer.insertBefore(successMsg, dailyReportContainer.firstChild);
+                
+                // 顯示廣告集資訊
+                if (currentAdsetInfo && currentAdsetInfo.success) {
+                    const adsetInfoMsg = document.createElement('div');
+                    adsetInfoMsg.className = 'cookie-status';
+                    adsetInfoMsg.style.backgroundColor = '#e8f5e8';
+                    adsetInfoMsg.style.borderColor = '#4caf50';
+                    adsetInfoMsg.style.color = '#2e7d32';
+                    const pricing = currentAdsetInfo.pricing;
+                    const info = currentAdsetInfo.info;
+                    const currency = pricing.currency === 'TWD' ? '$' : pricing.currency;
+                    adsetInfoMsg.innerHTML = `
+                        📊 廣告集資訊：${info.name || '未知活動'} | 
+                        💰 計價方式：${pricing.bMode} (${currency}${pricing.price}) | 
+                        🎯 廣告類型：${info.adType || 'NATIVE'} | 
+                        💵 總預算：${currency}${(info.budget || 0).toLocaleString()}
+                    `;
+                    dailyReportContainer.insertBefore(adsetInfoMsg, dailyReportContainer.firstChild);
+                }
+                
+                // 分析表格結構並顯示
+                const tableHeaders = Array.from(dailyReportTable.querySelectorAll('tr')[0].querySelectorAll('th,td')).map(h => h.textContent.trim());
+                const structureMsg = document.createElement('div');
+                structureMsg.className = 'cookie-status';
+                structureMsg.style.backgroundColor = '#e3f2fd';
+                structureMsg.style.borderColor = '#2196f3';
+                structureMsg.style.color = '#1976d2';
+                structureMsg.innerHTML = `📋 檢測到的表格欄位：${tableHeaders.join(' | ')}`;
+                dailyReportContainer.insertBefore(structureMsg, dailyReportContainer.firstChild);
+                
+                // 啟用導出按鈕並儲存報表資料
+                enableExportButton();
+                currentReportData = {
+                    setId: document.getElementById('setId').value.trim(),
+                    sinceDate: document.getElementById('sinceDate').value,
+                    toDate: document.getElementById('toDate').value,
+                    table: dailyReportTable
+                };
+            } else {
+                // 如果沒找到每日報表表格，嘗試通過表格內容來識別
+                const tables = doc.querySelectorAll('table');
+                let foundDailyTable = null;
+                
+                for (let table of tables) {
+                    const tableText = table.textContent || '';
+                    // 檢查表格是否包含日期格式的內容（YYYY-MM-DD）
+                    if (tableText.includes('播放數') || tableText.includes('觀看數') || 
+                        tableText.includes('點擊數') || tableText.includes('觀看率') ||
+                        tableText.includes('曝光數') || tableText.includes('點擊率') ||
+                        /\d{4}-\d{2}-\d{2}/.test(tableText)) {
+                        foundDailyTable = table;
+                        break;
+                    }
+                }
+                
+                if (foundDailyTable) {
+                    let dailyReportContent = `
+                        <div class="daily-report-section">
+                            <h4>📊 每日報表數據</h4>
+                            ${foundDailyTable.outerHTML}
+                        </div>
+                    `;
+                    
+                    dailyReportContainer.innerHTML = dailyReportContent;
+                    
+                    // 美化表格
+                    const table = dailyReportContainer.querySelector('table');
+                    if (table) {
+                        table.className = 'report-table';
+                    }
+                    
+                    reportElement.style.display = 'block';
+                    
+                    // 添加成功訊息
+                    const successMsg = document.createElement('div');
+                    successMsg.className = 'cookie-status cookie-success';
+                    successMsg.innerHTML = '✓ 每日報表載入成功！';
+                    dailyReportContainer.insertBefore(successMsg, dailyReportContainer.firstChild);
+                    
+                    // 顯示廣告集資訊
+                    if (currentAdsetInfo && currentAdsetInfo.success) {
+                        const adsetInfoMsg = document.createElement('div');
+                        adsetInfoMsg.className = 'cookie-status';
+                        adsetInfoMsg.style.backgroundColor = '#e8f5e8';
+                        adsetInfoMsg.style.borderColor = '#4caf50';
+                        adsetInfoMsg.style.color = '#2e7d32';
+                        const pricing = currentAdsetInfo.pricing;
+                        const info = currentAdsetInfo.info;
+                        const currency = pricing.currency === 'TWD' ? '$' : pricing.currency;
+                        adsetInfoMsg.innerHTML = `
+                            📊 廣告集資訊：${info.name || '未知活動'} | 
+                            💰 計價方式：${pricing.bMode} (${currency}${pricing.price}) | 
+                            🎯 廣告類型：${info.adType || 'NATIVE'} | 
+                            💵 總預算：${currency}${(info.budget || 0).toLocaleString()}
+                        `;
+                        dailyReportContainer.insertBefore(adsetInfoMsg, dailyReportContainer.firstChild);
+                    }
+                    
+                    // 分析表格結構並顯示
+                    const tableHeaders = Array.from(foundDailyTable.querySelectorAll('tr')[0].querySelectorAll('th,td')).map(h => h.textContent.trim());
+                    const structureMsg = document.createElement('div');
+                    structureMsg.className = 'cookie-status';
+                    structureMsg.style.backgroundColor = '#e3f2fd';
+                    structureMsg.style.borderColor = '#2196f3';
+                    structureMsg.style.color = '#1976d2';
+                    structureMsg.innerHTML = `📋 檢測到的表格欄位：${tableHeaders.join(' | ')}`;
+                    dailyReportContainer.insertBefore(structureMsg, dailyReportContainer.firstChild);
+                    
+                    // 啟用導出按鈕並儲存報表資料
+                    enableExportButton();
+                    currentReportData = {
+                        setId: document.getElementById('setId').value.trim(),
+                        sinceDate: document.getElementById('sinceDate').value,
+                        toDate: document.getElementById('toDate').value,
+                        table: foundDailyTable
+                    };
+                } else {
+                    throw new Error('在返回的 HTML 中找不到每日報表表格');
+                }
+            }
+            
+        } catch (error) {
+            console.error('解析 HTML 內容時發生錯誤:', error);
+            
+            // 如果解析失敗，顯示錯誤訊息
+            dailyReportContainer.innerHTML = `
+                <div class="daily-report-section">
+                    <h4>⚠️ 無法找到每日報表</h4>
+                    <p style="color: #6c757d;">
+                        <strong>錯誤:</strong> ${error.message}
+                    </p>
+                    <p style="color: #6c757d; font-size: 14px;">
+                        可能原因：報表格式已變更或數據不完整。請檢查廣告集 ID 是否正確。
+                    </p>
+                </div>
+            `;
+            reportElement.style.display = 'block';
+        }
+    }
+    
+    // 初始化預設日期
+    setDefaultDates();
+    
+    // 啟用導出按鈕
+    function enableExportButton() {
+        const exportBtn = document.getElementById('exportExcel');
+        exportBtn.disabled = false;
+    }
+    
+    // 產出 Excel 報表
+    function exportToExcel() {
+        if (!currentReportData) {
+            alert('請先取得報表資料');
+            return;
+        }
+
+        try {
+            /* === 一、組出工作表原始資料 =========================== */
+            const wb = XLSX.utils.book_new();
+            const wsData = [];
+
+            /* 1. Logo 區（B2:E5）預留空白 */
+            wsData.push(['','','','','','','','','']); // 第 0 列 (Excel 第1行)
+            wsData.push(['','','','','','','','','']); // 第 1 列 (Excel 第2行)
+            wsData.push(['','','','','','','','','']); // 第 2 列 (Excel 第3行)
+            wsData.push(['','','','','','','','','']); // 第 3 列 (Excel 第4行)
+            wsData.push(['','','','','','','','','']); // 第 4 列 (Excel 第5行)
+            wsData.push(['','','','','','','','','']); // 第 5 列 (Excel 第6行)
+
+            /* 2. 右側活動摘要（使用查詢到的廣告集資訊） */
+            const adsetInfo = currentAdsetInfo || {};
+            const pricing = adsetInfo.pricing || { bMode: 'CPC', price: 7.0, currency: 'TWD' };
+            const info = adsetInfo.info || { name: '未知活動', adType: '原生互動廣告', budget: 10000 };
+            
+            // 活動名稱（使用查詢到的 name 或預設值）
+            const activityName = info.name || '全國電子第三檔電競筆電_5月宣傳活動';
+            // 廣告類型（使用查詢到的 adType）
+            let adTypeDisplay = info.adType || 'NATIVE';
+            if (adTypeDisplay === 'NATIVE') {
+                adTypeDisplay = '原生互動廣告SLIDE';
+            }
+            // 總預算（使用查詢到的 budget）
+            const totalBudget = info.budget || 10000;
+            // 計價方式和價格（使用查詢到的 bMode 和對應價格）
+            const pricingMode = pricing.bMode || 'CPC';
+            const pricingPrice = pricing.price || 7.0;
+            const currency = pricing.currency === 'TWD' ? '$' : pricing.currency;
+
+            wsData[1][3] = '活動名稱'; wsData[1][4] = activityName; wsData[1][6] = '總預算'; wsData[1][7] = `${currency}${totalBudget.toLocaleString()}`;
+
+            wsData[2][3] = '廣告類型'; wsData[2][4] = adTypeDisplay; wsData[2][6] = '走期預算'; wsData[2][7] = `${currency}${totalBudget.toLocaleString()}`;
+
+            wsData[3][1] = '剩餘天數'; wsData[3][2] = '(16)'; wsData[3][3] = '計價方式'; wsData[3][4] = pricingMode; wsData[3][5] = `${currency}${pricingPrice}`; wsData[3][6] = '剩餘花費'; wsData[3][7] = '($87)';
+
+            // 根據計價方式調整廣告目標單位
+            let targetUnit = 'clicks';
+            if (pricingMode === 'CPM') {
+                targetUnit = 'impressions';
+            } else if (pricingMode === 'CPV') {
+                targetUnit = 'views';
+            }
+
+            wsData[4][1] = '剩餘每日'; wsData[4][2] = '1'; wsData[4][3] = '廣告目標'; wsData[4][4] = '1,429'; wsData[4][5] = targetUnit; wsData[4][6] = '剩餘點擊'; wsData[4][7] = '-12';
+
+
+            /* 3. 表頭（藍／橘底） */
+            wsData.push(['','日期','星期','曝光數','點擊數','點擊率','cut1','cut2','文案','']);
+            
+            /* 4. 注入每日數據 */
+            const trs = currentReportData.table.querySelectorAll('tr');
+            let sumImp=0,sumClk=0,sumC1=0,sumC2=0,sumTxt=0;
+
+            // 動態識別表格標題結構
+            const tableHeader = trs[0];
+            const headers = Array.from(tableHeader.querySelectorAll('th,td')).map(h => h.textContent.trim());
+            
+            console.log('識別到的表格標題:', headers);
+            
+            // 找出各欄位的索引位置
+            let dateIndex = -1, weekIndex = -1, impIndex = -1, clkIndex = -1, ctrIndex = -1;
+            let playIndex = -1, viewIndex = -1, viewRateIndex = -1;
+            
+            headers.forEach((header, index) => {
+                if (header.includes('日期')) dateIndex = index;
+                else if (header.includes('星期') || header.includes('週')) weekIndex = index;
+                else if (header.includes('曝光數')) impIndex = index;
+                else if (header.includes('點擊數')) clkIndex = index;
+                else if (header.includes('點擊率')) ctrIndex = index;
+                else if (header.includes('播放數')) playIndex = index;
+                else if (header.includes('觀看數')) viewIndex = index;
+                else if (header.includes('觀看率')) viewRateIndex = index;
+            });
+            
+            console.log('欄位索引:', {dateIndex, weekIndex, impIndex, clkIndex, ctrIndex, playIndex, viewIndex, viewRateIndex});
+
+            for (let i=1;i<trs.length;i++){
+                const td=trs[i].querySelectorAll('td,th');
+                if(td.length < headers.length) continue;
+                
+                const date = dateIndex >= 0 ? td[dateIndex].textContent.trim() : '';
+                const wk = weekIndex >= 0 ? td[weekIndex].textContent.trim() : '';
+                
+                // 根據不同的表格格式讀取資料
+                let imp = 0, clk = 0, ctr = '';
+                
+                if (impIndex >= 0 && clkIndex >= 0 && ctrIndex >= 0) {
+                    // 曝光數格式：日期、曝光數、點擊數、點擊率
+                    imp = +td[impIndex].textContent.replace(/,/g,'');
+                    clk = +td[clkIndex].textContent.replace(/,/g,'');
+                    ctr = td[ctrIndex].textContent.trim();
+                } else if (playIndex >= 0 && viewIndex >= 0 && clkIndex >= 0 && viewRateIndex >= 0) {
+                    // 播放數格式：日期、播放數、觀看數、點擊數、觀看率
+                    // 將播放數當作曝光數，觀看數當作中間指標
+                    imp = +td[playIndex].textContent.replace(/,/g,'');
+                    const views = +td[viewIndex].textContent.replace(/,/g,'');
+                    clk = +td[clkIndex].textContent.replace(/,/g,'');
+                    ctr = td[viewRateIndex].textContent.trim();
+                    
+                    // 對於播放數格式，可以加上觀看數作為額外資訊
+                    console.log(`日期 ${date}: 播放數=${imp}, 觀看數=${views}, 點擊數=${clk}`);
+                } else {
+                    // 嘗試從剩餘欄位推測
+                    console.warn('無法識別表格格式，嘗試使用預設位置');
+                    if (td.length >= 3) {
+                        imp = +td[2].textContent.replace(/,/g,'') || 0;
+                        clk = +td[3] ? +td[3].textContent.replace(/,/g,'') : 0;
+                        ctr = td[4] ? td[4].textContent.trim() : '';
+                    }
+                }
+
+                const c1 = Math.floor(clk*0.30);  // ←示意，依真實邏輯調整
+                const c2 = Math.floor(clk*0.20);
+                const txt = clk - c1 - c2;
+
+                wsData.push([
+                    '', date, wk, imp.toLocaleString(), clk, ctr, c1, c2, txt
+                ]);
+
+                sumImp+=imp;sumClk+=clk;sumC1+=c1;sumC2+=c2;sumTxt+=txt;
+            }
+
+            /* 5. TOTAL 行 */
+            const totCtr = sumImp?((sumClk/sumImp)*100).toFixed(2)+'%':'0.00%';
+            wsData.push(['', 'TOTAL', '', sumImp.toLocaleString(), sumClk, totCtr, sumC1, sumC2, sumTxt]);
+            /* === 二、轉成 Sheet 並做進階格式 ======================= */
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            /* 1. 欄寬（與截圖對照） */
+            ws['!cols'] = [
+                {wch:4},   // A 外框
+                {wch:11},  // B 日期
+                {wch:8},   // C 星期
+                {wch:14},  // D 曝光
+                {wch:10},  // E 點擊
+                {wch:10},  // F CTR
+                {wch:10},  // G cut1
+                {wch:10},  // H cut2
+                {wch:10}   // I 文案
+            ];
+
+            /* 2. 合併範圍 */
+            ws['!merges'] = [
+                {s:{r:1,c:1},e:{r:2,c:2}},   // Logo 區域 B2:D3 (更小的logo空間)
+                {s:{r:1,c:4},e:{r:1,c:5}},   // 活動名稱 value
+                {s:{r:2,c:4},e:{r:2,c:5}},   // 廣告類型 value
+            ];
+
+            /* 3. 全表邊框 + 置中 */
+            const rng = XLSX.utils.decode_range(ws['!ref']);
+            for(let R=rng.s.r;R<=rng.e.r;++R){
+                for(let C=rng.s.c;C<=rng.e.c;++C){
+                    const addr = XLSX.utils.encode_cell({r:R,c:C});
+                    ws[addr] = ws[addr]||{t:'s',v:''};
+                    ws[addr].s ??= {};
+                    ws[addr].s.alignment = {vertical:'middle', horizontal:'center'};
+                    ws[addr].s.border = {
+                        top:{style:'thin',color:{rgb:'000000'}},
+                        bottom:{style:'thin',color:{rgb:'000000'}},
+                        left:{style:'thin',color:{rgb:'000000'}},
+                        right:{style:'thin',color:{rgb:'000000'}}
+                    };
+                }
+            }
+
+            /* 4. 背景 / 字色 */
+            const paint = (cells,bg,font={})=>cells.forEach(a=>{
+                ws[a].s.fill={fgColor:{rgb:bg}}; ws[a].s.font={...(ws[a].s.font||{}),...font};
+            });
+
+            // 灰底右側欄位及標籤粗體
+            paint(['E2','F2','G2','H2','E3','F3','G3','H3'],'D9D9D9',{bold:true});
+            // 左側指標文字粗體
+            ['A4','A5'].forEach(a=>ws[a].s.font={bold:true});
+            // 紅字數值
+            ['B4','I4','I5'].forEach(a=>ws[a].s.font={color:{rgb:'FF0000'},bold:true});
+            // 表頭藍底 / 橘底
+            const tableHeaderRow = wsData.length - 1; // 表頭所在行
+            paint([`A${tableHeaderRow+1}`,`B${tableHeaderRow+1}`,`C${tableHeaderRow+1}`,`D${tableHeaderRow+1}`,`E${tableHeaderRow+1}`],'4472C4',{color:{rgb:'FFFFFF'},bold:true});
+            paint([`F${tableHeaderRow+1}`,`G${tableHeaderRow+1}`,`H${tableHeaderRow+1}`],'E67E22',{color:{rgb:'FFFFFF'},bold:true});
+            // TOTAL 行
+            const totalRow = wsData.length; // TOTAL 行所在位置
+            paint([`C${totalRow}`],'FFF2CB',{bold:true}); // 曝光數黃底
+            ws[`E${totalRow}`].s.font={color:{rgb:'FF0000'},bold:true}; // 點擊率紅字
+            ['A','B','D','F','G','H'].forEach(col=>{
+                const addr = `${col}${totalRow}`;
+                if (ws[addr]) {
+                    ws[addr].s.font={...(ws[addr].s.font||{}),bold:true};
+                }
+            });
+
+            /* === 三、輸出檔案 ====================================== */
+            XLSX.utils.book_append_sheet(wb,ws,'廣告報表');
+            const name = `廣告報表_${currentReportData.setId.slice(0,8)}_${new Date().toISOString().slice(0,10)}.xlsx`;
+            XLSX.writeFile(wb,name);
+            
+            // 顯示成功訊息，包含廣告集資訊
+            let successMessage = `✅ Excel 報表已成功產出！檔案名稱：${name}`;
+            if (currentAdsetInfo && currentAdsetInfo.success) {
+                successMessage += `\n📊 已套用廣告集資訊：\n- 計價方式：${pricingMode}\n- 價格：${currency}${pricingPrice}\n- 活動名稱：${activityName}`;
+            }
+            alert(successMessage);
+
+        } catch (err) {
+            console.error(err);
+            alert('❌ 產出 Excel 報表失敗：'+err.message);
+        }
+    }
+});
+</script>
+{% endblock %} 

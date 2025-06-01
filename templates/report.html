@@ -4,8 +4,8 @@
 {% block page_title %}廣告報表{% endblock %}
 
 {% block additional_styles %}
-<!-- 添加 SheetJS 庫 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- 改用 ExcelJS 庫 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 
 <style>
     .report-container {
@@ -830,35 +830,142 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // 產出 Excel 報表
-    function exportToExcel() {
+    async function exportToExcel() {
         if (!currentReportData) {
             alert('請先取得報表資料');
             return;
         }
 
         try {
-            /* === 一、組出工作表原始資料 =========================== */
-            const wb = XLSX.utils.book_new();
-            const wsData = [];
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('廣告報表');
             
-            // 定義 getWeekdayInChinese 函數（在 Excel 導出中使用）
-            function getWeekdayInChinese(date) {
-                const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-                return weekdays[date.getDay()];
+            // 設定欄寬
+            worksheet.columns = [
+                { width: 4 },   // A 外框
+                { width: 12 },  // B 日期
+                { width: 8 },   // C 星期
+                { width: 15 },  // D 曝光
+                { width: 10 },  // E 點擊
+                { width: 10 },  // F CTR
+                { width: 10 },  // G cut1
+                { width: 10 },  // H cut2
+                { width: 10 },  // I 文案
+                { width: 10 }   // J 空白
+            ];
+
+            // 定義樣式物件
+            const styles = {
+                header: {
+                    font: { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 },
+                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } },
+                    alignment: { vertical: 'middle', horizontal: 'center' },
+                    border: {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    }
+                },
+                orangeHeader: {
+                    font: { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 },
+                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE67E22' } },
+                    alignment: { vertical: 'middle', horizontal: 'center' },
+                    border: {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    }
+                },
+                normal: {
+                    alignment: { vertical: 'middle', horizontal: 'center' },
+                    border: {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    }
+                },
+                total: {
+                    font: { bold: true },
+                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFDA66' } }, // RGB(255,218,102)
+                    alignment: { vertical: 'middle', horizontal: 'center' },
+                    border: {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    }
+                },
+                redFont: {
+                    font: { bold: true, color: { argb: 'FFFF0000' } },
+                    alignment: { vertical: 'middle', horizontal: 'center' },
+                    border: {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    }
+                },
+                grayBg: {
+                    font: { bold: true },
+                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } },
+                    alignment: { vertical: 'middle', horizontal: 'center' },
+                    border: {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    }
+                },
+                whiteBg: {
+                    font: { bold: true },
+                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } },
+                    alignment: { vertical: 'middle', horizontal: 'center' },
+                    border: {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    }
+                },
+                emptyRow: {
+                    font: { color: { argb: 'FF999999' } },
+                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } },
+                    alignment: { vertical: 'middle', horizontal: 'center' },
+                    border: {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    }
+                },
+                yellowBg: {
+                    font: { bold: true },
+                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CB' } },
+                    alignment: { vertical: 'middle', horizontal: 'center' },
+                    border: {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    }
+                }
+            };
+
+            // 樣式套用輔助函數
+            function applyStyle(cell, style) {
+                if (style.font) cell.font = style.font;
+                if (style.fill) cell.fill = style.fill;
+                if (style.alignment) cell.alignment = style.alignment;
+                if (style.border) cell.border = style.border;
             }
 
-            /* 1. Logo 區（B2:E5）預留空白 */
-            wsData.push(['','','','','','','','','','','','','','','']); // 第 0 列
-            wsData.push(['','','','','','','','','','','','','','','']); // 第 1 列
-            wsData.push(['','','','','','','','','','','','','','','']); // 第 2 列
-            wsData.push(['','','','','','','','','','','','','','','']); // 第 3 列
-            wsData.push(['','','','','','','','','','','','','','','']); // 第 4 列
-            wsData.push(['','','','','','','','','','','','','','','']); // 第 5 列
-
-            /* 2. 右側活動摘要 */
+            // 取得廣告集資訊
             const adsetInfo = currentAdsetInfo || {};
             const pricing = adsetInfo.pricing || { bMode: 'CPC', price: 7.0, currency: 'TWD' };
-            const info = adsetInfo.info || { name: '未知活動', adType: '原生互動廣告', budget: 10000 };
+            const info = adsetInfo.info || { name: '未知活動', adType: '原生互動廣告', budget: 0 };
             
             const activityName = info.name || '請填入活動名稱';
             let adTypeDisplay = info.adType || 'NATIVE';
@@ -870,7 +977,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const pricingPrice = pricing.price || 7.0;
             const currency = pricing.currency === 'TWD' ? '$' : pricing.currency;
             
-            // 走期相關計算
+            // 計算走期相關數據
             const campaignEndDate = currentReportData.campaignEndDate;
             const currentDate = currentReportData.currentDate;
             let remainingDays = 0;
@@ -884,31 +991,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 isOngoing = remainingDays > 0;
             }
 
-            wsData[1][3] = '活動名稱'; wsData[1][4] = activityName; wsData[1][6] = '總預算'; wsData[1][7] = `${currency}${totalBudget.toLocaleString()}`;
-            wsData[2][3] = '廣告類型'; wsData[2][4] = adTypeDisplay; wsData[2][6] = '走期預算'; wsData[2][7] = `${currency}${totalBudget.toLocaleString()}`;
-            wsData[3][1] = '剩餘天數'; wsData[3][2] = `(${remainingDays})`; wsData[3][3] = '計價方式'; wsData[3][4] = pricingMode; wsData[3][5] = `${currency}${pricingPrice}`; wsData[3][6] = '剩餘花費'; wsData[3][7] = '計算中...';
-            wsData[4][1] = '剩餘每日'; wsData[4][2] = '計算中...'; wsData[4][3] = '廣告目標'; wsData[4][4] = '計算中...'; wsData[4][5] = 'units'; wsData[4][6] = '剩餘數量'; wsData[4][7] = '計算中...';
-
-            /* 3. 動態表頭（根據 slide 廣告調整） */
+            // 解析表格數據
             const trs = currentReportData.table.querySelectorAll('tr');
             const headerRow = trs[0];
             const headers = Array.from(headerRow.querySelectorAll('th,td')).map(h => h.textContent.trim());
             
-            // 推空行表頭到 wsData
-            const excelHeaders = [''].concat(headers); // 第一欄空白
-            wsData.push(excelHeaders);
-            
-            /* 4. 注入每日數據 */
-            let sumImp=0,sumClk=0;
-            const cutSums = {}; // 存儲各 cut 的總和
-            let sumTxt=0;
-
-            // 動態識別表格標題結構
-            console.log('識別到的表格標題:', headers);
-            
-            // 找出各欄位的索引位置
+            // 分析表格結構
             let dateIndex = -1, weekIndex = -1, impIndex = -1, clkIndex = -1, ctrIndex = -1;
-            let cutIndices = []; // 存儲所有 cut 欄位的索引
+            let cutIndices = [];
             let textIndex = -1;
             
             headers.forEach((header, index) => {
@@ -923,15 +1013,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            console.log('欄位索引:', {dateIndex, weekIndex, impIndex, clkIndex, ctrIndex, cutIndices, textIndex});
-
-            for (let i=1;i<trs.length;i++){
-                const td=trs[i].querySelectorAll('td,th');
-                if(td.length < 2) continue;
+            // 處理數據並計算總計
+            const dataRows = [];
+            let sumImp = 0, sumClk = 0, sumTxt = 0;
+            const cutSums = {};
+            
+            for (let i = 1; i < trs.length; i++) {
+                const td = trs[i].querySelectorAll('td,th');
+                if (td.length < 2) continue;
                 
-                const date = dateIndex >= 0 ? td[dateIndex].textContent.trim() : (td[0] ? td[0].textContent.trim() : '');
-                
-                // 跳過 TOTAL 行（在最後處理）
+                const date = dateIndex >= 0 ? td[dateIndex].textContent.trim() : td[0].textContent.trim();
                 if (date === 'TOTAL') continue;
                 
                 // 檢查是否為空白行
@@ -946,17 +1037,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 
-                // 根據不同的表格格式讀取資料
-                let imp = 0, clk = 0, ctr = '';
+                // 提取數據
+                let imp = 0, clk = 0, ctr = '', txt = 0;
                 const cutValues = {};
-                let txt = 0;
                 
                 if (!isEmptyRow) {
                     if (impIndex >= 0) imp = +(td[impIndex].textContent.replace(/[,—]/g,'')) || 0;
                     if (clkIndex >= 0) clk = +(td[clkIndex].textContent.replace(/[,—]/g,'')) || 0;
                     if (ctrIndex >= 0) ctr = td[ctrIndex].textContent.trim();
+                    if (textIndex >= 0) txt = +(td[textIndex].textContent.replace(/[,—]/g,'')) || 0;
                     
-                    // 讀取各 cut 數據
                     cutIndices.forEach(cutInfo => {
                         const cutValue = +(td[cutInfo.index].textContent.replace(/[,—]/g,'')) || 0;
                         cutValues[cutInfo.cutNum] = cutValue;
@@ -964,230 +1054,291 @@ document.addEventListener('DOMContentLoaded', function() {
                         cutSums[cutInfo.cutNum] += cutValue;
                     });
                     
-                    // 讀取文案數據
-                    if (textIndex >= 0) {
-                        txt = +(td[textIndex].textContent.replace(/[,—]/g,'')) || 0;
-                    }
+                    sumImp += imp;
+                    sumClk += clk;
+                    sumTxt += txt;
                 }
 
-                // 建構 Excel 行資料
-                const rowData = [''];
-                for (let j = 0; j < headers.length; j++) {
-                    const header = headers[j];
-                    if (j === dateIndex) {
-                        rowData.push(date);
-                    } else if (j === weekIndex) {
-                        rowData.push(isEmptyRow ? '' : (td[j] ? td[j].textContent.trim() : ''));
-                    } else if (j === impIndex) {
-                        rowData.push(isEmptyRow ? '' : (imp > 0 ? imp.toLocaleString() : ''));
-                    } else if (j === clkIndex) {
-                        rowData.push(isEmptyRow ? '' : (clk > 0 ? clk : ''));
-                    } else if (j === ctrIndex) {
-                        rowData.push(isEmptyRow ? '' : ctr);
-                    } else if (j === textIndex) {
-                        rowData.push(isEmptyRow ? '' : (txt > 0 ? txt : ''));
-                    } else {
-                        // 檢查是否為 cut 欄位
-                        const cutInfo = cutIndices.find(c => c.index === j);
-                        if (cutInfo) {
-                            rowData.push(isEmptyRow ? '' : (cutValues[cutInfo.cutNum] > 0 ? cutValues[cutInfo.cutNum] : ''));
-                        } else {
-                            rowData.push(isEmptyRow ? '' : (td[j] ? td[j].textContent.trim() : ''));
-                        }
-                    }
-                }
-
-                wsData.push(rowData);
-
-                // 只有非空白行才加入總計
-                if (!isEmptyRow) {
-                    sumImp+=imp;
-                    sumClk+=clk;
-                    sumTxt+=txt;
-                }
+                dataRows.push({
+                    date,
+                    isEmpty: isEmptyRow,
+                    imp,
+                    clk,
+                    ctr,
+                    cutValues,
+                    txt,
+                    weekday: weekIndex >= 0 && !isEmptyRow ? td[weekIndex].textContent.trim() : '',
+                    originalRow: td
+                });
             }
 
-            /* 5. TOTAL 行 */
-            const totCtr = sumImp?((sumClk/sumImp)*100).toFixed(2)+'%':'0.00%';
-            const totalRowData = ['', 'TOTAL'];
-            
-            for (let j = 1; j < headers.length; j++) { // 從第二欄開始（跳過日期）
-                const header = headers[j];
-                if (j === weekIndex) {
-                    totalRowData.push('');
-                } else if (j === impIndex) {
-                    totalRowData.push(sumImp.toLocaleString());
-                } else if (j === clkIndex) {
-                    totalRowData.push(sumClk);
-                } else if (j === ctrIndex) {
-                    totalRowData.push(totCtr);
-                } else if (j === textIndex) {
-                    totalRowData.push(sumTxt);
-                } else {
-                    // 檢查是否為 cut 欄位
-                    const cutInfo = cutIndices.find(c => c.index === j);
-                    if (cutInfo) {
-                        totalRowData.push(cutSums[cutInfo.cutNum] || 0);
-                    } else {
-                        totalRowData.push('');
-                    }
-                }
-            }
-            
-            wsData.push(totalRowData);
-            
-            // === 現在重新計算剩餘花費和廣告目標 ===
-            let targetUnit = 'clicks';
-            let targetCount = 0;
-            let remainingLabel = '剩餘點擊數';
-            let remainingAmount = 0;
-            let remainingBudget = 0;
+            // 計算剩餘數據
+            let targetUnit = 'clicks', targetCount = 0, remainingLabel = '剩餘點擊數';
+            let remainingAmount = 0, remainingBudget = 0;
             
             if (pricingMode === 'CPM') {
                 targetUnit = 'impressions';
                 remainingLabel = '剩餘曝光數';
-                // CPM: (走期預算 / 計價方式金額) * 1000
                 targetCount = Math.floor((totalBudget / pricingPrice) * 1000);
-                // 剩餘花費 = 走期預算 - [(曝光數total * 計價方式金額) / 1000]
                 remainingBudget = totalBudget - ((sumImp * pricingPrice) / 1000);
                 remainingAmount = Math.floor((remainingBudget / pricingPrice) * 1000);
             } else if (pricingMode === 'CPV') {
                 targetUnit = 'views';
                 remainingLabel = '剩餘觀看數';
-                // CPV: 走期預算 / 計價方式金額
                 targetCount = Math.floor(totalBudget / pricingPrice);
-                // 剩餘花費 = 走期預算 - (觀看數total * 計價方式金額)
-                remainingBudget = totalBudget - (sumClk * pricingPrice); // 假設觀看數用點擊數代替
+                remainingBudget = totalBudget - (sumClk * pricingPrice);
                 remainingAmount = Math.floor(remainingBudget / pricingPrice);
-            } else { // CPC
+            } else {
                 targetUnit = 'clicks';
                 remainingLabel = '剩餘點擊數';
-                // CPC: 走期預算 / 計價方式金額
                 targetCount = Math.floor(totalBudget / pricingPrice);
-                // 剩餘花費 = 走期預算 - (點擊數total * 計價方式金額)
                 remainingBudget = totalBudget - (sumClk * pricingPrice);
                 remainingAmount = Math.floor(remainingBudget / pricingPrice);
             }
             
-            // 更新計算結果
-            wsData[3][7] = isOngoing ? `${currency}${Math.max(0, remainingBudget).toLocaleString()}` : '(已結束)';
-            const remainingDailyValue = (remainingDays > 0 && remainingAmount > 0) ? Math.ceil(Math.max(0, remainingAmount) / remainingDays) : 0;
+            const remainingDailyValue = (remainingDays > 0 && remainingAmount > 0) ? 
+                Math.ceil(Math.max(0, remainingAmount) / remainingDays) : 0;
 
-            wsData[4][2] = remainingDailyValue;
-            wsData[4][4] = targetCount.toLocaleString();
-            wsData[4][5] = targetUnit;
-            wsData[4][6] = remainingLabel;
-            wsData[4][7] = isOngoing ? Math.max(0, remainingAmount) : '0';
+            // === 開始建構 Excel 內容 ===
+
+            // 1. 插入 Logo 圖片
+            let logoInserted = false;
             
-            /* === 二、轉成 Sheet 並做進階格式 ======================= */
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-            /* 1. 欄寬（與截圖對照） */
-            ws['!cols'] = [
-                {wch:4},   // A 外框
-                {wch:11},  // B 日期
-                {wch:8},   // C 星期
-                {wch:14},  // D 曝光
-                {wch:10},  // E 點擊
-                {wch:10},  // F CTR
-                {wch:10},  // G cut1
-                {wch:10},  // H cut2
-                {wch:10},  // I 文案
-                {wch:10}   // J 空白
-            ];
-
-            /* 2. 合併範圍 */
-            ws['!merges'] = [
-                {s:{r:1,c:1},e:{r:2,c:2}},   // Logo 區域 B2:D3 (更小的logo空間)
-                {s:{r:1,c:4},e:{r:1,c:5}},   // 活動名稱 value
-                {s:{r:2,c:4},e:{r:2,c:5}},   // 廣告類型 value
-            ];
-
-            /* 3. 全表邊框 + 置中 */
-            const rng = XLSX.utils.decode_range(ws['!ref']);
-            for(let R=rng.s.r;R<=rng.e.r;++R){
-                for(let C=rng.s.c;C<=rng.e.c;++C){
-                    const addr = XLSX.utils.encode_cell({r:R,c:C});
-                    ws[addr] = ws[addr]||{t:'s',v:''};
-                    ws[addr].s ??= {};
-                    ws[addr].s.alignment = {vertical:'middle', horizontal:'center'};
-                    ws[addr].s.border = {
-                        top:{style:'thin',color:{rgb:'000000'}},
-                        bottom:{style:'thin',color:{rgb:'000000'}},
-                        left:{style:'thin',color:{rgb:'000000'}},
-                        right:{style:'thin',color:{rgb:'000000'}}
-                    };
-                }
-            }
-
-            /* 4. 背景 / 字色 */
-            const paint = (cells,bg,font={})=>cells.forEach(a=>{
-                ws[a].s.fill={fgColor:{rgb:bg}}; ws[a].s.font={...(ws[a].s.font||{}),...font};
-            });
-
-            // 灰底右側欄位及標籤粗體
-            paint(['E2','F2','G2','H2','E3','F3','G3','H3'],'D9D9D9',{bold:true});
-            // 左側指標文字粗體
-            ['A4','A5'].forEach(a=>ws[a].s.font={bold:true});
-            // 紅字數值
-            ['B4','I4','I5'].forEach(a=>ws[a].s.font={color:{rgb:'FF0000'},bold:true});
-            // 表頭藍底 / 橘底
-            const tableHeaderRow = 6; // 表頭固定在第7行（index 6）
-            paint([`A${tableHeaderRow+1}`,`B${tableHeaderRow+1}`,`C${tableHeaderRow+1}`,`D${tableHeaderRow+1}`,`E${tableHeaderRow+1}`],'4472C4',{color:{rgb:'FFFFFF'},bold:true});
-            paint([`F${tableHeaderRow+1}`,`G${tableHeaderRow+1}`,`H${tableHeaderRow+1}`,`I${tableHeaderRow+1}`],'E67E22',{color:{rgb:'FFFFFF'},bold:true});
-            
-            // 為空白行設置灰色背景
-            const dataStartRow = 7; // 數據從第8行開始（index 7）
-            for(let i = dataStartRow; i < wsData.length - 1; i++) { // 排除TOTAL行
-                const rowData = wsData[i];
-                
-                // 檢查是否為空白行（數據欄位為空）
-                if (rowData[3] === '' || rowData[4] === '') {
-                    // 為空白行設置灰色背景
-                    ['A','B','C','D','E','F','G','H','I','J'].forEach(col => {
-                        const addr = `${col}${i+1}`;
-                        if (ws[addr]) {
-                            ws[addr].s.fill = {fgColor:{rgb:'F8F9FA'}};
-                            ws[addr].s.font = {color:{rgb:'999999'}};
-                        }
+            // 嘗試載入本地 logo 圖片
+            try {
+                const response = await fetch('/static/images/logo.jpeg');
+                if (response.ok) {
+                    const imageBuffer = await response.arrayBuffer();
+                    const imageId = workbook.addImage({
+                        buffer: imageBuffer,
+                        extension: 'jpeg',
                     });
+                    
+                    // 在 B2:C3 區域插入圖片，調整尺寸適應儲存格
+                    worksheet.addImage(imageId, {
+                        tl: { col: 1, row: 1 }, // B2 (從0開始計算)
+                        ext: { width: 80, height: 40 } // 調整為適合的大小 (原圖 300x300 縮放)
+                    });
+                    logoInserted = true;
+                    console.log('✅ Logo 圖片載入成功');
+                }
+            } catch (error) {
+                console.warn('⚠️ 本地 logo 圖片載入失敗:', error);
+            }
+            
+            // 如果本地圖片載入失敗，嘗試 CDN 備案
+            if (!logoInserted) {
+                try {
+                    // 如果您有 CDN URL，請在這裡替換
+                    const cdnUrl = null; // 請替換為您的 CDN URL，例如: 'https://your-cdn.com/logo.jpeg'
+                    
+                    if (cdnUrl) {
+                        console.log('🔄 嘗試 CDN 備案...', cdnUrl);
+                        const response = await fetch(cdnUrl);
+                        if (response.ok) {
+                            const imageBuffer = await response.arrayBuffer();
+                            const imageId = workbook.addImage({
+                                buffer: imageBuffer,
+                                extension: 'jpeg',
+                            });
+                            
+                            worksheet.addImage(imageId, {
+                                tl: { col: 1, row: 1 },
+                                ext: { width: 80, height: 40 }
+                            });
+                            logoInserted = true;
+                            console.log('✅ CDN Logo 圖片載入成功');
+                        }
+                    } else {
+                        console.log('💡 提示：如需使用 CDN 圖片，請設定 cdnUrl 變數');
+                    }
+                } catch (cdnError) {
+                    console.warn('⚠️ CDN logo 圖片載入失敗:', cdnError);
                 }
             }
             
-            // TOTAL 行
-            const totalRow = wsData.length; // TOTAL 行所在位置
-            paint([`C${totalRow}`],'FFF2CB',{bold:true}); // 曝光數黃底
-            ws[`E${totalRow}`].s.font={color:{rgb:'FF0000'},bold:true}; // 點擊率紅字
-            ['A','B','D','F','G','H','J'].forEach(col=>{
-                const addr = `${col}${totalRow}`;
-                if (ws[addr]) {
-                    ws[addr].s.font={...(ws[addr].s.font||{}),bold:true};
-                }
-            });
+            // 如果圖片都載入失敗，在 Logo 區域放入文字
+            if (!logoInserted) {
+                worksheet.getCell('B2').value = 'ASEAL';
+                applyStyle(worksheet.getCell('B2'), styles.grayBg);
+                worksheet.getCell('B2').font = { bold: true, size: 14 };
+                console.log('📝 使用文字 Logo 備案');
+            }
 
-            /* === 三、輸出檔案 ====================================== */
-            XLSX.utils.book_append_sheet(wb,ws,'廣告報表');
-            const name = `廣告報表_${currentReportData.setId.slice(0,8)}_${new Date().toISOString().slice(0,10)}.xlsx`;
-            XLSX.writeFile(wb,name);
-            
-            // 顯示成功訊息，包含廣告集資訊和日期範圍
-            let successMessage = `✅ Excel 報表已成功產出！檔案名稱：${name}`;
-            
-            // 計算實際數據行數和空白行數
-            const totalDataRows = wsData.length - 7 - 1; // 減去表頭和TOTAL行
-            const hasDataRows = wsData.slice(7, -1).filter(row => row[3] !== '').length;
+            // 2. 頂部資訊區域（第2-3行）
+            worksheet.getCell('D2').value = '活動名稱';
+            applyStyle(worksheet.getCell('D2'), styles.grayBg);
+            worksheet.getCell('E2').value = activityName;
+            applyStyle(worksheet.getCell('E2'), styles.whiteBg);
+            worksheet.getCell('G2').value = '總預算';
+            applyStyle(worksheet.getCell('G2'), styles.grayBg);
+            worksheet.getCell('H2').value = `${currency}${totalBudget.toLocaleString()}`;
+            applyStyle(worksheet.getCell('H2'), styles.whiteBg);
+
+            worksheet.getCell('D3').value = '廣告類型';
+            applyStyle(worksheet.getCell('D3'), styles.grayBg);
+            worksheet.getCell('E3').value = adTypeDisplay;
+            applyStyle(worksheet.getCell('E3'), styles.whiteBg);
+            worksheet.getCell('G3').value = '走期預算';
+            applyStyle(worksheet.getCell('G3'), styles.grayBg);
+            worksheet.getCell('H3').value = `${currency}${totalBudget.toLocaleString()}`;
+            applyStyle(worksheet.getCell('H3'), styles.whiteBg);
+
+            // 合併儲存格
+            worksheet.mergeCells('B2:C3'); // Logo 區域
+            worksheet.mergeCells('E2:F2'); // 活動名稱值
+            worksheet.mergeCells('E3:F3'); // 廣告類型值
+
+            // 3. 剩餘數據行（第4-5行，往右移一欄）
+            worksheet.getCell('B4').value = '剩餘天數';
+            applyStyle(worksheet.getCell('B4'), styles.grayBg);
+            worksheet.getCell('C4').value = `(${remainingDays})`;
+            applyStyle(worksheet.getCell('C4'), styles.redFont);
+            worksheet.getCell('D4').value = '計價方式';
+            applyStyle(worksheet.getCell('D4'), styles.grayBg);
+            worksheet.getCell('E4').value = pricingMode;
+            applyStyle(worksheet.getCell('E4'), styles.whiteBg);
+            worksheet.getCell('F4').value = `${currency}${pricingPrice}`;
+            applyStyle(worksheet.getCell('F4'), styles.whiteBg);
+            worksheet.getCell('G4').value = '剩餘花費';
+            applyStyle(worksheet.getCell('G4'), styles.grayBg);
+            worksheet.getCell('H4').value = isOngoing ? 
+                `${currency}${Math.max(0, remainingBudget).toLocaleString()}` : '(已結束)';
+            applyStyle(worksheet.getCell('H4'), styles.whiteBg);
+
+            worksheet.getCell('B5').value = '剩餘每日';
+            applyStyle(worksheet.getCell('B5'), styles.grayBg);
+            worksheet.getCell('C5').value = remainingDailyValue;
+            applyStyle(worksheet.getCell('C5'), styles.redFont);
+            worksheet.getCell('D5').value = '廣告目標';
+            applyStyle(worksheet.getCell('D5'), styles.grayBg);
+            worksheet.getCell('E5').value = targetCount.toLocaleString();
+            applyStyle(worksheet.getCell('E5'), styles.whiteBg);
+            worksheet.getCell('F5').value = targetUnit;
+            applyStyle(worksheet.getCell('F5'), styles.whiteBg);
+            worksheet.getCell('G5').value = remainingLabel;
+            applyStyle(worksheet.getCell('G5'), styles.grayBg);
+            worksheet.getCell('H5').value = isOngoing ? Math.max(0, remainingAmount) : '0';
+            applyStyle(worksheet.getCell('H5'), styles.whiteBg);
+
+            // 4. 表頭（第7行）
+            const tableStartRow = 7;
+            for (let i = 0; i < headers.length; i++) {
+                const cell = worksheet.getCell(tableStartRow, i + 2); // 從B欄開始
+                cell.value = headers[i];
+                applyStyle(cell, (i < 5) ? styles.header : styles.orangeHeader);
+            }
+
+            // 5. 數據行
+            let currentRow = tableStartRow + 1;
+            for (const rowData of dataRows) {
+                // 日期欄（B）
+                const dateCell = worksheet.getCell(currentRow, 2);
+                dateCell.value = rowData.date;
+                applyStyle(dateCell, rowData.isEmpty ? styles.emptyRow : styles.normal);
+
+                // 星期欄（C）
+                const weekCell = worksheet.getCell(currentRow, 3);
+                if (rowData.weekday) weekCell.value = rowData.weekday;
+                applyStyle(weekCell, rowData.isEmpty ? styles.emptyRow : styles.normal);
+
+                // 其他數據欄
+                let colIndex = 4; // 從D欄開始（曝光數）
+                for (let i = 2; i < headers.length; i++) { // 跳過日期、星期
+                    const cell = worksheet.getCell(currentRow, colIndex);
+                    const header = headers[i];
+                    
+                    if (!rowData.isEmpty) {
+                        if (header.includes('曝光數') || header.includes('播放數')) {
+                            if (rowData.imp > 0) cell.value = rowData.imp;
+                        } else if (header.includes('點擊數')) {
+                            if (rowData.clk > 0) cell.value = rowData.clk;
+                        } else if (header.includes('點擊率') || header.includes('觀看率')) {
+                            if (rowData.ctr) cell.value = rowData.ctr;
+                        } else if (header.includes('cut')) {
+                            const cutValue = rowData.cutValues[header];
+                            if (cutValue > 0) cell.value = cutValue;
+                        } else if (header.includes('文案')) {
+                            if (rowData.txt > 0) cell.value = rowData.txt;
+                        } else if (rowData.originalRow[i]) {
+                            const cellValue = rowData.originalRow[i].textContent.trim();
+                            if (cellValue && cellValue !== '—') cell.value = cellValue;
+                        }
+                    }
+                    
+                    applyStyle(cell, rowData.isEmpty ? styles.emptyRow : styles.normal);
+                    colIndex++;
+                }
+                currentRow++;
+            }
+
+            // 6. TOTAL 行
+            const totalRow = currentRow;
+            const totCtr = sumImp ? ((sumClk / sumImp) * 100).toFixed(2) + '%' : '0.00%';
+
+            worksheet.getCell(totalRow, 2).value = 'TOTAL';
+            applyStyle(worksheet.getCell(totalRow, 2), styles.total);
+            applyStyle(worksheet.getCell(totalRow, 3), styles.total); // 空白星期欄
+
+            // TOTAL 行數據
+            let colIndex = 4;
+            for (let i = 2; i < headers.length; i++) {
+                const cell = worksheet.getCell(totalRow, colIndex);
+                const header = headers[i];
+                
+                if (header.includes('曝光數') || header.includes('播放數')) {
+                    cell.value = sumImp;
+                    applyStyle(cell, styles.total); // 改為統一的 total 樣式
+                } else if (header.includes('點擊數')) {
+                    cell.value = sumClk;
+                    applyStyle(cell, styles.total);
+                } else if (header.includes('點擊率') || header.includes('觀看率')) {
+                    cell.value = totCtr;
+                    applyStyle(cell, styles.total);
+                    cell.font = { bold: true, color: { argb: 'FFFF0000' } }; // 保持紅色字體
+                } else if (header.includes('cut')) {
+                    cell.value = cutSums[header] || 0;
+                    applyStyle(cell, styles.total);
+                } else if (header.includes('文案')) {
+                    cell.value = sumTxt;
+                    applyStyle(cell, styles.total);
+                } else {
+                    applyStyle(cell, styles.total);
+                }
+                colIndex++;
+            }
+
+            /* === 6. 產出檔案 (瀏覽器用 writeBuffer) =================== */
+            const buffer = await workbook.xlsx.writeBuffer({ useStyles: true });
+            const blob   = new Blob([buffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            const url  = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `廣告報表_${currentReportData.setId.slice(0,8)}_${new Date().toISOString().slice(0,10)}.xlsx`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            // 顯示成功訊息
+            const totalDataRows = dataRows.length;
+            const hasDataRows = dataRows.filter(row => !row.isEmpty).length;
             const emptyRows = totalDataRows - hasDataRows;
+            
+            let successMessage = `✅ Excel 報表已成功產出！檔案已下載。`;
             
             if (currentAdsetInfo && currentAdsetInfo.success) {
                 const budgetSource = info.parsedBudget > 0 ? '從活動名稱解析' : '使用原始預算';
                 const scheduleInfo = remainingDays > 0 ? `剩餘 ${remainingDays} 天` : '活動已結束';
-                successMessage += `\n📊 已套用廣告集資訊：\n- 計價方式：${pricingMode}\n- 價格：${currency}${pricingPrice}\n- 活動名稱：${activityName}\n- 預算：${currency}${totalBudget.toLocaleString()} (${budgetSource})\n- 走期狀態：${scheduleInfo}\n📅 日期範圍：包含 ${hasDataRows} 筆實際數據，${emptyRows} 筆空白日期`;
+                successMessage += `\n📊 已套用完整樣式和廣告集資訊：\n- 計價方式：${pricingMode}\n- 價格：${currency}${pricingPrice}\n- 活動名稱：${activityName}\n- 預算：${currency}${totalBudget.toLocaleString()} (${budgetSource})\n- 走期狀態：${scheduleInfo}\n📅 數據統計：${hasDataRows} 筆實際數據，${emptyRows} 筆空白日期`;
             }
             alert(successMessage);
 
         } catch (err) {
-            console.error(err);
-            alert('❌ 產出 Excel 報表失敗：'+err.message);
+            console.error('產出 Excel 報表失敗:', err);
+            alert('❌ 產出 Excel 報表失敗：' + err.message);
         }
     }
 

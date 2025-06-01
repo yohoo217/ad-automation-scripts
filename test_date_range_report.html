@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日期範圍測試 - 廣告報表</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .report-table th,
+        .report-table td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        .report-table th {
+            background-color: #4472C4;
+            color: white;
+            font-weight: bold;
+        }
+        .report-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .empty-row {
+            background-color: #f8f9fa !important;
+            color: #999;
+            opacity: 0.7;
+        }
+        .future-date {
+            background-color: #f8f9fa !important;
+        }
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 10px 5px;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .export-button {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        .export-button:hover {
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+        .info-box {
+            background: #e7f3ff;
+            border: 1px solid #2196f3;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #1976d2;
+        }
+        .success-box {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #2e7d32;
+        }
+        .form-row {
+            margin: 10px 0;
+        }
+        .form-row label {
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+        }
+        .form-row input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 日期範圍填充功能測試</h1>
+        
+        <div class="info-box">
+            <h3>測試目標</h3>
+            <p>驗證當只有少量日期的實際數據時，系統能否根據走期結束日期自動填充空白行，就像附圖顯示的格式一樣。</p>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 測試參數設定</h3>
+            <div class="form-row">
+                <label>走期結束日期：</label>
+                <input type="date" id="campaignEndDate" value="2025-06-07">
+            </div>
+            <div class="form-row">
+                <label>當前日期：</label>
+                <input type="date" id="currentDate" value="2025-05-13">
+            </div>
+            <div class="form-row">
+                <label>廣告集 ID：</label>
+                <input type="text" id="adsetId" value="f53d7abf-e3bd-4a5a-b4fb-7c1724215e41" style="width: 300px;">
+            </div>
+            <button class="button" onclick="runTest()">🧪 執行測試</button>
+            <button class="export-button" onclick="exportTest()" id="exportBtn" disabled>📊 匯出 Excel</button>
+        </div>
+
+        <div class="test-section" id="originalDataSection">
+            <h3>📋 原始數據（模擬 API 回傳）</h3>
+            <div class="info-box">
+                假設只有 2025-05-12 的數據，但走期到 6/7，系統應該自動填充 5/13 到 6/7 的空白行。
+            </div>
+            <table class="report-table" id="originalTable">
+                <thead>
+                    <tr>
+                        <th>日期</th>
+                        <th>星期</th>
+                        <th>曝光數</th>
+                        <th>點擊數</th>
+                        <th>點擊率</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>05/12</td>
+                        <td>一</td>
+                        <td>321,285</td>
+                        <td>1,203</td>
+                        <td>0.37%</td>
+                    </tr>
+                    <tr>
+                        <td>TOTAL</td>
+                        <td></td>
+                        <td>321,285</td>
+                        <td>1,203</td>
+                        <td>0.37%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="test-section" id="processedDataSection" style="display: none;">
+            <h3>✨ 處理後數據（自動填充日期範圍）</h3>
+            <div class="success-box" id="resultInfo">
+                <!-- 結果資訊將顯示在這裡 -->
+            </div>
+            <table class="report-table" id="processedTable">
+                <!-- 處理後的表格將顯示在這裡 -->
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let currentTestData = null;
+        let currentAdsetInfo = null;
+
+        // 模擬廣告集資訊
+        const mockAdsetInfo = {
+            success: true,
+            pricing: { bMode: 'CPC', price: 7.0, currency: 'TWD' },
+            info: { 
+                name: '5/25-6/8 | $100000 電競筆電宣傳活動', 
+                adType: 'NATIVE', 
+                budget: 50000,
+                parsedBudget: 100000,
+                originalBudget: 50000
+            }
+        };
+
+        function runTest() {
+            const campaignEndDate = document.getElementById('campaignEndDate').value;
+            const currentDate = document.getElementById('currentDate').value;
+            
+            if (!campaignEndDate || !currentDate) {
+                alert('請設定走期結束日期和當前日期');
+                return;
+            }
+
+            // 獲取原始表格
+            const originalTable = document.getElementById('originalTable');
+            
+            // 處理表格
+            const processedTable = processTableBySchedule(originalTable, campaignEndDate, currentDate);
+            
+            // 顯示結果
+            displayProcessedResult(processedTable, campaignEndDate, currentDate);
+            
+            // 準備測試數據
+            currentTestData = {
+                setId: document.getElementById('adsetId').value,
+                campaignEndDate: campaignEndDate,
+                currentDate: currentDate,
+                table: processedTable
+            };
+            
+            currentAdsetInfo = mockAdsetInfo;
+            
+            // 啟用匯出按鈕
+            document.getElementById('exportBtn').disabled = false;
+        }
+
+        function displayProcessedResult(processedTable, campaignEndDate, currentDate) {
+            const section = document.getElementById('processedDataSection');
+            const tableContainer = document.getElementById('processedTable');
+            const infoContainer = document.getElementById('resultInfo');
+            
+            // 複製處理後的表格
+            tableContainer.innerHTML = processedTable.innerHTML;
+            
+            // 計算統計資訊
+            const rows = processedTable.querySelectorAll('tr');
+            let totalRows = 0;
+            let dataRows = 0;
+            let emptyRows = 0;
+            
+            for (let i = 1; i < rows.length; i++) { // 跳過表頭
+                const cells = rows[i].querySelectorAll('td');
+                if (cells.length > 0 && cells[0].textContent.trim() !== 'TOTAL') {
+                    totalRows++;
+                    // 檢查是否有實際數據
+                    const hasData = cells[2] && cells[2].textContent.trim() && 
+                                   !cells[2].innerHTML.includes('color: #ccc') && 
+                                   cells[2].textContent.trim() !== '—';
+                    if (hasData) {
+                        dataRows++;
+                    } else {
+                        emptyRows++;
+                    }
+                }
+            }
+            
+            infoContainer.innerHTML = `
+                📊 <strong>處理結果：</strong><br>
+                - 原始數據行：${dataRows} 筆<br>
+                - 自動填充空白行：${emptyRows} 筆<br>
+                - 總計日期範圍：${totalRows} 天<br>
+                - 走期設定：${currentDate} 到 ${campaignEndDate}<br>
+                - 狀態：✅ 成功填充日期範圍
+            `;
+            
+            section.style.display = 'block';
+        }
+
+        // 根據走期設定處理表格內容（與報表頁面相同的函數）
+        function processTableBySchedule(table, campaignEndDate, currentDate) {
+            const clonedTable = table.cloneNode(true);
+            const rows = clonedTable.querySelectorAll('tr');
+            
+            if (rows.length < 2) return clonedTable;
+            
+            const campaignEnd = new Date(campaignEndDate);
+            const current = new Date(currentDate);
+            
+            const tableData = [];
+            const headers = [];
+            let totalRow = null;
+            
+            // 獲取表頭
+            const headerCells = rows[0].querySelectorAll('th, td');
+            for (let cell of headerCells) {
+                headers.push(cell.textContent.trim());
+            }
+            
+            // === 新增：若表頭缺「星期」，插入後續自動補值 ===
+            let needInsertWeekCol = true;
+            headers.forEach(h => {
+                if (h.includes('星期') || h.includes('週')) needInsertWeekCol = false;
+            });
+            if (needInsertWeekCol) {
+                headers.splice(1, 0, '星期'); // 日期後插一欄
+            }
+            
+            // 解析數據行
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const cells = row.querySelectorAll('td, th');
+                
+                if (cells.length > 0) {
+                    const firstCellText = cells[0].textContent.trim();
+                    
+                    if (firstCellText === 'TOTAL') {
+                        totalRow = row.cloneNode(true);
+                        continue;
+                    }
+                    
+                    let rowDate = null;
+                    const dateText = firstCellText;
+                    
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(dateText)) {
+                        rowDate = new Date(dateText);
+                    } else if (/^\d{2}\/\d{2}$/.test(dateText)) {
+                        const [month, day] = dateText.split('/');
+                        rowDate = new Date(current.getFullYear(), parseInt(month) - 1, parseInt(day));
+                    } else if (/^\d{2}-\d{2}$/.test(dateText)) {
+                        const [month, day] = dateText.split('-');
+                        rowDate = new Date(current.getFullYear(), parseInt(month) - 1, parseInt(day));
+                    }
+                    
+                    if (rowDate) {
+                        const rowData = [];
+                        for (let j = 0; j < cells.length; j++) {
+                            rowData.push(cells[j].textContent.trim());
+                        }
+                        // after rowData push 完
+                        if (needInsertWeekCol) {
+                            const weekStr = getWeekdayInChinese(rowDate);
+                            rowData.splice(1, 0, weekStr); // 把星期填到第 2 格
+                        }
+                        tableData.push({
+                            date: rowDate,
+                            dateText: dateText,
+                            data: rowData,
+                            hasData: true
+                        });
+                    }
+                }
+            }
+            
+            // 生成完整的日期範圍
+            let startDate = null;
+            let endDate = campaignEnd;
+            
+            if (tableData.length > 0) {
+                startDate = new Date(Math.min(...tableData.map(item => item.date.getTime())));
+                const lastDataDate = new Date(Math.max(...tableData.map(item => item.date.getTime())));
+                if (lastDataDate > endDate) {
+                    endDate = lastDataDate;
+                }
+            } else {
+                startDate = current;
+            }
+            
+            const completeData = [];
+            const currentDateIter = new Date(startDate);
+            
+            while (currentDateIter <= endDate) {
+                const dateStr = formatDateToMatch(currentDateIter, tableData.length > 0 ? tableData[0].dateText : null);
+                const weekday = getWeekdayInChinese(currentDateIter);
+                
+                const existingData = tableData.find(item => 
+                    item.date.getTime() === currentDateIter.getTime()
+                );
+                
+                if (existingData) {
+                    completeData.push(existingData);
+                } else {
+                    const emptyRowData = [dateStr, weekday];
+                    for (let i = 2; i < headers.length; i++) {
+                        emptyRowData.push('');
+                    }
+                    
+                    completeData.push({
+                        date: new Date(currentDateIter),
+                        dateText: dateStr,
+                        data: emptyRowData,
+                        hasData: false
+                    });
+                }
+                
+                currentDateIter.setDate(currentDateIter.getDate() + 1);
+            }
+            
+            // 重新構建表格
+            const newTable = document.createElement('table');
+            newTable.className = 'report-table';
+            
+            // 添加表頭
+            const headerRow = document.createElement('tr');
+            for (let header of headers) {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            }
+            newTable.appendChild(headerRow);
+            
+            // 添加數據行
+            for (let item of completeData) {
+                const row = document.createElement('tr');
+                
+                for (let i = 0; i < item.data.length; i++) {
+                    const cell = document.createElement('td');
+                    
+                    if (!item.hasData && i >= 2) {
+                        cell.innerHTML = '<span style="color: #ccc;">—</span>';
+                        cell.style.backgroundColor = '#f8f9fa';
+                    } else {
+                        cell.textContent = item.data[i] || '';
+                    }
+                    
+                    row.appendChild(cell);
+                }
+                
+                if (!item.hasData) {
+                    row.className = 'empty-row';
+                    if (item.date > current) {
+                        row.firstChild.innerHTML += ' <span style="color: #ffc107;"></span>';
+                    } else if (item.date > campaignEnd) {
+                        row.firstChild.innerHTML += ' <span style="color: #dc3545;">📅</span>';
+                    }
+                }
+                
+                newTable.appendChild(row);
+            }
+            
+            // 添加TOTAL行
+            if (totalRow) {
+                newTable.appendChild(totalRow);
+            }
+            
+            return newTable;
+        }
+
+        function formatDateToMatch(date, sampleDateText) {
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            
+            if (!sampleDateText) {
+                return `${month}/${day}`;
+            }
+            
+            if (sampleDateText.includes('-')) {
+                if (sampleDateText.length > 5) {
+                    return `${date.getFullYear()}-${month}-${day}`;
+                } else {
+                    return `${month}-${day}`;
+                }
+            } else {
+                return `${month}/${day}`;
+            }
+        }
+
+        function getWeekdayInChinese(date) {
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            return weekdays[date.getDay()];
+        }
+
+        // Excel 匯出功能（簡化版）
+        function exportTest() {
+            if (!currentTestData) {
+                alert('請先執行測試');
+                return;
+            }
+
+            try {
+                const wb = XLSX.utils.book_new();
+                const wsData = [];
+
+                // 添加標題行
+                wsData.push(['測試報表 - 日期範圍填充功能']);
+                wsData.push(['廣告集 ID:', currentTestData.setId]);
+                wsData.push(['走期結束日期:', currentTestData.campaignEndDate]);
+                wsData.push(['當前日期:', currentTestData.currentDate]);
+                wsData.push([]);
+
+                // 添加表格數據
+                const trs = currentTestData.table.querySelectorAll('tr');
+                
+                for (let i = 0; i < trs.length; i++) {
+                    const cells = trs[i].querySelectorAll('th, td');
+                    const rowData = [];
+                    
+                    for (let j = 0; j < cells.length; j++) {
+                        rowData.push(cells[j].textContent.trim());
+                    }
+                    
+                    wsData.push(rowData);
+                }
+
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                XLSX.utils.book_append_sheet(wb, ws, '測試報表');
+                XLSX.writeFile(wb, `測試報表_日期範圍填充_${new Date().toISOString().slice(0,10)}.xlsx`);
+                
+                alert('✅ 測試報表已匯出成功！');
+            } catch (err) {
+                alert('❌ 匯出失敗：' + err.message);
+            }
+        }
+
+        // 頁面載入時自動設定預設日期
+        window.onload = function() {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            document.getElementById('currentDate').value = todayStr;
+            
+            // 設定走期結束日期為兩週後
+            const twoWeeksLater = new Date(today.getTime() + (14 * 24 * 60 * 60 * 1000));
+            const twoWeeksLaterStr = twoWeeksLater.toISOString().split('T')[0];
+            document.getElementById('campaignEndDate').value = twoWeeksLaterStr;
+        };
+    </script>
+</body>
+</html> 

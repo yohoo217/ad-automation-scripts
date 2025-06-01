@@ -84,15 +84,22 @@ def get_adset_info():
         elif b_mode == 'CPV':
             pricing_info['price'] = adset_data.get('cpv', 0)
         
+        # 從活動名稱解析預算
+        name = adset_data.get('name', '')
+        parsed_budget = parse_budget_from_name(name)
+        actual_budget = parsed_budget if parsed_budget > 0 else adset_data.get('budget', 0)
+        
         # 額外資訊
         additional_info = {
-            'name': adset_data.get('name', ''),
-            'budget': adset_data.get('budget', 0),
+            'name': name,
+            'budget': actual_budget,
+            'parsedBudget': parsed_budget,  # 記錄解析出的預算
+            'originalBudget': adset_data.get('budget', 0),  # 記錄原始預算
             'adType': adset_data.get('adType', ''),
             'state': adset_data.get('state', '')
         }
         
-        logger.info(f"查詢成功: {adset_id} - {b_mode} ${pricing_info['price']}")
+        logger.info(f"查詢成功: {adset_id} - {b_mode} ${pricing_info['price']}, 預算: ${actual_budget}")
         
         return jsonify({
             'success': True,
@@ -107,6 +114,37 @@ def get_adset_info():
             'success': False,
             'error': f'查詢失敗: {str(e)}'
         }), 500
+
+def parse_budget_from_name(name):
+    """從活動名稱中解析預算，支援格式如：5/25-6/8 | $100000"""
+    import re
+    
+    if not name:
+        return 0
+    
+    try:
+        # 尋找 $ 符號後面的數字
+        # 支援格式：$100000, $100,000, $ 100000 等
+        pattern = r'\$\s*([0-9,]+)'
+        matches = re.findall(pattern, name)
+        
+        if matches:
+            # 取最後一個匹配的金額（通常是預算）
+            budget_str = matches[-1].replace(',', '')
+            return int(budget_str)
+        
+        # 如果沒找到 $ 符號，嘗試尋找 | 後面的純數字
+        pattern = r'\|\s*([0-9,]+)'
+        matches = re.findall(pattern, name)
+        
+        if matches:
+            budget_str = matches[-1].replace(',', '')
+            return int(budget_str)
+            
+    except (ValueError, IndexError):
+        pass
+    
+    return 0
 
 @main_bp.route('/api/report-proxy')
 def report_proxy():
@@ -163,19 +201,108 @@ def report_proxy():
             'success': False,
             'error': '請求超時，請稍後再試'
         }), 408
-        
-    except requests.exceptions.ConnectionError:
-        logger.error("連線錯誤")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"請求發生錯誤: {str(e)}")
         return jsonify({
             'success': False,
-            'error': '無法連接到目標伺服器'
-        }), 503
+            'error': f'請求失敗: {str(e)}'
+        }), 500
+    except Exception as e:
+        logger.error(f"代理請求時發生未預期錯誤: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'代理服務異常: {str(e)}'
+        }), 500
+
+@main_bp.route('/api/cpm-cut-data')
+def get_cpm_cut_data():
+    """查詢 CPM 廣告集的 AdUnit 並獲取 cut 數據"""
+    try:
+        # 獲取查詢參數
+        adset_id = request.args.get('adsetId')
+        
+        if not adset_id:
+            return jsonify({'error': '缺少必要參數：adsetId'}), 400
+        
+        logger.info(f"查詢 CPM cut 數據: {adset_id}")
+        
+        # 連接 MongoDB
+        client = get_mongo_client()
+        if not client:
+            return jsonify({'error': 'MongoDB 連接失敗'}), 500
+        
+        # 查詢 AdUnit collection
+        db = client['trek']
+        adunit_collection = db['AdUnit']
+        
+        # 找出對應 setId 的所有 AdUnit
+        adunits = list(adunit_collection.find({'setId': adset_id}, {'uuid': 1, 'name': 1, 'title': 1}))
+        
+        if not adunits:
+            return jsonify({
+                'success': True,
+                'adsetId': adset_id,
+                'cutData': {},
+                'message': '沒有找到對應的 AdUnit'
+            })
+        
+        logger.info(f"找到 {len(adunits)} 個 AdUnit")
+        
+        # 收集所有 cut 數據
+        all_cut_data = {}
+        
+        for adunit in adunits:
+            uuid = adunit.get('uuid')
+            if not uuid:
+                continue
+                
+            try:
+                # 呼叫 tkrecorder API
+                tkrecorder_url = f"https://tkrecorder.aotter.net/sp/list/v/{uuid}"
+                response = requests.get(tkrecorder_url, timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    success_data = data.get('success', {})
+                    
+                    logger.info(f"AdUnit {uuid} 獲取數據成功")
+                    
+                    # 處理每個 cut 的數據
+                    for cut_key, cut_data in success_data.items():
+                        if cut_key not in all_cut_data:
+                            all_cut_data[cut_key] = {}
+                            
+                        # 按日期整理數據
+                        for daily_data in cut_data:
+                            date = daily_data.get('_id')
+                            count = daily_data.get('totalCount', 0)
+                            
+                            if date not in all_cut_data[cut_key]:
+                                all_cut_data[cut_key][date] = 0
+                            
+                            all_cut_data[cut_key][date] += count
+                
+                else:
+                    logger.warning(f"AdUnit {uuid} API 呼叫失敗: {response.status_code}")
+                    
+            except Exception as e:
+                logger.error(f"處理 AdUnit {uuid} 時發生錯誤: {str(e)}")
+                continue
+        
+        logger.info(f"CPM cut 數據查詢完成，共收集到 {len(all_cut_data)} 個 cut")
+        
+        return jsonify({
+            'success': True,
+            'adsetId': adset_id,
+            'adunitCount': len(adunits),
+            'cutData': all_cut_data
+        })
         
     except Exception as e:
-        logger.error(f"代理請求時發生錯誤: {str(e)}")
+        logger.error(f"查詢 CPM cut 數據時發生錯誤: {str(e)}")
         return jsonify({
             'success': False,
-            'error': f'伺服器內部錯誤: {str(e)}'
+            'error': f'查詢失敗: {str(e)}'
         }), 500
 
 @main_bp.route('/vote-ad')

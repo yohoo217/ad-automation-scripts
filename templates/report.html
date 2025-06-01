@@ -161,6 +161,20 @@
             </div>
         </div>
         
+        <div class="form-grid-2">
+            <div class="form-row">
+                <label for="campaignEndDate">📅 走期結束日期</label>
+                <input type="date" id="campaignEndDate" name="campaignEndDate" placeholder="選擇走期結束日期">
+                <div class="help-text">用於判斷哪些日期應該顯示空白（未到期）</div>
+            </div>
+            
+            <div class="form-row">
+                <label for="currentDate">📅 當前日期（用於比較）</label>
+                <input type="date" id="currentDate" name="currentDate" placeholder="當前日期">
+                <div class="help-text">用於判斷哪些日期已經過期，預設為今天</div>
+            </div>
+        </div>
+        
         <button type="button" id="fetchReport" class="button">📈 取得報表</button>
         <button type="button" id="resetDates" class="button nav-button">🔄 重置為預設日期</button>
         <button type="button" id="exportExcel" class="export-button" disabled>📊 產出 XLSX 報表</button>
@@ -223,6 +237,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.getElementById('sinceDate').value = thirtyDaysAgo.getTime();
         document.getElementById('toDate').value = now.getTime();
+        
+        // 設置當前日期
+        const today = now.toISOString().split('T')[0];
+        document.getElementById('currentDate').value = today;
+        
+        // 預設走期結束日期為7天後
+        const weekLater = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
+        const weekLaterStr = weekLater.toISOString().split('T')[0];
+        document.getElementById('campaignEndDate').value = weekLaterStr;
     }
     
     // 重置日期按鈕
@@ -255,6 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 儲存報表資料供導出使用
     let currentReportData = null;
     let currentAdsetInfo = null; // 儲存廣告集資訊
+    let currentCutData = null; // 儲存 CPM cut 數據
     
     // 取得報表資料
     async function fetchReportData(setId, sinceDate, toDate) {
@@ -280,11 +304,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }),
                 // 查詢廣告集資訊
                 fetch(`/api/adset-info?adsetId=${encodeURIComponent(setId)}`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
                 })
             ]);
             
@@ -312,6 +336,34 @@ document.addEventListener('DOMContentLoaded', function() {
                     pricing: { bMode: 'CPC', price: 7.0, currency: 'TWD' },
                     info: { name: '未知活動', adType: '原生互動廣告', budget: 0 }
                 };
+            }
+            
+            // 如果計價方式為 CPM，查詢 cut 數據
+            if (adsetInfo && adsetInfo.success && adsetInfo.pricing.bMode === 'CPM') {
+                console.log('檢測到 CPM 計價方式，正在查詢 cut 數據...');
+                try {
+                    const cutResponse = await fetch(`/api/cpm-cut-data?adsetId=${encodeURIComponent(setId)}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (cutResponse.ok) {
+                        const cutData = await cutResponse.json();
+                        console.log('收到 CPM cut 數據:', cutData);
+                        currentCutData = cutData.success ? cutData.cutData : null;
+                    } else {
+                        console.warn('查詢 CPM cut 數據失敗');
+                        currentCutData = null;
+                    }
+                } catch (cutError) {
+                    console.error('查詢 CPM cut 數據時發生錯誤:', cutError);
+                    currentCutData = null;
+                }
+            } else {
+                currentCutData = null;
             }
             
             if (jsonResponse.success) {
@@ -356,6 +408,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const reportElement = document.getElementById('reportContent');
         const dailyReportContainer = document.getElementById('dailyReportContainer');
         
+        // 獲取走期和當前日期設定
+        const campaignEndDate = document.getElementById('campaignEndDate').value;
+        const currentDate = document.getElementById('currentDate').value;
+        
         loadingElement.style.display = 'none';
         
         try {
@@ -399,6 +455,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (dailyReportTable) {
+                // 處理表格內容，根據走期設定調整顯示
+                if (campaignEndDate && currentDate) {
+                    dailyReportTable = processTableBySchedule(dailyReportTable, campaignEndDate, currentDate);
+                }
+                
                 // 找到每日報表表格，只顯示這個表格
                 let dailyReportContent = `
                     <div class="daily-report-section">
@@ -423,6 +484,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 successMsg.innerHTML = '✓ 每日報表載入成功！';
                 dailyReportContainer.insertBefore(successMsg, dailyReportContainer.firstChild);
                 
+                // 顯示走期資訊
+                if (campaignEndDate && currentDate) {
+                    const scheduleMsg = document.createElement('div');
+                    scheduleMsg.className = 'cookie-status';
+                    scheduleMsg.style.backgroundColor = '#fff3cd';
+                    scheduleMsg.style.borderColor = '#ffeaa7';
+                    scheduleMsg.style.color = '#856404';
+                    scheduleMsg.innerHTML = `📅 走期設定：結束日期 ${campaignEndDate}，當前日期 ${currentDate}`;
+                    dailyReportContainer.insertBefore(scheduleMsg, dailyReportContainer.firstChild);
+                }
+                
                 // 顯示廣告集資訊
                 if (currentAdsetInfo && currentAdsetInfo.success) {
                     const adsetInfoMsg = document.createElement('div');
@@ -433,11 +505,29 @@ document.addEventListener('DOMContentLoaded', function() {
                     const pricing = currentAdsetInfo.pricing;
                     const info = currentAdsetInfo.info;
                     const currency = pricing.currency === 'TWD' ? '$' : pricing.currency;
+                    
+                    // 顯示預算解析資訊
+                    let budgetInfo = `${currency}${info.budget.toLocaleString()}`;
+                    if (info.parsedBudget > 0) {
+                        budgetInfo += ` (從活動名稱解析: ${currency}${info.parsedBudget.toLocaleString()})`;
+                    }
+                    
+                    // 檢查是否有 cut 數據
+                    let cutDataInfo = '';
+                    if (pricing.bMode === 'CPM') {
+                        if (currentCutData && Object.keys(currentCutData).length > 0) {
+                            const cutKeys = Object.keys(currentCutData).sort();
+                            cutDataInfo = ` | 📊 Cut 數據：已載入 (${cutKeys.join(', ')})`;
+                        } else {
+                            cutDataInfo = ` | ⚠️ Cut 數據：未找到對應的 AdUnit 或數據`;
+                        }
+                    }
+                    
                     adsetInfoMsg.innerHTML = `
                         📊 廣告集資訊：${info.name || '未知活動'} | 
                         💰 計價方式：${pricing.bMode} (${currency}${pricing.price}) | 
                         🎯 廣告類型：${info.adType || 'NATIVE'} | 
-                        💵 總預算：${currency}${(info.budget || 0).toLocaleString()}
+                        💵 總預算：${budgetInfo}${cutDataInfo}
                     `;
                     dailyReportContainer.insertBefore(adsetInfoMsg, dailyReportContainer.firstChild);
                 }
@@ -458,6 +548,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     setId: document.getElementById('setId').value.trim(),
                     sinceDate: document.getElementById('sinceDate').value,
                     toDate: document.getElementById('toDate').value,
+                    campaignEndDate: campaignEndDate,
+                    currentDate: currentDate,
                     table: dailyReportTable
                 };
             } else {
@@ -478,6 +570,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 if (foundDailyTable) {
+                    // 處理表格內容，根據走期設定調整顯示
+                    if (campaignEndDate && currentDate) {
+                        foundDailyTable = processTableBySchedule(foundDailyTable, campaignEndDate, currentDate);
+                    }
+                    
                     let dailyReportContent = `
                         <div class="daily-report-section">
                             <h4>📊 每日報表數據</h4>
@@ -501,6 +598,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     successMsg.innerHTML = '✓ 每日報表載入成功！';
                     dailyReportContainer.insertBefore(successMsg, dailyReportContainer.firstChild);
                     
+                    // 顯示走期資訊
+                    if (campaignEndDate && currentDate) {
+                        const scheduleMsg = document.createElement('div');
+                        scheduleMsg.className = 'cookie-status';
+                        scheduleMsg.style.backgroundColor = '#fff3cd';
+                        scheduleMsg.style.borderColor = '#ffeaa7';
+                        scheduleMsg.style.color = '#856404';
+                        scheduleMsg.innerHTML = `📅 走期設定：結束日期 ${campaignEndDate}，當前日期 ${currentDate}`;
+                        dailyReportContainer.insertBefore(scheduleMsg, dailyReportContainer.firstChild);
+                    }
+                    
                     // 顯示廣告集資訊
                     if (currentAdsetInfo && currentAdsetInfo.success) {
                         const adsetInfoMsg = document.createElement('div');
@@ -511,11 +619,29 @@ document.addEventListener('DOMContentLoaded', function() {
                         const pricing = currentAdsetInfo.pricing;
                         const info = currentAdsetInfo.info;
                         const currency = pricing.currency === 'TWD' ? '$' : pricing.currency;
+                        
+                        // 顯示預算解析資訊
+                        let budgetInfo = `${currency}${info.budget.toLocaleString()}`;
+                        if (info.parsedBudget > 0) {
+                            budgetInfo += ` (從活動名稱解析: ${currency}${info.parsedBudget.toLocaleString()})`;
+                        }
+                        
+                        // 檢查是否有 cut 數據
+                        let cutDataInfo = '';
+                        if (pricing.bMode === 'CPM') {
+                            if (currentCutData && Object.keys(currentCutData).length > 0) {
+                                const cutKeys = Object.keys(currentCutData).sort();
+                                cutDataInfo = ` | 📊 Cut 數據：已載入 (${cutKeys.join(', ')})`;
+                            } else {
+                                cutDataInfo = ` | ⚠️ Cut 數據：未找到對應的 AdUnit 或數據`;
+                            }
+                        }
+                        
                         adsetInfoMsg.innerHTML = `
                             📊 廣告集資訊：${info.name || '未知活動'} | 
                             💰 計價方式：${pricing.bMode} (${currency}${pricing.price}) | 
                             🎯 廣告類型：${info.adType || 'NATIVE'} | 
-                            💵 總預算：${currency}${(info.budget || 0).toLocaleString()}
+                            💵 總預算：${budgetInfo}${cutDataInfo}
                         `;
                         dailyReportContainer.insertBefore(adsetInfoMsg, dailyReportContainer.firstChild);
                     }
@@ -536,6 +662,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         setId: document.getElementById('setId').value.trim(),
                         sinceDate: document.getElementById('sinceDate').value,
                         toDate: document.getElementById('toDate').value,
+                        campaignEndDate: campaignEndDate,
+                        currentDate: currentDate,
                         table: foundDailyTable
                     };
                 } else {
@@ -562,6 +690,234 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // 根據走期設定處理表格內容
+    function processTableBySchedule(table, campaignEndDate, currentDate) {
+        const clonedTable = table.cloneNode(true);
+        const rows = clonedTable.querySelectorAll('tr');
+        
+        if (rows.length < 2) return clonedTable; // 如果沒有數據行，直接返回
+        
+        // 轉換日期格式用於比較
+        const campaignEnd = new Date(campaignEndDate);
+        const current = new Date(currentDate);
+        
+        // 解析現有數據
+        const tableData = [];
+        const headers = [];
+        let totalRow = null;
+        
+        // 獲取表頭
+        const headerCells = rows[0].querySelectorAll('th, td');
+        for (let cell of headerCells) {
+            headers.push(cell.textContent.trim());
+        }
+        
+        // === 新增：若表頭缺「星期」，插入後續自動補值 ===
+        let needInsertWeekCol = true;
+        headers.forEach(h => {
+            if (h.includes('星期') || h.includes('週')) needInsertWeekCol = false;
+        });
+        if (needInsertWeekCol) {
+            headers.splice(1, 0, '星期'); // 日期後插一欄
+        }
+        
+        // 解析數據行，跳過TOTAL行
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const cells = row.querySelectorAll('td, th');
+            
+            if (cells.length > 0) {
+                const firstCellText = cells[0].textContent.trim();
+                
+                if (firstCellText === 'TOTAL') {
+                    // 保存TOTAL行供後續使用
+                    totalRow = row.cloneNode(true);
+                    continue;
+                }
+                
+                // 嘗試解析日期格式
+                let rowDate = null;
+                const dateText = firstCellText;
+                
+                // 格式解析邏輯
+                if (/^\d{4}-\d{2}-\d{2}$/.test(dateText)) {
+                    rowDate = new Date(dateText);
+                } else if (/^\d{2}\/\d{2}$/.test(dateText)) {
+                    const [month, day] = dateText.split('/');
+                    rowDate = new Date(current.getFullYear(), parseInt(month) - 1, parseInt(day));
+                } else if (/^\d{2}-\d{2}$/.test(dateText)) {
+                    const [month, day] = dateText.split('-');
+                    rowDate = new Date(current.getFullYear(), parseInt(month) - 1, parseInt(day));
+                }
+                
+                if (rowDate) {
+                    const rowData = [];
+                    for (let j = 0; j < cells.length; j++) {
+                        rowData.push(cells[j].textContent.trim());
+                    }
+                    // after rowData push 完
+                    if (needInsertWeekCol) {
+                        const weekStr = getWeekdayInChinese(rowDate);
+                        rowData.splice(1, 0, weekStr); // 把星期填到第 2 格
+                    }
+                    tableData.push({
+                        date: rowDate,
+                        dateText: dateText,
+                        data: rowData,
+                        hasData: true
+                    });
+                }
+            }
+        }
+        
+        // 生成完整的日期範圍（從最早的數據日期到走期結束日期）
+        let startDate = null;
+        let endDate = campaignEnd;
+        
+        if (tableData.length > 0) {
+            // 找到最早的數據日期
+            startDate = new Date(Math.min(...tableData.map(item => item.date.getTime())));
+            
+            // 如果有數據的最後日期晚於走期結束日期，則擴展到該日期
+            const lastDataDate = new Date(Math.max(...tableData.map(item => item.date.getTime())));
+            if (lastDataDate > endDate) {
+                endDate = lastDataDate;
+            }
+        } else {
+            // 如果沒有現有數據，從當前日期開始到走期結束
+            startDate = current;
+        }
+        
+        // 生成完整的日期序列
+        const completeData = [];
+        const currentDateIter = new Date(startDate);
+        
+        while (currentDateIter <= endDate) {
+            const dateStr = formatDateToMatch(currentDateIter, tableData.length > 0 ? tableData[0].dateText : null);
+            const weekday = getWeekdayInChinese(currentDateIter);
+            
+            // 檢查是否有現有數據
+            const existingData = tableData.find(item => 
+                item.date.getTime() === currentDateIter.getTime()
+            );
+            
+            if (existingData) {
+                // 使用現有數據
+                completeData.push(existingData);
+            } else {
+                // 創建空白行
+                const emptyRowData = [dateStr, weekday];
+                
+                // 根據表頭數量填充空白欄位
+                for (let i = 2; i < headers.length; i++) {
+                    emptyRowData.push('');
+                }
+                
+                completeData.push({
+                    date: new Date(currentDateIter),
+                    dateText: dateStr,
+                    data: emptyRowData,
+                    hasData: false
+                });
+            }
+            
+            // 移到下一天
+            currentDateIter.setDate(currentDateIter.getDate() + 1);
+        }
+        
+        // 重新構建表格
+        const newTable = document.createElement('table');
+        newTable.className = clonedTable.className;
+        
+        // 添加表頭
+        const headerRow = document.createElement('tr');
+        for (let header of headers) {
+            const th = document.createElement('th');
+            th.textContent = header;
+            headerRow.appendChild(th);
+        }
+        newTable.appendChild(headerRow);
+        
+        // 添加數據行
+        for (let item of completeData) {
+            const row = document.createElement('tr');
+            
+            for (let i = 0; i < item.data.length; i++) {
+                const cell = document.createElement('td');
+                
+                if (!item.hasData && i >= 2) {
+                    // 對於空白數據，顯示特殊標記
+                    if (item.date > current) {
+                        cell.innerHTML = '<span style="color: #ccc;">—</span>';
+                        cell.style.backgroundColor = '#f8f9fa';
+                    } else if (item.date > campaignEnd) {
+                        cell.innerHTML = '<span style="color: #ccc;">—</span>';
+                        cell.style.backgroundColor = '#fff3cd';
+                    } else {
+                        cell.innerHTML = '<span style="color: #ccc;">—</span>';
+                        cell.style.backgroundColor = '#f8f9fa';
+                    }
+                } else {
+                    cell.textContent = item.data[i] || '';
+                }
+                
+                row.appendChild(cell);
+            }
+            
+            // 添加未到期的視覺標示
+            if (!item.hasData) {
+                if (item.date > current) {
+                    row.style.backgroundColor = '#f8f9fa';
+                    row.style.opacity = '0.6';
+                    row.firstChild.innerHTML += ' <span style="color: #ffc107;"></span>';
+                } else if (item.date > campaignEnd) {
+                    row.style.backgroundColor = '#fff3cd';
+                    row.style.opacity = '0.8';
+                    row.firstChild.innerHTML += ' <span style="color: #dc3545;">📅</span>';
+                }
+            }
+            
+            newTable.appendChild(row);
+        }
+        
+        // 添加TOTAL行
+        if (totalRow) {
+            newTable.appendChild(totalRow);
+        }
+        
+        return newTable;
+    }
+    
+    // 輔助函數：格式化日期以匹配現有格式
+    function formatDateToMatch(date, sampleDateText) {
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        
+        if (!sampleDateText) {
+            return `${month}/${day}`;
+        }
+        
+        // 根據樣本格式決定輸出格式
+        if (sampleDateText.includes('-')) {
+            if (sampleDateText.length > 5) {
+                // YYYY-MM-DD 格式
+                return `${date.getFullYear()}-${month}-${day}`;
+            } else {
+                // MM-DD 格式
+                return `${month}-${day}`;
+            }
+        } else {
+            // MM/DD 格式
+            return `${month}/${day}`;
+        }
+    }
+    
+    // 輔助函數：獲取中文星期
+    function getWeekdayInChinese(date) {
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+        return weekdays[date.getDay()];
+    }
+    
     // 初始化預設日期
     setDefaultDates();
     
@@ -582,14 +938,20 @@ document.addEventListener('DOMContentLoaded', function() {
             /* === 一、組出工作表原始資料 =========================== */
             const wb = XLSX.utils.book_new();
             const wsData = [];
+            
+            // 定義 getWeekdayInChinese 函數（在 Excel 導出中使用）
+            function getWeekdayInChinese(date) {
+                const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+                return weekdays[date.getDay()];
+            }
 
             /* 1. Logo 區（B2:E5）預留空白 */
-            wsData.push(['','','','','','','','','']); // 第 0 列 (Excel 第1行)
-            wsData.push(['','','','','','','','','']); // 第 1 列 (Excel 第2行)
-            wsData.push(['','','','','','','','','']); // 第 2 列 (Excel 第3行)
-            wsData.push(['','','','','','','','','']); // 第 3 列 (Excel 第4行)
-            wsData.push(['','','','','','','','','']); // 第 4 列 (Excel 第5行)
-            wsData.push(['','','','','','','','','']); // 第 5 列 (Excel 第6行)
+            wsData.push(['','','','','','','','','','']); // 第 0 列 (Excel 第1行)
+            wsData.push(['','','','','','','','','','']); // 第 1 列 (Excel 第2行)
+            wsData.push(['','','','','','','','','','']); // 第 2 列 (Excel 第3行)
+            wsData.push(['','','','','','','','','','']); // 第 3 列 (Excel 第4行)
+            wsData.push(['','','','','','','','','','']); // 第 4 列 (Excel 第5行)
+            wsData.push(['','','','','','','','','','']); // 第 5 列 (Excel 第6行)
 
             /* 2. 右側活動摘要（使用查詢到的廣告集資訊） */
             const adsetInfo = currentAdsetInfo || {};
@@ -597,40 +959,61 @@ document.addEventListener('DOMContentLoaded', function() {
             const info = adsetInfo.info || { name: '未知活動', adType: '原生互動廣告', budget: 10000 };
             
             // 活動名稱（使用查詢到的 name 或預設值）
-            const activityName = info.name || '全國電子第三檔電競筆電_5月宣傳活動';
+            const activityName = info.name || '請填入活動名稱';
             // 廣告類型（使用查詢到的 adType）
             let adTypeDisplay = info.adType || 'NATIVE';
             if (adTypeDisplay === 'NATIVE') {
-                adTypeDisplay = '原生互動廣告SLIDE';
+                adTypeDisplay = '原生互動廣告';
             }
-            // 總預算（使用查詢到的 budget）
-            const totalBudget = info.budget || 10000;
+            // 總預算（優先使用從活動名稱解析的預算）
+            const totalBudget = info.parsedBudget > 0 ? info.parsedBudget : (info.budget || 10000);
             // 計價方式和價格（使用查詢到的 bMode 和對應價格）
             const pricingMode = pricing.bMode || 'CPC';
             const pricingPrice = pricing.price || 7.0;
             const currency = pricing.currency === 'TWD' ? '$' : pricing.currency;
+            
+            // 走期相關計算
+            const campaignEndDate = currentReportData.campaignEndDate;
+            const currentDate = currentReportData.currentDate;
+            let remainingDays = 0;
+            let isOngoing = true;
+            
+            if (campaignEndDate && currentDate) {
+                const endDate = new Date(campaignEndDate);
+                const today = new Date(currentDate);
+                const timeDiff = endDate.getTime() - today.getTime();
+                remainingDays = Math.max(0, Math.ceil(timeDiff / (1000 * 3600 * 24)));
+                isOngoing = remainingDays > 0;
+            }
 
             wsData[1][3] = '活動名稱'; wsData[1][4] = activityName; wsData[1][6] = '總預算'; wsData[1][7] = `${currency}${totalBudget.toLocaleString()}`;
 
             wsData[2][3] = '廣告類型'; wsData[2][4] = adTypeDisplay; wsData[2][6] = '走期預算'; wsData[2][7] = `${currency}${totalBudget.toLocaleString()}`;
 
-            wsData[3][1] = '剩餘天數'; wsData[3][2] = '(16)'; wsData[3][3] = '計價方式'; wsData[3][4] = pricingMode; wsData[3][5] = `${currency}${pricingPrice}`; wsData[3][6] = '剩餘花費'; wsData[3][7] = '($87)';
+            wsData[3][1] = '剩餘天數'; wsData[3][2] = `(${remainingDays})`; wsData[3][3] = '計價方式'; wsData[3][4] = pricingMode; wsData[3][5] = `${currency}${pricingPrice}`; wsData[3][6] = '剩餘花費'; wsData[3][7] = '計算中...';
 
-            // 根據計價方式調整廣告目標單位
-            let targetUnit = 'clicks';
-            if (pricingMode === 'CPM') {
-                targetUnit = 'impressions';
-            } else if (pricingMode === 'CPV') {
-                targetUnit = 'views';
-            }
-
-            wsData[4][1] = '剩餘每日'; wsData[4][2] = '1'; wsData[4][3] = '廣告目標'; wsData[4][4] = '1,429'; wsData[4][5] = targetUnit; wsData[4][6] = '剩餘點擊'; wsData[4][7] = '-12';
-
+            // 先設定初始值，後面會重新計算
+            wsData[4][1] = '剩餘每日'; wsData[4][2] = '計算中...'; wsData[4][3] = '廣告目標'; wsData[4][4] = '計算中...'; wsData[4][5] = 'units'; wsData[4][6] = '剩餘數量'; wsData[4][7] = '計算中...';
 
             /* 3. 表頭（藍／橘底） */
-            wsData.push(['','日期','星期','曝光數','點擊數','點擊率','cut1','cut2','文案','']);
+            // 根據計價方式決定 cut 欄位名稱
+            let cut1Header = 'cut1';
+            let cut2Header = 'cut2';
             
-            /* 4. 注入每日數據 */
+            if (pricingMode === 'CPM') {
+                cut1Header = 'cut1';
+                cut2Header = 'cut2';
+                // 如果有 cut 數據，可以使用更具體的名稱
+                if (currentCutData && Object.keys(currentCutData).length > 0) {
+                    const cutKeys = Object.keys(currentCutData).sort();
+                    if (cutKeys.includes('1')) cut1Header = 'cut1';
+                    if (cutKeys.includes('2')) cut2Header = 'cut2';
+                }
+            }
+            
+            wsData.push(['','日期','星期','曝光數','點擊數','點擊率',cut1Header,cut2Header,'文案','']);
+            
+            /* 4. 注入每日數據（包含空白行） */
             const trs = currentReportData.table.querySelectorAll('tr');
             let sumImp=0,sumClk=0,sumC1=0,sumC2=0,sumTxt=0;
 
@@ -659,53 +1042,177 @@ document.addEventListener('DOMContentLoaded', function() {
 
             for (let i=1;i<trs.length;i++){
                 const td=trs[i].querySelectorAll('td,th');
-                if(td.length < headers.length) continue;
+                if(td.length < 2) continue; // 減少最少列數要求
                 
-                const date = dateIndex >= 0 ? td[dateIndex].textContent.trim() : '';
-                const wk = weekIndex >= 0 ? td[weekIndex].textContent.trim() : '';
+                const date = dateIndex >= 0 ? td[dateIndex].textContent.trim() : (td[0] ? td[0].textContent.trim() : '');
+                
+                // 跳過 TOTAL 行（在最後處理）
+                if (date === 'TOTAL') continue;
+                
+                // 改進星期欄位取得
+                let wk = '';
+                if (weekIndex >= 0 && td[weekIndex]) {
+                    wk = td[weekIndex].textContent.trim();
+                }
+                if (!wk && td[1]) wk = td[1].textContent.trim(); // 可能是自動插入的星期
+                if (!wk && date) {
+                    const d = new Date(date.replace(/-/g, '/'));
+                    if (!isNaN(d)) wk = getWeekdayInChinese(d);
+                }
+                
+                // 判斷這是否為空白行（沒有實際數據）
+                let isEmptyRow = false;
+                
+                // 檢查數據欄位是否為空白或包含特殊標記
+                if (td.length > 2) {
+                    const dataCell = td[2]; // 第三欄通常是數據欄位
+                    const cellContent = dataCell.textContent.trim();
+                    const cellHTML = dataCell.innerHTML.trim();
+                    
+                    // 如果包含我們的空白標記，則視為空白行
+                    if (cellHTML.includes('color: #ccc') || cellContent === '—' || cellContent === '') {
+                        isEmptyRow = true;
+                    }
+                }
                 
                 // 根據不同的表格格式讀取資料
                 let imp = 0, clk = 0, ctr = '';
                 
-                if (impIndex >= 0 && clkIndex >= 0 && ctrIndex >= 0) {
-                    // 曝光數格式：日期、曝光數、點擊數、點擊率
-                    imp = +td[impIndex].textContent.replace(/,/g,'');
-                    clk = +td[clkIndex].textContent.replace(/,/g,'');
-                    ctr = td[ctrIndex].textContent.trim();
-                } else if (playIndex >= 0 && viewIndex >= 0 && clkIndex >= 0 && viewRateIndex >= 0) {
-                    // 播放數格式：日期、播放數、觀看數、點擊數、觀看率
-                    // 將播放數當作曝光數，觀看數當作中間指標
-                    imp = +td[playIndex].textContent.replace(/,/g,'');
-                    const views = +td[viewIndex].textContent.replace(/,/g,'');
-                    clk = +td[clkIndex].textContent.replace(/,/g,'');
-                    ctr = td[viewRateIndex].textContent.trim();
-                    
-                    // 對於播放數格式，可以加上觀看數作為額外資訊
-                    console.log(`日期 ${date}: 播放數=${imp}, 觀看數=${views}, 點擊數=${clk}`);
-                } else {
-                    // 嘗試從剩餘欄位推測
-                    console.warn('無法識別表格格式，嘗試使用預設位置');
-                    if (td.length >= 3) {
-                        imp = +td[2].textContent.replace(/,/g,'') || 0;
-                        clk = +td[3] ? +td[3].textContent.replace(/,/g,'') : 0;
-                        ctr = td[4] ? td[4].textContent.trim() : '';
+                if (!isEmptyRow) {
+                    if (impIndex >= 0 && clkIndex >= 0 && ctrIndex >= 0) {
+                        // 曝光數格式：日期、曝光數、點擊數、點擊率
+                        imp = +(td[impIndex].textContent.replace(/[,—]/g,'')) || 0;
+                        clk = +(td[clkIndex].textContent.replace(/[,—]/g,'')) || 0;
+                        ctr = td[ctrIndex].textContent.trim();
+                    } else if (playIndex >= 0 && viewIndex >= 0 && clkIndex >= 0 && viewRateIndex >= 0) {
+                        // 播放數格式：日期、播放數、觀看數、點擊數、觀看率
+                        imp = +(td[playIndex].textContent.replace(/[,—]/g,'')) || 0;
+                        const views = +(td[viewIndex].textContent.replace(/[,—]/g,'')) || 0;
+                        clk = +(td[clkIndex].textContent.replace(/[,—]/g,'')) || 0;
+                        ctr = td[viewRateIndex].textContent.trim();
+                        
+                        console.log(`日期 ${date}: 播放數=${imp}, 觀看數=${views}, 點擊數=${clk}`);
+                    } else {
+                        // 嘗試從剩餘欄位推測
+                        if (td.length >= 3) {
+                            imp = +(td[2].textContent.replace(/[,—]/g,'')) || 0;
+                            clk = td[3] ? +(td[3].textContent.replace(/[,—]/g,'')) || 0 : 0;
+                            ctr = td[4] ? td[4].textContent.trim() : '';
+                        }
                     }
                 }
 
-                const c1 = Math.floor(clk*0.30);  // ←示意，依真實邏輯調整
-                const c2 = Math.floor(clk*0.20);
-                const txt = clk - c1 - c2;
+                // CPM 計價方式使用實際 cut 數據，其他計價方式使用計算值
+                let c1 = 0, c2 = 0, txt = 0;
+                
+                if (!isEmptyRow) {
+                    if (pricingMode === 'CPM' && currentCutData) {
+                        // 使用實際 cut 數據
+                        // 轉換日期格式以匹配 cut 數據的日期格式 (YYYY-MM-DD)
+                        let cutDataDate = date;
+                        
+                        // 如果日期格式是 MM/DD 或 MM-DD，需要轉換成 YYYY-MM-DD
+                        if (/^\d{2}[\/\-]\d{2}$/.test(date)) {
+                            const currentYear = new Date().getFullYear();
+                            const [month, day] = date.split(/[\/\-]/);
+                            cutDataDate = `${currentYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                        } else if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                            cutDataDate = date;
+                        } else {
+                            // 嘗試解析其他格式
+                            const parsedDate = new Date(date);
+                            if (!isNaN(parsedDate)) {
+                                const year = parsedDate.getFullYear();
+                                const month = (parsedDate.getMonth() + 1).toString().padStart(2, '0');
+                                const day = parsedDate.getDate().toString().padStart(2, '0');
+                                cutDataDate = `${year}-${month}-${day}`;
+                            }
+                        }
+                        
+                        // 從 cut 數據中獲取實際數值
+                        c1 = currentCutData['1'] && currentCutData['1'][cutDataDate] ? currentCutData['1'][cutDataDate] : 0;
+                        c2 = currentCutData['2'] && currentCutData['2'][cutDataDate] ? currentCutData['2'][cutDataDate] : 0;
+                        
+                        // 如果有更多的 cut，可以繼續添加
+                        let totalCuts = c1 + c2;
+                        
+                        // 計算文案欄位（總點擊數減去所有 cut）
+                        txt = Math.max(0, clk - totalCuts);
+                        
+                        console.log(`日期 ${cutDataDate}: 使用實際 cut 數據 - cut1=${c1}, cut2=${c2}, 文案=${txt}`);
+                    } else {
+                        // 使用原來的計算方式
+                        c1 = Math.floor(clk * 0.30);
+                        c2 = Math.floor(clk * 0.20);
+                        txt = clk - c1 - c2;
+                    }
+                }
+
+                // 空白行的顯示處理
+                const impDisplay = isEmptyRow ? '' : (imp > 0 ? imp.toLocaleString() : '');
+                const clkDisplay = isEmptyRow ? '' : (clk > 0 ? clk : '');
+                const ctrDisplay = isEmptyRow ? '' : ctr;
+                const c1Display = isEmptyRow ? '' : (c1 > 0 ? c1 : '');
+                const c2Display = isEmptyRow ? '' : (c2 > 0 ? c2 : '');
+                const txtDisplay = isEmptyRow ? '' : (txt > 0 ? txt : '');
 
                 wsData.push([
-                    '', date, wk, imp.toLocaleString(), clk, ctr, c1, c2, txt
+                    '', date, wk, impDisplay, clkDisplay, ctrDisplay, c1Display, c2Display, txtDisplay, ''
                 ]);
 
-                sumImp+=imp;sumClk+=clk;sumC1+=c1;sumC2+=c2;sumTxt+=txt;
+                // 只有非空白行才加入總計
+                if (!isEmptyRow) {
+                    sumImp+=imp;sumClk+=clk;sumC1+=c1;sumC2+=c2;sumTxt+=txt;
+                }
             }
 
             /* 5. TOTAL 行 */
             const totCtr = sumImp?((sumClk/sumImp)*100).toFixed(2)+'%':'0.00%';
-            wsData.push(['', 'TOTAL', '', sumImp.toLocaleString(), sumClk, totCtr, sumC1, sumC2, sumTxt]);
+            wsData.push(['', 'TOTAL', '', sumImp.toLocaleString(), sumClk, totCtr, sumC1, sumC2, sumTxt, '']);
+            
+            // === 現在重新計算剩餘花費和廣告目標 ===
+            let targetUnit = 'clicks';
+            let targetCount = 0;
+            let remainingLabel = '剩餘點擊數';
+            let remainingAmount = 0;
+            let remainingBudget = 0;
+            
+            if (pricingMode === 'CPM') {
+                targetUnit = 'impressions';
+                remainingLabel = '剩餘曝光數';
+                // CPM: (走期預算 / 計價方式金額) * 1000
+                targetCount = Math.floor((totalBudget / pricingPrice) * 1000);
+                // 剩餘花費 = 走期預算 - [(曝光數total * 計價方式金額) / 1000]
+                remainingBudget = totalBudget - ((sumImp * pricingPrice) / 1000);
+                remainingAmount = Math.floor((remainingBudget / pricingPrice) * 1000);
+            } else if (pricingMode === 'CPV') {
+                targetUnit = 'views';
+                remainingLabel = '剩餘觀看數';
+                // CPV: 走期預算 / 計價方式金額
+                targetCount = Math.floor(totalBudget / pricingPrice);
+                // 剩餘花費 = 走期預算 - (觀看數total * 計價方式金額)
+                remainingBudget = totalBudget - (sumClk * pricingPrice); // 假設觀看數用點擊數代替
+                remainingAmount = Math.floor(remainingBudget / pricingPrice);
+            } else { // CPC
+                targetUnit = 'clicks';
+                remainingLabel = '剩餘點擊數';
+                // CPC: 走期預算 / 計價方式金額
+                targetCount = Math.floor(totalBudget / pricingPrice);
+                // 剩餘花費 = 走期預算 - (點擊數total * 計價方式金額)
+                remainingBudget = totalBudget - (sumClk * pricingPrice);
+                remainingAmount = Math.floor(remainingBudget / pricingPrice);
+            }
+            
+            // 更新計算結果
+            wsData[3][7] = isOngoing ? `${currency}${Math.max(0, remainingBudget).toLocaleString()}` : '(已結束)';
+            const remainingDailyValue = (remainingDays > 0 && remainingAmount > 0) ? Math.ceil(Math.max(0, remainingAmount) / remainingDays) : 0;
+
+            wsData[4][2] = remainingDailyValue;
+            wsData[4][4] = targetCount.toLocaleString();
+            wsData[4][5] = targetUnit;
+            wsData[4][6] = remainingLabel;
+            wsData[4][7] = isOngoing ? Math.max(0, remainingAmount) : '0';
+            
             /* === 二、轉成 Sheet 並做進階格式 ======================= */
             const ws = XLSX.utils.aoa_to_sheet(wsData);
 
@@ -719,7 +1226,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 {wch:10},  // F CTR
                 {wch:10},  // G cut1
                 {wch:10},  // H cut2
-                {wch:10}   // I 文案
+                {wch:10},  // I 文案
+                {wch:10}   // J 空白
             ];
 
             /* 2. 合併範圍 */
@@ -758,14 +1266,33 @@ document.addEventListener('DOMContentLoaded', function() {
             // 紅字數值
             ['B4','I4','I5'].forEach(a=>ws[a].s.font={color:{rgb:'FF0000'},bold:true});
             // 表頭藍底 / 橘底
-            const tableHeaderRow = wsData.length - 1; // 表頭所在行
+            const tableHeaderRow = 6; // 表頭固定在第7行（index 6）
             paint([`A${tableHeaderRow+1}`,`B${tableHeaderRow+1}`,`C${tableHeaderRow+1}`,`D${tableHeaderRow+1}`,`E${tableHeaderRow+1}`],'4472C4',{color:{rgb:'FFFFFF'},bold:true});
-            paint([`F${tableHeaderRow+1}`,`G${tableHeaderRow+1}`,`H${tableHeaderRow+1}`],'E67E22',{color:{rgb:'FFFFFF'},bold:true});
+            paint([`F${tableHeaderRow+1}`,`G${tableHeaderRow+1}`,`H${tableHeaderRow+1}`,`I${tableHeaderRow+1}`],'E67E22',{color:{rgb:'FFFFFF'},bold:true});
+            
+            // 為空白行設置灰色背景
+            const dataStartRow = 7; // 數據從第8行開始（index 7）
+            for(let i = dataStartRow; i < wsData.length - 1; i++) { // 排除TOTAL行
+                const rowData = wsData[i];
+                
+                // 檢查是否為空白行（數據欄位為空）
+                if (rowData[3] === '' || rowData[4] === '') {
+                    // 為空白行設置灰色背景
+                    ['A','B','C','D','E','F','G','H','I','J'].forEach(col => {
+                        const addr = `${col}${i+1}`;
+                        if (ws[addr]) {
+                            ws[addr].s.fill = {fgColor:{rgb:'F8F9FA'}};
+                            ws[addr].s.font = {color:{rgb:'999999'}};
+                        }
+                    });
+                }
+            }
+            
             // TOTAL 行
             const totalRow = wsData.length; // TOTAL 行所在位置
             paint([`C${totalRow}`],'FFF2CB',{bold:true}); // 曝光數黃底
             ws[`E${totalRow}`].s.font={color:{rgb:'FF0000'},bold:true}; // 點擊率紅字
-            ['A','B','D','F','G','H'].forEach(col=>{
+            ['A','B','D','F','G','H','J'].forEach(col=>{
                 const addr = `${col}${totalRow}`;
                 if (ws[addr]) {
                     ws[addr].s.font={...(ws[addr].s.font||{}),bold:true};
@@ -777,10 +1304,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const name = `廣告報表_${currentReportData.setId.slice(0,8)}_${new Date().toISOString().slice(0,10)}.xlsx`;
             XLSX.writeFile(wb,name);
             
-            // 顯示成功訊息，包含廣告集資訊
+            // 顯示成功訊息，包含廣告集資訊和日期範圍
             let successMessage = `✅ Excel 報表已成功產出！檔案名稱：${name}`;
+            
+            // 計算實際數據行數和空白行數
+            const totalDataRows = wsData.length - 7 - 1; // 減去表頭和TOTAL行
+            const hasDataRows = wsData.slice(7, -1).filter(row => row[3] !== '').length;
+            const emptyRows = totalDataRows - hasDataRows;
+            
             if (currentAdsetInfo && currentAdsetInfo.success) {
-                successMessage += `\n📊 已套用廣告集資訊：\n- 計價方式：${pricingMode}\n- 價格：${currency}${pricingPrice}\n- 活動名稱：${activityName}`;
+                const budgetSource = info.parsedBudget > 0 ? '從活動名稱解析' : '使用原始預算';
+                const scheduleInfo = remainingDays > 0 ? `剩餘 ${remainingDays} 天` : '活動已結束';
+                successMessage += `\n📊 已套用廣告集資訊：\n- 計價方式：${pricingMode}\n- 價格：${currency}${pricingPrice}\n- 活動名稱：${activityName}\n- 預算：${currency}${totalBudget.toLocaleString()} (${budgetSource})\n- 走期狀態：${scheduleInfo}\n📅 日期範圍：包含 ${hasDataRows} 筆實際數據，${emptyRows} 筆空白日期`;
             }
             alert(successMessage);
 

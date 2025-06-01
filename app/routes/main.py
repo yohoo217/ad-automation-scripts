@@ -201,108 +201,12 @@ def report_proxy():
             'success': False,
             'error': '請求超時，請稍後再試'
         }), 408
+        
     except requests.exceptions.RequestException as e:
         logger.error(f"請求發生錯誤: {str(e)}")
         return jsonify({
             'success': False,
             'error': f'請求失敗: {str(e)}'
-        }), 500
-    except Exception as e:
-        logger.error(f"代理請求時發生未預期錯誤: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': f'代理服務異常: {str(e)}'
-        }), 500
-
-@main_bp.route('/api/cpm-cut-data')
-def get_cpm_cut_data():
-    """查詢 CPM 廣告集的 AdUnit 並獲取 cut 數據"""
-    try:
-        # 獲取查詢參數
-        adset_id = request.args.get('adsetId')
-        
-        if not adset_id:
-            return jsonify({'error': '缺少必要參數：adsetId'}), 400
-        
-        logger.info(f"查詢 CPM cut 數據: {adset_id}")
-        
-        # 連接 MongoDB
-        client = get_mongo_client()
-        if not client:
-            return jsonify({'error': 'MongoDB 連接失敗'}), 500
-        
-        # 查詢 AdUnit collection
-        db = client['trek']
-        adunit_collection = db['AdUnit']
-        
-        # 找出對應 setId 的所有 AdUnit
-        adunits = list(adunit_collection.find({'setId': adset_id}, {'uuid': 1, 'name': 1, 'title': 1}))
-        
-        if not adunits:
-            return jsonify({
-                'success': True,
-                'adsetId': adset_id,
-                'cutData': {},
-                'message': '沒有找到對應的 AdUnit'
-            })
-        
-        logger.info(f"找到 {len(adunits)} 個 AdUnit")
-        
-        # 收集所有 cut 數據
-        all_cut_data = {}
-        
-        for adunit in adunits:
-            uuid = adunit.get('uuid')
-            if not uuid:
-                continue
-                
-            try:
-                # 呼叫 tkrecorder API
-                tkrecorder_url = f"https://tkrecorder.aotter.net/sp/list/v/{uuid}"
-                response = requests.get(tkrecorder_url, timeout=10)
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    success_data = data.get('success', {})
-                    
-                    logger.info(f"AdUnit {uuid} 獲取數據成功")
-                    
-                    # 處理每個 cut 的數據
-                    for cut_key, cut_data in success_data.items():
-                        if cut_key not in all_cut_data:
-                            all_cut_data[cut_key] = {}
-                            
-                        # 按日期整理數據
-                        for daily_data in cut_data:
-                            date = daily_data.get('_id')
-                            count = daily_data.get('totalCount', 0)
-                            
-                            if date not in all_cut_data[cut_key]:
-                                all_cut_data[cut_key][date] = 0
-                            
-                            all_cut_data[cut_key][date] += count
-                
-                else:
-                    logger.warning(f"AdUnit {uuid} API 呼叫失敗: {response.status_code}")
-                    
-            except Exception as e:
-                logger.error(f"處理 AdUnit {uuid} 時發生錯誤: {str(e)}")
-                continue
-        
-        logger.info(f"CPM cut 數據查詢完成，共收集到 {len(all_cut_data)} 個 cut")
-        
-        return jsonify({
-            'success': True,
-            'adsetId': adset_id,
-            'adunitCount': len(adunits),
-            'cutData': all_cut_data
-        })
-        
-    except Exception as e:
-        logger.error(f"查詢 CPM cut 數據時發生錯誤: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': f'查詢失敗: {str(e)}'
         }), 500
 
 @main_bp.route('/vote-ad')
@@ -1008,4 +912,77 @@ def clear_countdown_form():
     for key in keys_to_remove:
         session.pop(key, None)
     flash("表單內容已清除", 'info')
-    return redirect(url_for('main.countdown_ad')) 
+    return redirect(url_for('main.countdown_ad'))
+
+@main_bp.route('/api/adunits')
+def get_adunits():
+    """查詢指定 adset 的所有 AdUnit"""
+    try:
+        adset_id = request.args.get('adsetId')
+        if not adset_id:
+            return jsonify({'error': '缺少 adsetId 參數'}), 400
+        
+        from app.models.database import get_mongo_client, MONGO_DATABASE
+        client = get_mongo_client()
+        if not client:
+            return jsonify({'error': 'MongoDB 連接失敗'}), 500
+        
+        db = client[MONGO_DATABASE]
+        collection = db['AdUnit']
+        
+        # 查詢該 adset 的所有 AdUnit
+        query = {"setId": adset_id}
+        projection = {
+            "uuid": 1,
+            "name": 1, 
+            "title": 1,
+            "interactSrc.creativeType": 1,
+            "_id": 0
+        }
+        
+        adunits = list(collection.find(query, projection))
+        
+        logger.info(f"找到 {len(adunits)} 個 AdUnit for adset {adset_id}")
+        
+        return jsonify({
+            'success': True,
+            'adunits': adunits,
+            'count': len(adunits)
+        })
+        
+    except Exception as e:
+        logger.error(f"查詢 AdUnit 時發生錯誤: {str(e)}")
+        return jsonify({'error': f'查詢失敗: {str(e)}'}), 500
+
+@main_bp.route('/api/cut-data')
+def get_cut_data():
+    """查詢 tkrecorder 的 cut 數據"""
+    try:
+        uuid = request.args.get('uuid')
+        if not uuid:
+            return jsonify({'error': '缺少 uuid 參數'}), 400
+        
+        # 查詢 tkrecorder API
+        tkrecorder_url = f"https://tkrecorder.aotter.net/sp/list/v/{uuid}"
+        
+        logger.info(f"正在查詢 tkrecorder: {tkrecorder_url}")
+        
+        response = requests.get(tkrecorder_url, timeout=30)
+        
+        if response.status_code != 200:
+            return jsonify({'error': f'tkrecorder API 請求失敗: {response.status_code}'}), 500
+        
+        data = response.json()
+        
+        return jsonify({
+            'success': True,
+            'uuid': uuid,
+            'data': data
+        })
+        
+    except requests.RequestException as e:
+        logger.error(f"請求 tkrecorder API 時發生錯誤: {str(e)}")
+        return jsonify({'error': f'請求失敗: {str(e)}'}), 500
+    except Exception as e:
+        logger.error(f"查詢 cut 數據時發生錯誤: {str(e)}")
+        return jsonify({'error': f'查詢失敗: {str(e)}'}), 500 

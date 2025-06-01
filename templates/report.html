@@ -842,22 +842,24 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 設定欄寬
             worksheet.columns = [
-                { width: 4 },   // A 外框
+                { width: 4, },   // A 外框
                 { width: 12 },  // B 日期
-                { width: 8 },   // C 星期
+                { width: 15 },   // C 星期
                 { width: 15 },  // D 曝光
-                { width: 10 },  // E 點擊
-                { width: 10 },  // F CTR
-                { width: 10 },  // G cut1
-                { width: 10 },  // H cut2
-                { width: 10 },  // I 文案
-                { width: 10 }   // J 空白
+                { width: 20 },  // E 點擊
+                { width: 28 },  // F CTR
+                { width: 15 },  // G cut1
+                { width: 15 },  // H cut2
+                { width: 15 },  // I 文案
+                { width: 15 }   // J 空白
             ];
+            
+            worksheet.properties.defaultRowHeight = 26;
 
             // 定義樣式物件
             const styles = {
                 header: {
-                    font: { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 },
+                    font: { bold: true, color: { argb: 'FFFFFFFF' }, size: 13 },
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
@@ -868,7 +870,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 orangeHeader: {
-                    font: { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 },
+                    font: { bold: true, color: { argb: 'FFFFFFFF' }, size: 13 },
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE67E22' } },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
@@ -879,6 +881,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 normal: {
+                    font: { size: 13 },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
                         top: { style: 'thin' },
@@ -888,7 +891,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 total: {
-                    font: { bold: true },
+                    font: { bold: true, size: 13 },
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFDA66' } }, // RGB(255,218,102)
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
@@ -899,7 +902,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 redFont: {
-                    font: { bold: true, color: { argb: 'FFFF0000' } },
+                    font: { bold: true, color: { argb: 'FFFF0000' }, size: 13 },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
                         top: { style: 'thin' },
@@ -909,7 +912,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 grayBg: {
-                    font: { bold: true },
+                    font: { bold: true, size: 13 },
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
@@ -920,7 +923,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 whiteBg: {
-                    font: { bold: true },
+                    font: { bold: true, size: 13 },
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
@@ -931,7 +934,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 emptyRow: {
-                    font: { color: { argb: 'FF999999' } },
+                    font: { color: { argb: 'FF999999' }, size: 13 },
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
@@ -942,7 +945,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 yellowBg: {
-                    font: { bold: true },
+                    font: { bold: true, size: 13 },
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CB' } },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {

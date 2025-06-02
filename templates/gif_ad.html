@@ -2,7 +2,7 @@
 
 {% block title %}GIF 廣告建立{% endblock %}
 
-{% block page_title %}🎮 建立 GIF 廣告{% endblock %}
+{% block page_title %} 建立 GIF 廣告{% endblock %}
 
 {% block additional_styles %}
 <style>
@@ -26,7 +26,7 @@
 
 <form action="{{ url_for('main.gif_ad') }}" method="post" id="ad-form">
     <div class="field-group">
-        <h3>📋 基本廣告資訊</h3>
+        <h3>基本廣告資訊</h3>
         
         <div class="form-grid-2">
             <div class="form-row">
@@ -127,15 +127,15 @@
         </div>
 
         <div class="form-row">
-            <label for="background_image">遊戲套件預設背景 <span class="required">*</span></label>
+            <label for="background_image">互動廣告墊檔背景 <span class="required">*</span></label>
             <input type="text" id="background_image" name="background_image" 
                    placeholder="請輸入背景圖片網址" value="{{ background_image or '' }}" required>
-            <div class="help-text">遊戲套件預設背景圖片網址</div>
+            <div class="help-text">互動廣告墊檔背景圖片網址</div>
         </div>
     </div>
 
     <div class="field-group">
-        <h3>⚙️ 遊戲套件設定</h3>
+        <h3>互動廣告設定</h3>
         
         <div class="form-grid-2">
             <div class="form-row">

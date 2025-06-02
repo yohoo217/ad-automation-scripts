@@ -144,7 +144,7 @@
         <div class="form-row">
             <label for="setId">廣告集 ID <span class="required">*</span></label>
             <input type="text" id="setId" name="setId" placeholder="請輸入廣告集 ID，例如：82000801-b829-4812-aefb-eae6a9b27040" required>
-            <div class="help-text">輸入您要查詢的廣告集 ID</div>
+            <div class="help-text">輸入您要查詢的廣告集 ID，系統會自動取得走期時間和活動資訊</div>
         </div>
 
         <div class="form-row">
@@ -155,36 +155,13 @@
             <div class="help-text">勾選此項目將會查詢 AdUnit 並顯示各 cut 的詳細數據</div>
         </div>
         
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="sinceDate">開始日期 (timestamp)</label>
-                <input type="number" id="sinceDate" name="sinceDate" value="1746028740000" placeholder="毫秒時間戳">
-                <div class="help-text">預設為當前時間前30天</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="toDate">結束日期 (timestamp)</label>
-                <input type="number" id="toDate" name="toDate" value="1748534340000" placeholder="毫秒時間戳">
-                <div class="help-text">預設為當前時間</div>
-            </div>
-        </div>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="campaignEndDate">📅 走期結束日期</label>
-                <input type="date" id="campaignEndDate" name="campaignEndDate" placeholder="選擇走期結束日期">
-                <div class="help-text">用於判斷哪些日期應該顯示空白（未到期）</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="currentDate">📅 當前日期（用於比較）</label>
-                <input type="date" id="currentDate" name="currentDate" placeholder="當前日期">
-                <div class="help-text">用於判斷哪些日期已經過期，預設為今天</div>
-            </div>
-        </div>
+        <!-- 隱藏的輸入框，用於儲存從 AdSet 取得的數據 -->
+        <input type="hidden" id="sinceDate" name="sinceDate">
+        <input type="hidden" id="toDate" name="toDate">
+        <input type="hidden" id="campaignEndDate" name="campaignEndDate">
+        <input type="hidden" id="currentDate" name="currentDate">
         
         <button type="button" id="fetchReport" class="button">📈 取得報表</button>
-        <button type="button" id="resetDates" class="button nav-button">🔄 重置為預設日期</button>
         <button type="button" id="exportExcel" class="export-button" disabled>📊 產出 XLSX 報表</button>
     </div>
     
@@ -238,44 +215,21 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('cookie-status').innerHTML = '✗ Cookie 設置失敗: ' + error.message;
     }
     
-    // 設置預設日期（當前時間前30天到當前時間）
-    function setDefaultDates() {
-        const now = new Date();
-        const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-        
-        document.getElementById('sinceDate').value = thirtyDaysAgo.getTime();
-        document.getElementById('toDate').value = now.getTime();
-        
-        // 設置當前日期
-        const today = now.toISOString().split('T')[0];
-        document.getElementById('currentDate').value = today;
-        
-        // 預設走期結束日期為7天後
-        const weekLater = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
-        const weekLaterStr = weekLater.toISOString().split('T')[0];
-        document.getElementById('campaignEndDate').value = weekLaterStr;
-    }
-    
-    // 重置日期按鈕
-    document.getElementById('resetDates').addEventListener('click', setDefaultDates);
-    
     // 取得報表按鈕
     document.getElementById('fetchReport').addEventListener('click', function() {
         const setId = document.getElementById('setId').value.trim();
-        const sinceDate = document.getElementById('sinceDate').value;
-        const toDate = document.getElementById('toDate').value;
         
         if (!setId) {
             alert('請輸入廣告集 ID');
             return;
         }
         
-        if (!sinceDate || !toDate) {
-            alert('請輸入有效的開始和結束日期');
-            return;
-        }
+        // 使用預設時間戳，實際會從 AdSet 自動取得正確的時間戳
+        const defaultSinceDate = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30天前
+        const defaultToDate = Date.now(); // 當前時間
         
-        fetchReportData(setId, sinceDate, toDate);
+        console.log('開始查詢報表，AdSet ID:', setId);
+        fetchReportData(setId, defaultSinceDate, defaultToDate);
     });
     
     // 產出 Excel 報表按鈕
@@ -304,18 +258,71 @@ document.addEventListener('DOMContentLoaded', function() {
         errorElement.style.display = 'none';
         
         try {
-            // 建立查詢陣列
+            // 第一步：先查詢廣告集資訊，取得正確的時間戳
+            console.log('正在查詢廣告集資訊:', `/api/adset-info?adsetId=${encodeURIComponent(setId)}`);
+            
+            const adsetResponse = await fetch(`/api/adset-info?adsetId=${encodeURIComponent(setId)}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            let actualSinceDate = sinceDate;
+            let actualToDate = toDate;
+            
+            // 處理廣告集資訊回應
+            if (adsetResponse.ok) {
+                const adsetInfo = await adsetResponse.json();
+                console.log('收到廣告集資訊:', adsetInfo);
+                currentAdsetInfo = adsetInfo;
+                
+                if (adsetInfo.success && adsetInfo.info) {
+                    // 自動設置走期結束日期
+                    if (adsetInfo.info.campaignEndDate) {
+                        document.getElementById('campaignEndDate').value = adsetInfo.info.campaignEndDate;
+                        console.log('自動設置走期結束日期:', adsetInfo.info.campaignEndDate);
+                    }
+                    
+                    // 自動設置開始和結束時間戳
+                    if (adsetInfo.info.fromTimestamp) {
+                        actualSinceDate = adsetInfo.info.fromTimestamp;
+                        document.getElementById('sinceDate').value = actualSinceDate;
+                        console.log('自動設置開始時間戳:', actualSinceDate);
+                    }
+                    if (adsetInfo.info.toTimestamp) {
+                        actualToDate = adsetInfo.info.toTimestamp;
+                        document.getElementById('toDate').value = actualToDate;
+                        console.log('自動設置結束時間戳:', actualToDate);
+                    }
+                    
+                    // 設置當前日期
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById('currentDate').value = today;
+                }
+            } else {
+                console.warn('查詢廣告集資訊失敗，將使用傳入的預設時間戳');
+                currentAdsetInfo = {
+                    success: false,
+                    pricing: { bMode: 'CPC', price: 7.0, currency: 'TWD' },
+                    info: { 
+                        name: '未知活動', 
+                        adType: '原生互動廣告', 
+                        budget: 0, 
+                        campaignEndDate: null,
+                        fromTimestamp: null,
+                        toTimestamp: null
+                    }
+                };
+            }
+            
+            // 第二步：使用正確的時間戳查詢報表
+            console.log('正在查詢報表，使用時間戳:', `從 ${actualSinceDate} 到 ${actualToDate}`);
+            
             const queries = [
                 // 查詢報表資料
-                fetch(`/api/report-proxy?setId=${encodeURIComponent(setId)}&sinceDate=${encodeURIComponent(sinceDate)}&toDate=${encodeURIComponent(toDate)}`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                }),
-                // 查詢廣告集資訊
-                fetch(`/api/adset-info?adsetId=${encodeURIComponent(setId)}`, {
+                fetch(`/api/report-proxy?setId=${encodeURIComponent(setId)}&sinceDate=${encodeURIComponent(actualSinceDate)}&toDate=${encodeURIComponent(actualToDate)}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -335,17 +342,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     })
                 );
+                console.log('正在查詢 AdUnit:', `/api/adunits?adsetId=${encodeURIComponent(setId)}`);
             }
             
             // 並行查詢
             const responses = await Promise.all(queries);
-            const [reportResponse, adsetResponse, adunitResponse] = responses;
-            
-            console.log('正在發送請求到代理路由:', `/api/report-proxy?setId=${encodeURIComponent(setId)}&sinceDate=${encodeURIComponent(sinceDate)}&toDate=${encodeURIComponent(toDate)}`);
-            console.log('正在查詢廣告集資訊:', `/api/adset-info?adsetId=${encodeURIComponent(setId)}`);
-            if (isSlideAd) {
-                console.log('正在查詢 AdUnit:', `/api/adunits?adsetId=${encodeURIComponent(setId)}`);
-            }
+            const [reportResponse, adunitResponse] = responses;
             
             // 處理報表回應
             if (!reportResponse.ok) {
@@ -354,21 +356,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const jsonResponse = await reportResponse.json();
             console.log('收到代理回應:', jsonResponse);
-            
-            // 處理廣告集資訊回應
-            let adsetInfo = null;
-            if (adsetResponse.ok) {
-                adsetInfo = await adsetResponse.json();
-                console.log('收到廣告集資訊:', adsetInfo);
-                currentAdsetInfo = adsetInfo;
-            } else {
-                console.warn('查詢廣告集資訊失敗，將使用預設值');
-                currentAdsetInfo = {
-                    success: false,
-                    pricing: { bMode: 'CPC', price: 7.0, currency: 'TWD' },
-                    info: { name: '未知活動', adType: '原生互動廣告', budget: 0 }
-                };
-            }
             
             // 處理 AdUnit 和 cut 數據
             let cutData = {};
@@ -482,7 +469,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 顯示表格
                 let dailyReportContent = `
                     <div class="daily-report-section">
-                        <h4>📊 每日報表數據${isSlideAd ? '（含 Cut 分析）' : ''}</h4>
+                        <h4>📊 每日報表數據${isSlideAd ? '（含 Cut 分析數據）' : ''}</h4>
                         ${dailyReportTable.outerHTML}
                     </div>
                 `;
@@ -859,7 +846,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // 定義樣式物件
             const styles = {
                 header: {
-                    font: { bold: true, color: { argb: 'FFFFFFFF' }, size: 13 },
+                    font: { 
+                        name: 'Helvetica',    // ★ 加上這行
+                        bold: true, 
+                        color: { argb: 'FFFFFFFF' }, 
+                        size: 13 
+                    },
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
@@ -870,7 +862,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 orangeHeader: {
-                    font: { bold: true, color: { argb: 'FFFFFFFF' }, size: 13 },
+                    font: { 
+                        name: 'Helvetica',    // ★ 加上這行
+                        bold: true, 
+                        color: { argb: 'FFFFFFFF' }, 
+                        size: 13 
+                    },
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE67E22' } },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
@@ -881,7 +878,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 normal: {
-                    font: { size: 13 },
+                    font: { 
+                        name: 'Helvetica',    // ★ 加上這行
+                        size: 13 
+                    },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
                         top: { style: 'thin' },
@@ -891,8 +891,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 total: {
-                    font: { bold: true, size: 13 },
-                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFDA66' } }, // RGB(255,218,102)
+                    font: { 
+                        name: 'Helvetica',    // ★ 加上這行
+                        bold: true, 
+                        size: 13 
+                    },
+                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFDA66' } },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
                         top: { style: 'thin' },
@@ -902,7 +906,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 redFont: {
-                    font: { bold: true, color: { argb: 'FFFF0000' }, size: 13 },
+                    font: { 
+                        name: 'Helvetica',    // ★ 加上這行
+                        bold: true, 
+                        color: { argb: 'FFFF0000' }, 
+                        size: 13 
+                    },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
                         top: { style: 'thin' },
@@ -912,7 +921,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 grayBg: {
-                    font: { bold: true, size: 13 },
+                    font: { 
+                        name: 'Helvetica',    // ★ 加上這行
+                        bold: true, 
+                        size: 13 
+                    },
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
@@ -923,7 +936,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 whiteBg: {
-                    font: { bold: true, size: 13 },
+                    font: { 
+                        name: 'Helvetica',    // ★ 加上這行
+                        size: 13 
+                    },
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
@@ -934,7 +950,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 emptyRow: {
-                    font: { color: { argb: 'FF999999' }, size: 13 },
+                    font: { 
+                        name: 'Helvetica',    // ★ 加上這行
+                        color: { argb: 'FF999999' }, 
+                        size: 13 
+                    },
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
@@ -945,7 +965,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 yellowBg: {
-                    font: { bold: true, size: 13 },
+                    font: { 
+                        name: 'Helvetica',    // ★ 加上這行
+                        bold: true, 
+                        size: 13 
+                    },
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CB' } },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
@@ -973,7 +997,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const activityName = info.name || '請填入活動名稱';
             let adTypeDisplay = info.adType || 'NATIVE';
             if (adTypeDisplay === 'NATIVE') {
-                adTypeDisplay = '原生互動廣告';
+                adTypeDisplay = '原生廣告';
             }
             const totalBudget = info.parsedBudget > 0 ? info.parsedBudget : (info.budget || 10000);
             const pricingMode = pricing.bMode || 'CPC';
@@ -1109,7 +1133,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 嘗試載入本地 logo 圖片
             try {
-                const response = await fetch('/static/images/logo.jpeg');
+                const response = await fetch('/static/images/logo.png');
                 if (response.ok) {
                     const imageBuffer = await response.arrayBuffer();
                     const imageId = workbook.addImage({
@@ -1120,7 +1144,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // 在 B2:C3 區域插入圖片，調整尺寸適應儲存格
                     worksheet.addImage(imageId, {
                         tl: { col: 1, row: 1 }, // B2 (從0開始計算)
-                        ext: { width: 80, height: 40 } // 調整為適合的大小 (原圖 300x300 縮放)
+                        ext: { width: 200, height: 60 } // 調整為適合的大小 (原圖 300x300 縮放)
                     });
                     logoInserted = true;
                     console.log('✅ Logo 圖片載入成功');
@@ -1133,7 +1157,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!logoInserted) {
                 try {
                     // 如果您有 CDN URL，請在這裡替換
-                    const cdnUrl = null; // 請替換為您的 CDN URL，例如: 'https://your-cdn.com/logo.jpeg'
+                    const cdnUrl = 'https://static.ottercdn.com/trek/media/e19b2b54-641e-4519-a34f-a84deeea878e.png'; // 請替換為您的 CDN URL，例如: 'https://your-cdn.com/logo.jpeg'
                     
                     if (cdnUrl) {
                         console.log('🔄 嘗試 CDN 備案...', cdnUrl);
@@ -1186,6 +1210,7 @@ document.addEventListener('DOMContentLoaded', function() {
             applyStyle(worksheet.getCell('G3'), styles.grayBg);
             worksheet.getCell('H3').value = `${currency}${totalBudget.toLocaleString()}`;
             applyStyle(worksheet.getCell('H3'), styles.whiteBg);
+            worksheet.getCell('H3').font = { bold: true, size: 13, name: 'Helvetica' };
 
             // 合併儲存格
             worksheet.mergeCells('B2:C3'); // Logo 區域
@@ -1207,7 +1232,7 @@ document.addEventListener('DOMContentLoaded', function() {
             applyStyle(worksheet.getCell('G4'), styles.grayBg);
             worksheet.getCell('H4').value = isOngoing ? 
                 `${currency}${Math.max(0, remainingBudget).toLocaleString()}` : '(已結束)';
-            applyStyle(worksheet.getCell('H4'), styles.whiteBg);
+            applyStyle(worksheet.getCell('H4'), styles.redFont);
 
             worksheet.getCell('B5').value = '剩餘每日';
             applyStyle(worksheet.getCell('B5'), styles.grayBg);
@@ -1222,7 +1247,7 @@ document.addEventListener('DOMContentLoaded', function() {
             worksheet.getCell('G5').value = remainingLabel;
             applyStyle(worksheet.getCell('G5'), styles.grayBg);
             worksheet.getCell('H5').value = isOngoing ? Math.max(0, remainingAmount) : '0';
-            applyStyle(worksheet.getCell('H5'), styles.whiteBg);
+            applyStyle(worksheet.getCell('H5'), styles.redFont);
 
             // 4. 表頭（第7行）
             const tableStartRow = 7;
@@ -1298,7 +1323,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (header.includes('點擊率') || header.includes('觀看率')) {
                     cell.value = totCtr;
                     applyStyle(cell, styles.total);
-                    cell.font = { bold: true, color: { argb: 'FFFF0000' } }; // 保持紅色字體
+                    cell.font = { bold: true, color: { argb: 'FFFF0000' }, size: 13, name: 'Helvetica' }; // 保持紅色字體
                 } else if (header.includes('cut')) {
                     cell.value = cutSums[header] || 0;
                     applyStyle(cell, styles.total);
@@ -1598,14 +1623,23 @@ document.addEventListener('DOMContentLoaded', function() {
             container.insertBefore(slideMsg, container.firstChild);
         }
         
-        // 顯示走期資訊
+        // 顯示走期資訊（強調是自動從 AdSet 取得）
         if (campaignEndDate && currentDate) {
             const scheduleMsg = document.createElement('div');
             scheduleMsg.className = 'cookie-status';
             scheduleMsg.style.backgroundColor = '#fff3cd';
             scheduleMsg.style.borderColor = '#ffeaa7';
             scheduleMsg.style.color = '#856404';
-            scheduleMsg.innerHTML = `📅 走期設定：結束日期 ${campaignEndDate}，當前日期 ${currentDate}`;
+            scheduleMsg.innerHTML = `📅 走期設定：結束日期 ${campaignEndDate}（自動從 AdSet.toTime 取得），當前日期 ${currentDate}`;
+            container.insertBefore(scheduleMsg, container.firstChild);
+        } else if (campaignEndDate) {
+            // 只有走期結束日期，沒有當前日期
+            const scheduleMsg = document.createElement('div');
+            scheduleMsg.className = 'cookie-status';
+            scheduleMsg.style.backgroundColor = '#fff3cd';
+            scheduleMsg.style.borderColor = '#ffeaa7';
+            scheduleMsg.style.color = '#856404';
+            scheduleMsg.innerHTML = `📅 走期設定：結束日期 ${campaignEndDate}（自動從 AdSet.toTime 取得）`;
             container.insertBefore(scheduleMsg, container.firstChild);
         }
         
@@ -1626,11 +1660,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 budgetInfo += ` (從活動名稱解析: ${currency}${info.parsedBudget.toLocaleString()})`;
             }
             
+            // 顯示時間戳資訊
+            let timestampInfo = '';
+            if (info.fromTimestamp && info.toTimestamp) {
+                const fromDate = new Date(info.fromTimestamp).toLocaleDateString('zh-TW');
+                const toDate = new Date(info.toTimestamp).toLocaleDateString('zh-TW');
+                timestampInfo = ` | 📅 走期：${fromDate} ~ ${toDate}`;
+            }
+            
             adsetInfoMsg.innerHTML = `
                 📊 廣告集資訊：${info.name || '未知活動'} | 
                 💰 計價方式：${pricing.bMode} (${currency}${pricing.price}) | 
                 🎯 廣告類型：${info.adType || 'NATIVE'} | 
-                💵 總預算：${budgetInfo}
+                💵 總預算：${budgetInfo}${timestampInfo}
             `;
             container.insertBefore(adsetInfoMsg, container.firstChild);
         }

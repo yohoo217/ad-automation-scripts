@@ -6,7 +6,7 @@ import requests
 from urllib.parse import quote_plus
 
 # 導入 MongoDB 連接
-from app.models.database import get_mongo_client
+from app.models.database import get_mongo_client, get_activity_name_by_adset_id
 
 # 導入 suprad 自動化腳本
 try:
@@ -84,22 +84,78 @@ def get_adset_info():
         elif b_mode == 'CPV':
             pricing_info['price'] = adset_data.get('cpv', 0)
         
-        # 從活動名稱解析預算
-        name = adset_data.get('name', '')
-        parsed_budget = parse_budget_from_name(name)
+        # 從活動名稱解析預算（使用 AdSet 的 name）
+        adset_name = adset_data.get('name', '')
+        parsed_budget = parse_budget_from_name(adset_name)
         actual_budget = parsed_budget if parsed_budget > 0 else adset_data.get('budget', 0)
+        
+        # 使用新的函數查詢真正的活動名稱（從 Campaign 集合）
+        campaign_name = get_activity_name_by_adset_id(adset_id)
+        activity_name = campaign_name if campaign_name else '未知活動'
+        
+        # 處理走期結束日期（從 toTime）
+        campaign_end_date = None
+        from_timestamp = None
+        to_timestamp = None
+        
+        to_time = adset_data.get('toTime')
+        from_time = adset_data.get('fromTime')
+        
+        if to_time:
+            from datetime import datetime
+            
+            # MongoDB 的 toTime 是一個 datetime 對象或包含 $date 的字典
+            if isinstance(to_time, dict) and '$date' in to_time:
+                # 如果是 {'$date': '2025-06-30T15:00:00.000Z'} 格式
+                date_str = to_time['$date']
+                dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            elif isinstance(to_time, datetime):
+                # 如果已經是 datetime 對象
+                dt = to_time
+            else:
+                # 嘗試解析字符串
+                dt = datetime.fromisoformat(str(to_time).replace('Z', '+00:00'))
+            
+            # 轉換為 YYYY-MM-DD 格式給前端使用
+            campaign_end_date = dt.strftime('%Y-%m-%d')
+            # 轉換為毫秒時間戳
+            to_timestamp = int(dt.timestamp() * 1000)
+            logger.info(f"解析到走期結束日期: {campaign_end_date}, 時間戳: {to_timestamp}")
+        
+        if from_time:
+            from datetime import datetime
+            
+            # MongoDB 的 fromTime 是一個 datetime 對象或包含 $date 的字典
+            if isinstance(from_time, dict) and '$date' in from_time:
+                # 如果是 {'$date': '2025-05-31T16:00:00.000Z'} 格式
+                date_str = from_time['$date']
+                dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            elif isinstance(from_time, datetime):
+                # 如果已經是 datetime 對象
+                dt = from_time
+            else:
+                # 嘗試解析字符串
+                dt = datetime.fromisoformat(str(from_time).replace('Z', '+00:00'))
+            
+            # 轉換為毫秒時間戳
+            from_timestamp = int(dt.timestamp() * 1000)
+            logger.info(f"解析到走期開始時間戳: {from_timestamp}")
         
         # 額外資訊
         additional_info = {
-            'name': name,
+            'name': activity_name,  # 使用從 Campaign 查到的活動名稱
+            'adsetName': adset_name,  # 保留 AdSet 原始名稱供參考
             'budget': actual_budget,
             'parsedBudget': parsed_budget,  # 記錄解析出的預算
             'originalBudget': adset_data.get('budget', 0),  # 記錄原始預算
             'adType': adset_data.get('adType', ''),
-            'state': adset_data.get('state', '')
+            'state': adset_data.get('state', ''),
+            'campaignEndDate': campaign_end_date,  # 從 toTime 解析的走期結束日期
+            'fromTimestamp': from_timestamp,  # 從 fromTime 解析的開始時間戳
+            'toTimestamp': to_timestamp  # 從 toTime 解析的結束時間戳
         }
         
-        logger.info(f"查詢成功: {adset_id} - {b_mode} ${pricing_info['price']}, 預算: ${actual_budget}")
+        logger.info(f"查詢成功: {adset_id} - {b_mode} ${pricing_info['price']}, 預算: ${actual_budget}, 活動名稱: {activity_name}, 走期: {from_timestamp} ~ {to_timestamp}")
         
         return jsonify({
             'success': True,

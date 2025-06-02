@@ -209,18 +209,24 @@
         newItem.setAttribute('data-index', index);
         
         newItem.innerHTML = `
+            <button type="button" class="remove-item-btn" onclick="removeSpecificSlideItem(${index})" title="移除此項目">×</button>
             <h4>滑動項目 #${index + 1}</h4>
-            <div class="form-row">
-                <label for="image_url_${index}">圖片網址 <span class="required">*</span></label>
-                <input type="url" id="image_url_${index}" name="image_url_${index}" class="vertical-cube-slide-image-url" 
-                       placeholder="https://example.com/image${index + 1}.jpg" value="${imageUrl}" required>
-                <div class="help-text">滑動廣告圖片的URL，必填</div>
-            </div>
-            <div class="form-row">
-                <label for="target_url_${index}">目標網址 <span class="required">*</span></label>
-                <input type="url" id="target_url_${index}" name="target_url_${index}" class="vertical-cube-slide-target-url"
-                       placeholder="https://example.com/page${index + 1}" value="${targetUrl}" required>
-                <div class="help-text">點擊圖片後跳轉的目標網址，必填</div>
+            <div class="form-grid-2">
+                <div class="form-row">
+                    <label for="image_url_${index}">圖片網址 <span class="required">*</span></label>
+                    <input type="url" id="image_url_${index}" name="image_url_${index}" class="vertical-cube-slide-image-url" 
+                           placeholder="https://example.com/slide${index + 1}.jpg" 
+                           value="${imageUrl}" required>
+                    <div class="help-text">滑動項目的圖片網址</div>
+                </div>
+                
+                <div class="form-row">
+                    <label for="target_url_${index}">目標網址 <span class="required">*</span></label>
+                    <input type="url" id="target_url_${index}" name="target_url_${index}" class="vertical-cube-slide-target-url"
+                           placeholder="https://example.com/target${index + 1}" 
+                           value="${targetUrl}" required>
+                    <div class="help-text">點擊此滑動項目後跳轉的網址</div>
+                </div>
             </div>
         `;
         
@@ -240,7 +246,65 @@
             container.removeChild(container.lastChild);
             slideItemCount--;
             updatePayload();
+        } else {
+            alert('至少需要保留一個滑動項目！');
         }
+    }
+    
+    function removeSpecificSlideItem(index) {
+        const container = document.getElementById('vertical-cube-slide-items-container');
+        if (container.children.length > 1) {
+            const item = container.querySelector(`[data-index="${index}"]`);
+            if (item) {
+                container.removeChild(item);
+                // 重新編號其餘項目
+                renumberSlideItems();
+                updatePayload();
+            }
+        } else {
+            alert('至少需要保留一個滑動項目！');
+        }
+    }
+    
+    function renumberSlideItems() {
+        const container = document.getElementById('vertical-cube-slide-items-container');
+        const items = container.querySelectorAll('.vertical-cube-slide-item');
+        
+        items.forEach((item, newIndex) => {
+            item.setAttribute('data-index', newIndex);
+            item.querySelector('h4').textContent = `滑動項目 #${newIndex + 1}`;
+            
+            // 更新所有相關的 ID 和 name
+            const inputs = item.querySelectorAll('input');
+            inputs.forEach(input => {
+                const oldName = input.getAttribute('name');
+                const oldId = input.getAttribute('id');
+                
+                if (oldName) {
+                    const baseName = oldName.replace(/_\d+$/, '');
+                    input.setAttribute('name', `${baseName}_${newIndex}`);
+                }
+                
+                if (oldId) {
+                    const baseId = oldId.replace(/_\d+$/, '');
+                    input.setAttribute('id', `${baseId}_${newIndex}`);
+                }
+                
+                // 更新對應的 label
+                const label = item.querySelector(`label[for="${oldId}"]`);
+                if (label) {
+                    label.setAttribute('for', input.id);
+                }
+            });
+            
+            // 更新移除按鈕的 onclick
+            const removeBtn = item.querySelector('.remove-item-btn');
+            if (removeBtn) {
+                removeBtn.setAttribute('onclick', `removeSpecificSlideItem(${newIndex})`);
+            }
+        });
+        
+        slideItemCount = items.length;
     }
     
     function updatePayload() {

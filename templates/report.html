@@ -1216,6 +1216,7 @@ document.addEventListener('DOMContentLoaded', function() {
             worksheet.mergeCells('B2:C3'); // Logo 區域
             worksheet.mergeCells('E2:F2'); // 活動名稱值
             worksheet.mergeCells('E3:F3'); // 廣告類型值
+            
 
             // 3. 剩餘數據行（第4-5行，往右移一欄）
             worksheet.getCell('B4').value = '剩餘天數';
@@ -1304,9 +1305,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const totalRow = currentRow;
             const totCtr = sumImp ? ((sumClk / sumImp) * 100).toFixed(2) + '%' : '0.00%';
 
-            worksheet.getCell(totalRow, 2).value = 'TOTAL';
-            applyStyle(worksheet.getCell(totalRow, 2), styles.total);
-            applyStyle(worksheet.getCell(totalRow, 3), styles.total); // 空白星期欄
+            worksheet.mergeCells(totalRow, 2, totalRow, 3);
+            const totalCell = worksheet.getCell(totalRow, 2);
+                totalCell.value = 'TOTAL';
+                totalCell.font = {
+                    name: 'Helvetica',
+                    bold: true,
+                    size: 13
+                };
+                totalCell.alignment = {
+                    vertical: 'middle',
+                    horizontal: 'center'
+                };
+                totalCell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
 
             // TOTAL 行數據
             let colIndex = 4;

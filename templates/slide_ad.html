@@ -34,7 +34,7 @@
 
 {% block content %}
 <form action="{{ url_for('main.clear_slide_form') }}" method="post" style="display: inline;">
-    <button type="submit" class="clear-form-btn" onclick="return confirm('確定要清除所有填寫的內容嗎？')">🗑️ 清除所有內容</button>
+    <button type="submit" class="clear-form-btn" onclick="return confirm('確定要清除所有填寫的內容嗎？')">清除所有內容</button>
 </form>
 
 <form action="{{ url_for('main.create_slide_ad') }}" method="post" id="ad-form">
@@ -98,7 +98,7 @@
     </div>
 
     <div class="field-group">
-        <h3>🖼️ 廣告素材</h3>
+        <h3>廣告素材</h3>
         <p style="margin-bottom: 20px; color: #666; font-style: italic;">
             所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。
         </p>

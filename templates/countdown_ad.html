@@ -18,6 +18,50 @@
     .clear-form-btn:hover {
         background-color: #d32f2f;
     }
+    
+    .form-grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .form-grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    @media (max-width: 768px) {
+        .form-grid-3 {
+            grid-template-columns: 1fr;
+        }
+        .form-grid-4 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .form-grid-4 {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    input[type="color"] {
+        width: 60px;
+        height: 40px;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    input[type="datetime-local"] {
+        padding: 8px 12px;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
 </style>
 {% endblock %}
 
@@ -141,6 +185,23 @@
         
         <div class="form-grid-2">
             <div class="form-row">
+                <label for="end_date">倒數結束時間 <span class="required">*</span></label>
+                <input type="datetime-local" id="end_date" name="end_date" 
+                       value="{{ end_date or '' }}" required>
+                <div class="help-text">倒數計時的目標結束時間，必填</div>
+            </div>
+            
+            <div class="form-row">
+                <label for="description_text">倒數描述文字</label>
+                <input type="text" id="description_text" name="description_text" 
+                       placeholder="活動截止倒數" 
+                       value="{{ description_text or '活動截止倒數' }}">
+                <div class="help-text">倒數計時的描述文字</div>
+            </div>
+        </div>
+        
+        <div class="form-grid-2">
+            <div class="form-row">
                 <label for="background_url">背景圖片網址 <span class="required">*</span></label>
                 <input type="url" id="background_url" name="background_url" 
                        placeholder="https://example.com/countdown-bg.webp" 
@@ -154,6 +215,126 @@
                        placeholder="https://example.com" 
                        value="{{ target_url or '' }}" required>
                 <div class="help-text">點擊後跳轉的目標網址，必填</div>
+            </div>
+        </div>
+
+        <div class="form-grid-2">
+            <div class="form-row">
+                <label for="position">倒數位置</label>
+                <select id="position" name="position">
+                    <option value="1" {{ 'selected' if position == '1' else '' }}>位置 1</option>
+                    <option value="2" {{ 'selected' if position == '2' else '' }}>位置 2</option>
+                    <option value="3" {{ 'selected' if position == '3' else '' }} selected>位置 3</option>
+                    <option value="4" {{ 'selected' if position == '4' else '' }}>位置 4</option>
+                </select>
+                <div class="help-text">倒數計時顯示位置，預設為位置 3</div>
+            </div>
+        </div>
+
+        <h4 style="margin-top: 25px; margin-bottom: 15px; color: #333;">🎨 倒數樣式設定</h4>
+        
+        <div class="form-grid-3">
+            <div class="form-row">
+                <label for="date_number_color">數字顏色</label>
+                <input type="color" id="date_number_color" name="date_number_color" 
+                       value="{{ date_number_color or '#FFFFFF' }}">
+                <div class="help-text">倒數數字的顏色</div>
+            </div>
+            
+            <div class="form-row">
+                <label for="description_color">描述文字顏色</label>
+                <input type="color" id="description_color" name="description_color" 
+                       value="{{ description_color or '#FFFFFF' }}">
+                <div class="help-text">描述文字的顏色</div>
+            </div>
+            
+            <div class="form-row">
+                <label for="date_word_color">時間單位文字顏色</label>
+                <input type="color" id="date_word_color" name="date_word_color" 
+                       value="{{ date_word_color or '#FFFFFF' }}">
+                <div class="help-text">天/時/分/秒文字的顏色</div>
+            </div>
+        </div>
+
+        <div class="form-grid-3">
+            <div class="form-row">
+                <label for="date_number_size">數字大小</label>
+                <select id="date_number_size" name="date_number_size">
+                    <option value="1" {{ 'selected' if date_number_size == '1' else '' }}>極小</option>
+                    <option value="2" {{ 'selected' if date_number_size == '2' else '' }}>小</option>
+                    <option value="3" {{ 'selected' if date_number_size == '3' else '' }}>中</option>
+                    <option value="4" {{ 'selected' if date_number_size == '4' else '' }} selected>大</option>
+                    <option value="5" {{ 'selected' if date_number_size == '5' else '' }}>極大</option>
+                </select>
+                <div class="help-text">倒數數字的大小</div>
+            </div>
+            
+            <div class="form-row">
+                <label for="description_size">描述文字大小</label>
+                <select id="description_size" name="description_size">
+                    <option value="1" {{ 'selected' if description_size == '1' else '' }}>極小</option>
+                    <option value="2" {{ 'selected' if description_size == '2' else '' }}>小</option>
+                    <option value="3" {{ 'selected' if description_size == '3' else '' }}>中</option>
+                    <option value="4" {{ 'selected' if description_size == '4' else '' }} selected>大</option>
+                    <option value="5" {{ 'selected' if description_size == '5' else '' }}>極大</option>
+                </select>
+                <div class="help-text">描述文字的大小</div>
+            </div>
+            
+            <div class="form-row">
+                <label for="date_word_size">時間單位文字大小</label>
+                <select id="date_word_size" name="date_word_size">
+                    <option value="1" {{ 'selected' if date_word_size == '1' else '' }}>極小</option>
+                    <option value="2" {{ 'selected' if date_word_size == '2' else '' }}>小</option>
+                    <option value="3" {{ 'selected' if date_word_size == '3' else '' }}>中</option>
+                    <option value="4" {{ 'selected' if date_word_size == '4' else '' }} selected>大</option>
+                    <option value="5" {{ 'selected' if date_word_size == '5' else '' }}>極大</option>
+                </select>
+                <div class="help-text">天/時/分/秒文字的大小</div>
+            </div>
+        </div>
+
+        <h4 style="margin-top: 25px; margin-bottom: 15px; color: #333;">⌚ 顯示設定</h4>
+        
+        <div class="form-grid-4">
+            <div class="form-row">
+                <label>
+                    <input type="checkbox" id="show_day" name="show_day" 
+                           {{ 'checked' if show_day != 'false' else '' }} checked 
+                           style="margin-right: 8px;">
+                    顯示「天」
+                </label>
+                <div class="help-text">是否顯示天數</div>
+            </div>
+            
+            <div class="form-row">
+                <label>
+                    <input type="checkbox" id="show_hour" name="show_hour" 
+                           {{ 'checked' if show_hour != 'false' else '' }} checked 
+                           style="margin-right: 8px;">
+                    顯示「時」
+                </label>
+                <div class="help-text">是否顯示小時</div>
+            </div>
+            
+            <div class="form-row">
+                <label>
+                    <input type="checkbox" id="show_min" name="show_min" 
+                           {{ 'checked' if show_min != 'false' else '' }} checked 
+                           style="margin-right: 8px;">
+                    顯示「分」
+                </label>
+                <div class="help-text">是否顯示分鐘</div>
+            </div>
+            
+            <div class="form-row">
+                <label>
+                    <input type="checkbox" id="show_sec" name="show_sec" 
+                           {{ 'checked' if show_sec != 'false' else '' }} checked 
+                           style="margin-right: 8px;">
+                    顯示「秒」
+                </label>
+                <div class="help-text">是否顯示秒數</div>
             </div>
         </div>
         
@@ -172,22 +353,70 @@
         updateGameWidgetPayload();
 
         // 添加事件監聽器，當相關輸入改變時更新 payload
-        document.getElementById('background_url').addEventListener('input', updateGameWidgetPayload);
-        document.getElementById('target_url').addEventListener('input', updateGameWidgetPayload);
+        const inputIds = [
+            'end_date', 'description_text', 'background_url', 'target_url', 'position',
+            'date_number_color', 'description_color', 'date_word_color',
+            'date_number_size', 'description_size', 'date_word_size',
+            'show_day', 'show_hour', 'show_min', 'show_sec'
+        ];
+        
+        inputIds.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('input', updateGameWidgetPayload);
+                element.addEventListener('change', updateGameWidgetPayload);
+            }
+        });
     });
 
     function updateGameWidgetPayload() {
+        const endDate = document.getElementById('end_date').value;
         const backgroundUrl = document.getElementById('background_url').value;
         const targetUrl = document.getElementById('target_url').value;
+        const descriptionText = document.getElementById('description_text').value || '活動截止倒數';
+        const position = parseInt(document.getElementById('position').value) || 3;
+        
+        // 顏色設定
+        const dateNumberColor = document.getElementById('date_number_color').value || '#FFFFFF';
+        const descriptionColor = document.getElementById('description_color').value || '#FFFFFF';
+        const dateWordColor = document.getElementById('date_word_color').value || '#FFFFFF';
+        
+        // 大小設定
+        const dateNumberSize = document.getElementById('date_number_size').value || '4';
+        const descriptionSize = document.getElementById('description_size').value || '4';
+        const dateWordSize = document.getElementById('date_word_size').value || '4';
+        
+        // 顯示設定
+        const showDay = document.getElementById('show_day').checked;
+        const showHour = document.getElementById('show_hour').checked;
+        const showMin = document.getElementById('show_min').checked;
+        const showSec = document.getElementById('show_sec').checked;
 
-        if (!backgroundUrl || !targetUrl) return; // 如果必要的輸入缺失，不更新
+        if (!endDate || !backgroundUrl || !targetUrl) return; // 如果必要的輸入缺失，不更新
+
+        // 轉換日期時間格式 (從 YYYY-MM-DDTHH:MM 轉換為 YYYY-MM-DD HH:MM:SS)
+        let formattedEndDate = endDate;
+        if (endDate.includes('T')) {
+            formattedEndDate = endDate.replace('T', ' ') + ':00';
+        }
 
         const payload = {
             "type": "COUNTDOWN",
-            "data": {
-                "background": backgroundUrl,
-                "duration": 10,
-                "targetUrl": targetUrl
+            "imgProperty": {
+                "endDate": formattedEndDate,
+                "backgroundImage": backgroundUrl,
+                "descriptionText": descriptionText,
+                "position": position,
+                "dateNumberColor": dateNumberColor,
+                "descriptionColor": descriptionColor,
+                "dateWordColor": dateWordColor,
+                "dateNumberSize": dateNumberSize,
+                "descriptionSize": descriptionSize,
+                "dateWordSize": dateWordSize,
+                "showDay": showDay,
+                "showHour": showHour,
+                "showMin": showMin,
+                "showSec": showSec
             },
             "invokes": [
                 {
@@ -200,6 +429,7 @@
         };
 
         document.getElementById('payload_game_widget').value = JSON.stringify(payload);
+        console.log('Updated payload:', payload); // 用於調試
     }
 
     // 快速資訊解析函數
@@ -241,6 +471,12 @@
             if (materialMatch) {
                 document.getElementById('background_url').value = materialMatch[1].trim();
                 document.getElementById('background_image').value = materialMatch[1].trim();
+            }
+
+            // 解析倒數描述文字
+            const descriptionMatch = text.match(/[-·]\s*描述[:：]\s*(.+)/);
+            if (descriptionMatch) {
+                document.getElementById('description_text').value = descriptionMatch[1].trim();
             }
 
             updateGameWidgetPayload();

@@ -543,7 +543,20 @@ def countdown_ad():
         'image_path_s': session.get('countdown_image_path_s', ''),
         'background_image': session.get('countdown_background_image', ''),
         'background_url': session.get('countdown_background_url', ''),
-        'target_url': session.get('countdown_target_url', '')
+        'target_url': session.get('countdown_target_url', ''),
+        'end_date': session.get('countdown_end_date', ''),
+        'description_text': session.get('countdown_description_text', '活動截止倒數'),
+        'position': session.get('countdown_position', '3'),
+        'date_number_color': session.get('countdown_date_number_color', '#FFFFFF'),
+        'description_color': session.get('countdown_description_color', '#FFFFFF'),
+        'date_word_color': session.get('countdown_date_word_color', '#FFFFFF'),
+        'date_number_size': session.get('countdown_date_number_size', '4'),
+        'description_size': session.get('countdown_description_size', '4'),
+        'date_word_size': session.get('countdown_date_word_size', '4'),
+        'show_day': session.get('countdown_show_day', 'true'),
+        'show_hour': session.get('countdown_show_hour', 'true'),
+        'show_min': session.get('countdown_show_min', 'true'),
+        'show_sec': session.get('countdown_show_sec', 'true')
     }
     return render_template('countdown_ad.html', **form_data)
 
@@ -877,7 +890,20 @@ def create_countdown_ad():
             'image_path_s': request.form.get('image_path_s', ''),
             'background_image': request.form.get('background_image', ''),
             'background_url': request.form.get('background_url', ''),
-            'target_url': request.form.get('target_url', '')
+            'target_url': request.form.get('target_url', ''),
+            'end_date': request.form.get('end_date', ''),
+            'description_text': request.form.get('description_text', '活動截止倒數'),
+            'position': request.form.get('position', '3'),
+            'date_number_color': request.form.get('date_number_color', '#FFFFFF'),
+            'description_color': request.form.get('description_color', '#FFFFFF'),
+            'date_word_color': request.form.get('date_word_color', '#FFFFFF'),
+            'date_number_size': request.form.get('date_number_size', '4'),
+            'description_size': request.form.get('description_size', '4'),
+            'date_word_size': request.form.get('date_word_size', '4'),
+            'show_day': request.form.get('show_day', 'true'),
+            'show_hour': request.form.get('show_hour', 'true'),
+            'show_min': request.form.get('show_min', 'true'),
+            'show_sec': request.form.get('show_sec', 'true')
         }
         
         # 保存表單數據到 session

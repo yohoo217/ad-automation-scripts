@@ -1067,4 +1067,282 @@ def get_cut_data():
         return jsonify({'error': f'請求失敗: {str(e)}'}), 500
     except Exception as e:
         logger.error(f"查詢 cut 數據時發生錯誤: {str(e)}")
+        return jsonify({'error': f'查詢失敗: {str(e)}'}), 500
+
+@main_bp.route('/api/campaign-info')
+def get_campaign_info():
+    """根據廣告活動 ID 查詢 MongoDB 中的活動資訊和總預算"""
+    try:
+        # 獲取查詢參數
+        campaign_id = request.args.get('campaignId')
+        
+        if not campaign_id:
+            return jsonify({'error': '缺少必要參數：campaignId'}), 400
+        
+        logger.info(f"查詢廣告活動資訊: {campaign_id}")
+        
+        # 連接 MongoDB
+        client = get_mongo_client()
+        if not client:
+            return jsonify({'error': 'MongoDB 連接失敗'}), 500
+        
+        # 選擇資料庫和集合
+        db = client['trek']
+        campaign_collection = db['Campaign']
+        adset_collection = db['AdSet']
+        
+        # 查詢廣告活動資料
+        campaign_data = campaign_collection.find_one({'uuid': campaign_id})
+        
+        if not campaign_data:
+            return jsonify({'error': f'找不到廣告活動 ID: {campaign_id}'}), 404
+        
+        # 查詢該活動下的所有廣告集
+        adsets = list(adset_collection.find({'campId': campaign_id}))
+        
+        if not adsets:
+            return jsonify({'error': f'廣告活動 {campaign_id} 下沒有找到任何廣告集'}), 404
+        
+        # 提取活動資訊
+        campaign_info = {
+            'uuid': campaign_id,
+            'name': campaign_data.get('name', '未知活動'),
+            'totalBudget': campaign_data.get('totalBudget', 0),
+            'state': campaign_data.get('state', ''),
+            'adsets': []
+        }
+        
+        # 處理每個廣告集的資訊
+        total_parsed_budget = 0
+        earliest_from_time = None
+        latest_to_time = None
+        
+        for adset in adsets:
+            adset_id = adset.get('uuid', '')
+            adset_name = adset.get('name', '')
+            
+            # 提取計價方式和價格
+            b_mode = adset.get('bMode', '')
+            pricing_info = {
+                'bMode': b_mode,
+                'price': 0,
+                'currency': adset.get('curr', 'TWD')
+            }
+            
+            # 根據計價方式取得對應的價格
+            if b_mode == 'CPC':
+                pricing_info['price'] = adset.get('cpc', 0)
+            elif b_mode == 'CPM':
+                pricing_info['price'] = adset.get('cpm', 0)
+            elif b_mode == 'CPV':
+                pricing_info['price'] = adset.get('cpv', 0)
+            
+            # 從活動名稱解析預算
+            parsed_budget = parse_budget_from_name(adset_name)
+            actual_budget = parsed_budget if parsed_budget > 0 else adset.get('budget', 0)
+            total_parsed_budget += actual_budget
+            
+            # 處理時間戳
+            from_timestamp = None
+            to_timestamp = None
+            campaign_end_date = None
+            
+            to_time = adset.get('toTime')
+            from_time = adset.get('fromTime')
+            
+            if to_time:
+                from datetime import datetime
+                
+                if isinstance(to_time, dict) and '$date' in to_time:
+                    date_str = to_time['$date']
+                    dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                elif isinstance(to_time, datetime):
+                    dt = to_time
+                else:
+                    dt = datetime.fromisoformat(str(to_time).replace('Z', '+00:00'))
+                
+                campaign_end_date = dt.strftime('%Y-%m-%d')
+                to_timestamp = int(dt.timestamp() * 1000)
+                
+                if latest_to_time is None or dt > latest_to_time:
+                    latest_to_time = dt
+            
+            if from_time:
+                from datetime import datetime
+                
+                if isinstance(from_time, dict) and '$date' in from_time:
+                    date_str = from_time['$date']
+                    dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                elif isinstance(from_time, datetime):
+                    dt = from_time
+                else:
+                    dt = datetime.fromisoformat(str(from_time).replace('Z', '+00:00'))
+                
+                from_timestamp = int(dt.timestamp() * 1000)
+                
+                if earliest_from_time is None or dt < earliest_from_time:
+                    earliest_from_time = dt
+            
+            # 添加廣告集資訊到清單
+            adset_info = {
+                'uuid': adset_id,
+                'name': adset_name,
+                'budget': actual_budget,
+                'parsedBudget': parsed_budget,
+                'originalBudget': adset.get('budget', 0),
+                'adType': adset.get('adType', ''),
+                'state': adset.get('state', ''),
+                'pricing': pricing_info,
+                'campaignEndDate': campaign_end_date,
+                'fromTimestamp': from_timestamp,
+                'toTimestamp': to_timestamp
+            }
+            
+            campaign_info['adsets'].append(adset_info)
+        
+        # 設定整體活動的時間範圍
+        campaign_info['totalParsedBudget'] = total_parsed_budget
+        campaign_info['earliestFromTimestamp'] = int(earliest_from_time.timestamp() * 1000) if earliest_from_time else None
+        campaign_info['latestToTimestamp'] = int(latest_to_time.timestamp() * 1000) if latest_to_time else None
+        campaign_info['latestCampaignEndDate'] = latest_to_time.strftime('%Y-%m-%d') if latest_to_time else None
+        
+        logger.info(f"查詢成功: {campaign_id} - {campaign_info['name']}, 總預算: ${campaign_info['totalBudget']}, 廣告集數量: {len(adsets)}")
+        
+        return jsonify({
+            'success': True,
+            'campaignId': campaign_id,
+            'campaign': campaign_info
+        })
+        
+    except Exception as e:
+        logger.error(f"查詢廣告活動資訊時發生錯誤: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'查詢失敗: {str(e)}'
+        }), 500
+
+@main_bp.route('/api/multi-adset-report')
+def multi_adset_report():
+    """根據多個廣告集 ID 取得綜合報表"""
+    try:
+        # 獲取查詢參數
+        adset_ids = request.args.getlist('adsetIds')  # 支援多個 adsetId
+        since_date = request.args.get('sinceDate')
+        to_date = request.args.get('toDate')
+        
+        if not adset_ids or not since_date or not to_date:
+            return jsonify({'error': '缺少必要參數：adsetIds, sinceDate, toDate'}), 400
+        
+        logger.info(f"查詢多個廣告集報表: {adset_ids}")
+        
+        # 為每個 adset 取得報表資料
+        all_reports = {}
+        
+        for adset_id in adset_ids:
+            try:
+                # 構建目標 URL
+                target_url = f"https://trek.aotter.net/dontblockme/action_adset_read/getadsetreporttemplate/?setId={quote_plus(adset_id)}&sinceDate={quote_plus(since_date)}&toDate={quote_plus(to_date)}"
+                
+                # 設置請求標頭，包含認證信息
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Connection': 'keep-alive',
+                    'Upgrade-Insecure-Requests': '1',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
+                    'Cookie': 'AOTTERBD_SESSION=757418f543a95a889184e798ec5ab66d4fad04e5-lats=1724229220332&sso=PIg4zu/Vdnn/A15vMEimFlVAGliNhoWlVd5FTvtEMRAFpk/VvBGvAetanw8DLATSLexy9pee/t52uNojvoFS2Q==;aotter=eyJ1c2VyIjp7ImlkIjoiNjNkYjRkNDBjOTFiNTUyMmViMjk4YjBkIiwiZW1haWwiOiJpYW4uY2hlbkBhb3R0ZXIubmV0IiwiY3JlYXRlZEF0IjoxNjc1MzE2NTQ0LCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJsZWdhY3lJZCI6bnVsbCwibGVnYWN5U2VxSWQiOjE2NzUzMTY1NDQ3ODI5NzQwMDB9LCJhY2Nlc3NUb2tlbiI6IjJkYjQyZTNkOTM5MDUzMjdmODgyZmYwMDRiZmI4YmEzZjBhNTlmMDQwYzhiN2Y4NGY5MmZmZTIzYTU0ZTQ2MDQiLCJ1ZWEiOm51bGx9; _Secure-1PSID=vlPPgXupFroiSjP1/A02minugZVZDgIG4K; _Secure-1PSIDCC=g.a000mwhavReSVd1vN09AVTswXkPAhyuW7Tgj8-JFhj-FZya9I_l1B6W2gqTIWAtQUTQMkTxoAwACgYKAW0SARISFQHGX2MiC--NJ2PzCzDpJ0m3odxHhxoVAUF8yKr8r49abq8oe4UxCA0t_QCW0076; _Secure-3PSID=AKEyXzUuXI1zywmFmkEBEBHfg6GRkRM9cJ9BiJZxmaR46x5im_krhaPtmL4Jhw8gQsz5uFFkfbc; _Secure-3PSIDCC=sidts-CjEBUFGohzUF6oK3ZMACCk2peoDBDp6djBwJhGc4Lxgu2zOlzbVFeVpXF4q1TYZ5ba6cEAA'
+                }
+                
+                response = requests.get(target_url, headers=headers, timeout=30)
+                
+                if response.status_code == 200:
+                    all_reports[adset_id] = {
+                        'success': True,
+                        'content': response.text
+                    }
+                else:
+                    all_reports[adset_id] = {
+                        'success': False,
+                        'error': f'HTTP {response.status_code}: {response.reason}'
+                    }
+                    
+            except Exception as e:
+                all_reports[adset_id] = {
+                    'success': False,
+                    'error': str(e)
+                }
+        
+        return jsonify({
+            'success': True,
+            'reports': all_reports
+        })
+        
+    except Exception as e:
+        logger.error(f"取得多個廣告集報表時發生錯誤: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'查詢失敗: {str(e)}'
+        }), 500
+
+@main_bp.route('/api/adunit-images')
+def get_adunit_images():
+    """查詢指定 adset 的所有 AdUnit 圖片資訊"""
+    try:
+        adset_id = request.args.get('adsetId')
+        if not adset_id:
+            return jsonify({'error': '缺少 adsetId 參數'}), 400
+        
+        from app.models.database import get_mongo_client, MONGO_DATABASE
+        client = get_mongo_client()
+        if not client:
+            return jsonify({'error': 'MongoDB 連接失敗'}), 500
+        
+        db = client[MONGO_DATABASE]
+        collection = db['AdUnit']
+        
+        # 查詢該 adset 的所有 AdUnit 圖片資訊
+        query = {"setId": adset_id}
+        projection = {
+            "uuid": 1,
+            "name": 1, 
+            "title": 1,
+            "img_icon": 1,
+            "interactSrc.img_icon": 1,
+            "_id": 0
+        }
+        
+        adunits = list(collection.find(query, projection))
+        
+        # 處理圖片資訊
+        image_info = []
+        for adunit in adunits:
+            uuid = adunit.get('uuid', '')
+            name = adunit.get('name', '') or adunit.get('title', '')
+            
+            # 嘗試從多個路徑獲取圖片
+            img_icon = None
+            if 'img_icon' in adunit and adunit['img_icon']:
+                img_icon = adunit['img_icon']
+            elif 'interactSrc' in adunit and adunit['interactSrc'] and 'img_icon' in adunit['interactSrc']:
+                img_icon = adunit['interactSrc']['img_icon']
+            
+            image_info.append({
+                'uuid': uuid,
+                'name': name,
+                'img_icon': img_icon
+            })
+        
+        logger.info(f"找到 {len(image_info)} 個 AdUnit 圖片 for adset {adset_id}")
+        
+        return jsonify({
+            'success': True,
+            'images': image_info,
+            'count': len(image_info)
+        })
+        
+    except Exception as e:
+        logger.error(f"查詢 AdUnit 圖片時發生錯誤: {str(e)}")
         return jsonify({'error': f'查詢失敗: {str(e)}'}), 500 

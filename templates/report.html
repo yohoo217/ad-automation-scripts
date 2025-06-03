@@ -142,9 +142,9 @@
     <div class="input-section">
         <h3>📊 廣告報表查詢</h3>
         <div class="form-row">
-            <label for="setId">廣告集 ID <span class="required">*</span></label>
-            <input type="text" id="setId" name="setId" placeholder="請輸入廣告集 ID，例如：82000801-b829-4812-aefb-eae6a9b27040" required>
-            <div class="help-text">輸入您要查詢的廣告集 ID，系統會自動取得走期時間和活動資訊</div>
+            <label for="campaignId">廣告活動 ID <span class="required">*</span></label>
+            <input type="text" id="campaignId" name="campaignId" placeholder="請輸入廣告活動 ID，例如：02698ef0-faac-4df1-af75-fa2a21674778" required>
+            <div class="help-text">輸入您要查詢的廣告活動 ID，系統會自動取得該活動下所有廣告集和走期時間</div>
         </div>
 
         <div class="form-row">
@@ -152,10 +152,10 @@
                 <input type="checkbox" id="isSlideAd" name="isSlideAd" style="margin-right: 8px;">
                 🎬 這是 Slide 廣告（會顯示 cut 分析數據）
             </label>
-            <div class="help-text">勾選此項目將會查詢 AdUnit 並顯示各 cut 的詳細數據</div>
+            <div class="help-text">勾選此項目將會查詢所有 AdUnit 並顯示各 cut 的詳細數據</div>
         </div>
         
-        <!-- 隱藏的輸入框，用於儲存從 AdSet 取得的數據 -->
+        <!-- 隱藏的輸入框，用於儲存從 Campaign 取得的數據 -->
         <input type="hidden" id="sinceDate" name="sinceDate">
         <input type="hidden" id="toDate" name="toDate">
         <input type="hidden" id="campaignEndDate" name="campaignEndDate">
@@ -217,19 +217,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 取得報表按鈕
     document.getElementById('fetchReport').addEventListener('click', function() {
-        const setId = document.getElementById('setId').value.trim();
+        const campaignId = document.getElementById('campaignId').value.trim();
         
-        if (!setId) {
-            alert('請輸入廣告集 ID');
+        if (!campaignId) {
+            alert('請輸入廣告活動 ID');
             return;
         }
         
-        // 使用預設時間戳，實際會從 AdSet 自動取得正確的時間戳
+        // 使用預設時間戳，實際會從 Campaign 自動取得正確的時間戳
         const defaultSinceDate = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30天前
         const defaultToDate = Date.now(); // 當前時間
         
-        console.log('開始查詢報表，AdSet ID:', setId);
-        fetchReportData(setId, defaultSinceDate, defaultToDate);
+        console.log('開始查詢報表，Campaign ID:', campaignId);
+        fetchReportData(campaignId, defaultSinceDate, defaultToDate);
     });
     
     // 產出 Excel 報表按鈕
@@ -242,9 +242,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentAdsetInfo = null; // 儲存廣告集資訊
     let currentCutData = {}; // 儲存 cut 數據
     let isSlideAd = false; // 是否為 slide 廣告
+    let allAdsetReports = {}; // 儲存所有 AdSet 的報表數據
     
     // 取得報表資料
-    async function fetchReportData(setId, sinceDate, toDate) {
+    async function fetchReportData(campaignId, sinceDate, toDate) {
         const loadingElement = document.getElementById('loadingMessage');
         const reportElement = document.getElementById('reportContent');
         const errorElement = document.getElementById('errorMessage');
@@ -258,10 +259,10 @@ document.addEventListener('DOMContentLoaded', function() {
         errorElement.style.display = 'none';
         
         try {
-            // 第一步：先查詢廣告集資訊，取得正確的時間戳
-            console.log('正在查詢廣告集資訊:', `/api/adset-info?adsetId=${encodeURIComponent(setId)}`);
+            // 第一步：先查詢廣告活動資訊，取得正確的時間戳
+            console.log('正在查詢廣告活動資訊:', `/api/adset-info?campaignId=${encodeURIComponent(campaignId)}`);
             
-            const adsetResponse = await fetch(`/api/adset-info?adsetId=${encodeURIComponent(setId)}`, {
+            const adsetResponse = await fetch(`/api/adset-info?campaignId=${encodeURIComponent(campaignId)}`, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
@@ -272,10 +273,10 @@ document.addEventListener('DOMContentLoaded', function() {
             let actualSinceDate = sinceDate;
             let actualToDate = toDate;
             
-            // 處理廣告集資訊回應
+            // 處理廣告活動資訊回應
             if (adsetResponse.ok) {
                 const adsetInfo = await adsetResponse.json();
-                console.log('收到廣告集資訊:', adsetInfo);
+                console.log('收到廣告活動資訊:', adsetInfo);
                 currentAdsetInfo = adsetInfo;
                 
                 if (adsetInfo.success && adsetInfo.info) {
@@ -302,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('currentDate').value = today;
                 }
             } else {
-                console.warn('查詢廣告集資訊失敗，將使用傳入的預設時間戳');
+                console.warn('查詢廣告活動資訊失敗，將使用傳入的預設時間戳');
                 currentAdsetInfo = {
                     success: false,
                     pricing: { bMode: 'CPC', price: 7.0, currency: 'TWD' },
@@ -322,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const queries = [
                 // 查詢報表資料
-                fetch(`/api/report-proxy?setId=${encodeURIComponent(setId)}&sinceDate=${encodeURIComponent(actualSinceDate)}&toDate=${encodeURIComponent(actualToDate)}`, {
+                fetch(`/api/report-proxy?campaignId=${encodeURIComponent(campaignId)}&sinceDate=${encodeURIComponent(actualSinceDate)}&toDate=${encodeURIComponent(actualToDate)}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -334,7 +335,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // 如果是 slide 廣告，加入 AdUnit 查詢
             if (isSlideAd) {
                 queries.push(
-                    fetch(`/api/adunits?adsetId=${encodeURIComponent(setId)}`, {
+                    fetch(`/api/adunits?campaignId=${encodeURIComponent(campaignId)}`, {
                         method: 'GET',
                         headers: {
                             'Accept': 'application/json',
@@ -342,7 +343,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     })
                 );
-                console.log('正在查詢 AdUnit:', `/api/adunits?adsetId=${encodeURIComponent(setId)}`);
+                console.log('正在查詢 AdUnit:', `/api/adunits?campaignId=${encodeURIComponent(campaignId)}`);
             }
             
             // 並行查詢
@@ -356,6 +357,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const jsonResponse = await reportResponse.json();
             console.log('收到代理回應:', jsonResponse);
+            
+            // 儲存所有 AdSet 的報表數據
+            allAdsetReports = jsonResponse.adset_reports || {};
             
             // 處理 AdUnit 和 cut 數據
             let cutData = {};
@@ -402,8 +406,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const htmlContent = jsonResponse.content;
                 console.log('收到 HTML 內容，長度:', htmlContent.length);
                 
-                // 解析並顯示每日報表
-                displayDailyReport(htmlContent);
+                // 解析並顯示合併的每日報表
+                displayMergedDailyReport(htmlContent, jsonResponse.summary);
             } else {
                 throw new Error(jsonResponse.error || '代理請求失敗');
             }
@@ -419,14 +423,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p><strong>可能原因:</strong></p>
                 <ul>
                     <li>網路連線問題</li>
-                    <li>廣告集 ID 不正確</li>
+                    <li>廣告活動 ID 不正確</li>
                     <li>Cookie 可能已過期</li>
                     <li>伺服器代理服務異常</li>
                     ${isSlideAd ? '<li>AdUnit 或 cut 數據查詢失敗</li>' : ''}
                 </ul>
                 <p><strong>建議解決方法:</strong></p>
                 <ul>
-                    <li>確認廣告集 ID 是否正確</li>
+                    <li>確認廣告活動 ID 是否正確</li>
                     <li>檢查網路連線</li>
                     <li>嘗試重新整理頁面</li>
                     <li>如果問題持續，請聯絡技術支援</li>
@@ -435,8 +439,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // 顯示每日報表
-    function displayDailyReport(htmlContent) {
+    // 顯示合併的每日報表
+    function displayMergedDailyReport(primaryHtmlContent, summary) {
         const loadingElement = document.getElementById('loadingMessage');
         const reportElement = document.getElementById('reportContent');
         const dailyReportContainer = document.getElementById('dailyReportContainer');
@@ -448,39 +452,49 @@ document.addEventListener('DOMContentLoaded', function() {
         loadingElement.style.display = 'none';
         
         try {
-            // 創建臨時 DOM 來解析 HTML
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlContent, 'text/html');
+            // 首先顯示活動概覽
+            let reportContent = `
+                <div class="daily-report-section">
+                    <h4>📊 活動概覽</h4>
+                    <p><strong>活動名稱:</strong> ${currentAdsetInfo?.info?.name || '未知活動'}</p>
+                    <p><strong>廣告集數量:</strong> ${currentAdsetInfo?.info?.adsetCount || 0} 個</p>
+                    <p><strong>報表狀態:</strong> ${summary?.successful_reports || 0} 個成功 / ${summary?.total_adsets || 0} 個總計</p>
+                    ${summary?.failed_reports > 0 ? `<p style="color: #dc3545;"><strong>⚠️ ${summary.failed_reports} 個廣告集查詢失敗</strong></p>` : ''}
+                </div>
+            `;
             
-            // 取得原始報表表格
-            let dailyReportTable = findDailyReportTable(doc);
-            
-            if (dailyReportTable) {
+            // 合併所有成功的報表數據
+            const mergedTable = mergeAllAdsetReports();
+            if (mergedTable) {
                 // 如果是 slide 廣告，需要重新構建表格以包含 cut 數據
+                let finalTable = mergedTable;
                 if (isSlideAd && Object.keys(currentCutData).length > 0) {
-                    dailyReportTable = buildSlideReportTable(dailyReportTable, currentCutData);
+                    finalTable = buildSlideReportTable(mergedTable, currentCutData);
                 }
                 
                 // 處理表格內容，根據走期設定調整顯示
                 if (campaignEndDate && currentDate) {
-                    dailyReportTable = processTableBySchedule(dailyReportTable, campaignEndDate, currentDate);
+                    finalTable = processTableBySchedule(finalTable, campaignEndDate, currentDate);
                 }
                 
-                // 顯示表格
-                let dailyReportContent = `
+                // 顯示合併的總表格
+                reportContent += `
                     <div class="daily-report-section">
-                        <h4>📊 每日報表數據${isSlideAd ? '（含 Cut 分析數據）' : ''}</h4>
-                        ${dailyReportTable.outerHTML}
+                        <h4>📈 合併報表數據${isSlideAd ? '（含 Cut 分析數據）' : ''}</h4>
+                        ${finalTable.outerHTML}
                     </div>
                 `;
                 
-                dailyReportContainer.innerHTML = dailyReportContent;
+                // 顯示個別 AdSet 的報表
+                reportContent += displayIndividualAdsetReports();
+                
+                dailyReportContainer.innerHTML = reportContent;
                 
                 // 美化表格
-                const table = dailyReportContainer.querySelector('table');
-                if (table) {
+                const tables = dailyReportContainer.querySelectorAll('table');
+                tables.forEach(table => {
                     table.className = 'report-table';
-                }
+                });
                 
                 reportElement.style.display = 'block';
                 
@@ -490,17 +504,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 啟用導出按鈕並儲存報表資料
                 enableExportButton();
                 currentReportData = {
-                    setId: document.getElementById('setId').value.trim(),
+                    campaignId: document.getElementById('campaignId').value.trim(),
                     sinceDate: document.getElementById('sinceDate').value,
                     toDate: document.getElementById('toDate').value,
                     campaignEndDate: campaignEndDate,
                     currentDate: currentDate,
-                    table: dailyReportTable,
+                    table: finalTable,
                     isSlideAd: isSlideAd,
-                    cutData: currentCutData
+                    cutData: currentCutData,
+                    allAdsetReports: allAdsetReports
                 };
             } else {
-                throw new Error('在返回的 HTML 中找不到每日報表表格');
+                throw new Error('無法合併報表數據');
             }
             
         } catch (error) {
@@ -509,12 +524,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // 如果解析失敗，顯示錯誤訊息
             dailyReportContainer.innerHTML = `
                 <div class="daily-report-section">
-                    <h4>⚠️ 無法找到每日報表</h4>
+                    <h4>⚠️ 無法合併報表數據</h4>
                     <p style="color: #6c757d;">
                         <strong>錯誤:</strong> ${error.message}
                     </p>
                     <p style="color: #6c757d; font-size: 14px;">
-                        可能原因：報表格式已變更或數據不完整。請檢查廣告集 ID 是否正確。
+                        可能原因：報表格式已變更或數據不完整。請檢查廣告活動 ID 是否正確。
                     </p>
                 </div>
             `;
@@ -522,6 +537,228 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // 合併所有 AdSet 的報表數據
+    function mergeAllAdsetReports() {
+        if (!allAdsetReports || Object.keys(allAdsetReports).length === 0) {
+            return null;
+        }
+        
+        const successfulReports = Object.values(allAdsetReports).filter(report => report.success);
+        if (successfulReports.length === 0) {
+            return null;
+        }
+        
+        console.log(`開始合併 ${successfulReports.length} 個報表`);
+        
+        // 解析所有成功的報表表格
+        const parsedTables = [];
+        for (const report of successfulReports) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(report.content, 'text/html');
+            const table = findDailyReportTable(doc);
+            if (table) {
+                parsedTables.push({
+                    name: report.name,
+                    table: table
+                });
+            }
+        }
+        
+        if (parsedTables.length === 0) {
+            return null;
+        }
+        
+        // 如果只有一個表格，直接返回
+        if (parsedTables.length === 1) {
+            return parsedTables[0].table;
+        }
+        
+        // 合併多個表格的數據
+        return mergeTables(parsedTables);
+    }
+    
+    // 合併多個表格的函數
+    function mergeTables(parsedTables) {
+        if (!parsedTables || parsedTables.length === 0) return null;
+        
+        // 取第一個表格作為基礎
+        const baseTable = parsedTables[0].table.cloneNode(true);
+        const baseRows = baseTable.querySelectorAll('tr');
+        
+        if (baseRows.length < 2) return baseTable;
+        
+        // 建立日期到數據的對照表
+        const mergedData = {};
+        let headers = [];
+        
+        // 取得表頭
+        const headerCells = baseRows[0].querySelectorAll('th, td');
+        for (let cell of headerCells) {
+            headers.push(cell.textContent.trim());
+        }
+        
+        // 處理每個表格的數據
+        for (const {table} of parsedTables) {
+            const rows = table.querySelectorAll('tr');
+            
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const cells = row.querySelectorAll('td, th');
+                
+                if (cells.length > 0) {
+                    const dateText = cells[0].textContent.trim();
+                    
+                    // 跳過 TOTAL 行
+                    if (dateText === 'TOTAL') continue;
+                    
+                    if (!mergedData[dateText]) {
+                        mergedData[dateText] = {};
+                    }
+                    
+                    // 合併數值數據
+                    for (let j = 1; j < cells.length; j++) {
+                        const cellText = cells[j].textContent.trim();
+                        const cellValue = parseFloat(cellText.replace(/[,]/g, '')) || 0;
+                        
+                        if (!mergedData[dateText][j]) {
+                            mergedData[dateText][j] = 0;
+                        }
+                        
+                        // 對於百分比欄位，需要特殊處理
+                        if (cellText.includes('%')) {
+                            // 暫時儲存原始值，稍後重新計算
+                            mergedData[dateText][j] = cellText;
+                        } else {
+                            mergedData[dateText][j] += cellValue;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 重建表格
+        const newTable = document.createElement('table');
+        newTable.className = baseTable.className;
+        
+        // 添加表頭
+        const headerRow = document.createElement('tr');
+        for (let header of headers) {
+            const th = document.createElement('th');
+            th.textContent = header;
+            headerRow.appendChild(th);
+        }
+        newTable.appendChild(headerRow);
+        
+        // 添加合併後的數據行
+        const sortedDates = Object.keys(mergedData).sort();
+        let totalImp = 0, totalClk = 0;
+        
+        for (const date of sortedDates) {
+            const row = document.createElement('tr');
+            const dateCell = document.createElement('td');
+            dateCell.textContent = date;
+            row.appendChild(dateCell);
+            
+            const rowData = mergedData[date];
+            for (let j = 1; j < headers.length; j++) {
+                const cell = document.createElement('td');
+                const value = rowData[j] || 0;
+                
+                // 特殊處理曝光數和點擊數
+                if (headers[j].includes('曝光數') || headers[j].includes('播放數')) {
+                    totalImp += value;
+                    cell.textContent = value > 0 ? value.toLocaleString() : '';
+                } else if (headers[j].includes('點擊數')) {
+                    totalClk += value;
+                    cell.textContent = value > 0 ? value.toString() : '';
+                } else if (headers[j].includes('點擊率') || headers[j].includes('觀看率')) {
+                    // 重新計算點擊率
+                    const imp = rowData[2] || 0; // 假設曝光數在第3欄
+                    const clk = rowData[3] || 0; // 假設點擊數在第4欄
+                    if (imp > 0) {
+                        cell.textContent = ((clk / imp) * 100).toFixed(2) + '%';
+                    } else {
+                        cell.textContent = '0.00%';
+                    }
+                } else {
+                    cell.textContent = value > 0 ? value.toString() : '';
+                }
+                
+                row.appendChild(cell);
+            }
+            
+            newTable.appendChild(row);
+        }
+        
+        // 添加 TOTAL 行
+        const totalRow = document.createElement('tr');
+        const totalLabelCell = document.createElement('td');
+        totalLabelCell.textContent = 'TOTAL';
+        totalRow.appendChild(totalLabelCell);
+        
+        for (let j = 1; j < headers.length; j++) {
+            const cell = document.createElement('td');
+            
+            if (headers[j].includes('曝光數') || headers[j].includes('播放數')) {
+                cell.textContent = totalImp > 0 ? totalImp.toLocaleString() : '';
+            } else if (headers[j].includes('點擊數')) {
+                cell.textContent = totalClk > 0 ? totalClk.toString() : '';
+            } else if (headers[j].includes('點擊率') || headers[j].includes('觀看率')) {
+                if (totalImp > 0) {
+                    cell.textContent = ((totalClk / totalImp) * 100).toFixed(2) + '%';
+                } else {
+                    cell.textContent = '0.00%';
+                }
+            }
+            
+            totalRow.appendChild(cell);
+        }
+        
+        newTable.appendChild(totalRow);
+        
+        return newTable;
+    }
+    
+    // 顯示個別 AdSet 的報表
+    function displayIndividualAdsetReports() {
+        let content = '';
+        
+        if (!allAdsetReports || Object.keys(allAdsetReports).length === 0) {
+            return content;
+        }
+        
+        content += `<div class="daily-report-section">
+            <h4>📋 個別廣告集報表</h4>
+        `;
+        
+        for (const [adsetId, report] of Object.entries(allAdsetReports)) {
+            if (report.success) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(report.content, 'text/html');
+                const table = findDailyReportTable(doc);
+                
+                if (table) {
+                    content += `
+                        <div style="margin: 20px 0; padding: 15px; border: 1px solid #dee2e6; border-radius: 8px; background: #f8f9fa;">
+                            <h5 style="color: #495057; margin-bottom: 15px;">📊 ${report.name}</h5>
+                            ${table.outerHTML}
+                        </div>
+                    `;
+                }
+            } else {
+                content += `
+                    <div style="margin: 20px 0; padding: 15px; border: 1px solid #dc3545; border-radius: 8px; background: #f8d7da;">
+                        <h5 style="color: #721c24; margin-bottom: 10px;">❌ ${report.name}</h5>
+                        <p style="color: #721c24; margin: 0;">查詢失敗: ${report.error}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        content += '</div>';
+        return content;
+    }
+
     // 尋找每日報表表格
     function findDailyReportTable(doc) {
         // 專門查找每日報表的表格
@@ -847,7 +1084,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const styles = {
                 header: {
                     font: { 
-                        name: 'Helvetica',    // ★ 加上這行
+                        name: 'Helvetica',
                         bold: true, 
                         color: { argb: 'FFFFFFFF' }, 
                         size: 13 
@@ -863,7 +1100,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 orangeHeader: {
                     font: { 
-                        name: 'Helvetica',    // ★ 加上這行
+                        name: 'Helvetica',
                         bold: true, 
                         color: { argb: 'FFFFFFFF' }, 
                         size: 13 
@@ -879,7 +1116,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 normal: {
                     font: { 
-                        name: 'Helvetica',    // ★ 加上這行
+                        name: 'Helvetica',
                         size: 13 
                     },
                     alignment: { vertical: 'middle', horizontal: 'center' },
@@ -892,7 +1129,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 total: {
                     font: { 
-                        name: 'Helvetica',    // ★ 加上這行
+                        name: 'Helvetica',
                         bold: true, 
                         size: 13 
                     },
@@ -907,7 +1144,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 redFont: {
                     font: { 
-                        name: 'Helvetica',    // ★ 加上這行
+                        name: 'Helvetica',
                         bold: true, 
                         color: { argb: 'FFFF0000' }, 
                         size: 13 
@@ -922,7 +1159,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 grayBg: {
                     font: { 
-                        name: 'Helvetica',    // ★ 加上這行
+                        name: 'Helvetica',
                         bold: true, 
                         size: 13 
                     },
@@ -937,7 +1174,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 whiteBg: {
                     font: { 
-                        name: 'Helvetica',    // ★ 加上這行
+                        name: 'Helvetica',
                         size: 13 
                     },
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } },
@@ -951,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 emptyRow: {
                     font: { 
-                        name: 'Helvetica',    // ★ 加上這行
+                        name: 'Helvetica',
                         color: { argb: 'FF999999' }, 
                         size: 13 
                     },
@@ -966,11 +1203,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 yellowBg: {
                     font: { 
-                        name: 'Helvetica',    // ★ 加上這行
+                        name: 'Helvetica',
                         bold: true, 
                         size: 13 
                     },
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CB' } },
+                    alignment: { vertical: 'middle', horizontal: 'center' },
+                    border: {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    }
+                },
+                sectionHeader: {
+                    font: { 
+                        name: 'Helvetica',
+                        bold: true, 
+                        color: { argb: 'FFFFFFFF' }, 
+                        size: 14 
+                    },
+                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E7D32' } },
                     alignment: { vertical: 'middle', horizontal: 'center' },
                     border: {
                         top: { style: 'thin' },
@@ -999,7 +1252,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (adTypeDisplay === 'NATIVE') {
                 adTypeDisplay = '原生廣告';
             }
-            const totalBudget = info.parsedBudget > 0 ? info.parsedBudget : (info.budget || 10000);
+            // 優先使用從 Campaign 取得的總預算
+            const totalBudget = info.campaignBudget !== undefined ? info.campaignBudget : (info.parsedBudget > 0 ? info.parsedBudget : (info.budget || 10000));
             const pricingMode = pricing.bMode || 'CPC';
             const pricingPrice = pricing.price || 7.0;
             const currency = pricing.currency === 'TWD' ? '$' : pricing.currency;
@@ -1018,117 +1272,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 isOngoing = remainingDays > 0;
             }
 
-            // 解析表格數據
-            const trs = currentReportData.table.querySelectorAll('tr');
-            const headerRow = trs[0];
-            const headers = Array.from(headerRow.querySelectorAll('th,td')).map(h => h.textContent.trim());
-            
-            // 分析表格結構
-            let dateIndex = -1, weekIndex = -1, impIndex = -1, clkIndex = -1, ctrIndex = -1;
-            let cutIndices = [];
-            let textIndex = -1;
-            
-            headers.forEach((header, index) => {
-                if (header.includes('日期')) dateIndex = index;
-                else if (header.includes('星期') || header.includes('週')) weekIndex = index;
-                else if (header.includes('曝光數') || header.includes('播放數')) impIndex = index;
-                else if (header.includes('點擊數')) clkIndex = index;
-                else if (header.includes('點擊率') || header.includes('觀看率')) ctrIndex = index;
-                else if (header.includes('文案')) textIndex = index;
-                else if (header.includes('cut')) {
-                    cutIndices.push({index: index, cutNum: header});
-                }
-            });
-            
-            // 處理數據並計算總計
-            const dataRows = [];
-            let sumImp = 0, sumClk = 0, sumTxt = 0;
-            const cutSums = {};
-            
-            for (let i = 1; i < trs.length; i++) {
-                const td = trs[i].querySelectorAll('td,th');
-                if (td.length < 2) continue;
-                
-                const date = dateIndex >= 0 ? td[dateIndex].textContent.trim() : td[0].textContent.trim();
-                if (date === 'TOTAL') continue;
-                
-                // 檢查是否為空白行
-                let isEmptyRow = false;
-                if (td.length > 2) {
-                    const dataCell = td[2];
-                    const cellContent = dataCell.textContent.trim();
-                    const cellHTML = dataCell.innerHTML.trim();
-                    
-                    if (cellHTML.includes('color: #ccc') || cellContent === '—' || cellContent === '') {
-                        isEmptyRow = true;
-                    }
-                }
-                
-                // 提取數據
-                let imp = 0, clk = 0, ctr = '', txt = 0;
-                const cutValues = {};
-                
-                if (!isEmptyRow) {
-                    if (impIndex >= 0) imp = +(td[impIndex].textContent.replace(/[,—]/g,'')) || 0;
-                    if (clkIndex >= 0) clk = +(td[clkIndex].textContent.replace(/[,—]/g,'')) || 0;
-                    if (ctrIndex >= 0) ctr = td[ctrIndex].textContent.trim();
-                    if (textIndex >= 0) txt = +(td[textIndex].textContent.replace(/[,—]/g,'')) || 0;
-                    
-                    cutIndices.forEach(cutInfo => {
-                        const cutValue = +(td[cutInfo.index].textContent.replace(/[,—]/g,'')) || 0;
-                        cutValues[cutInfo.cutNum] = cutValue;
-                        if (!cutSums[cutInfo.cutNum]) cutSums[cutInfo.cutNum] = 0;
-                        cutSums[cutInfo.cutNum] += cutValue;
-                    });
-                    
-                    sumImp += imp;
-                    sumClk += clk;
-                    sumTxt += txt;
-                }
+            let currentRow = 1;
 
-                dataRows.push({
-                    date,
-                    isEmpty: isEmptyRow,
-                    imp,
-                    clk,
-                    ctr,
-                    cutValues,
-                    txt,
-                    weekday: weekIndex >= 0 && !isEmptyRow ? td[weekIndex].textContent.trim() : '',
-                    originalRow: td
-                });
-            }
-
-            // 計算剩餘數據
-            let targetUnit = 'clicks', targetCount = 0, remainingLabel = '剩餘點擊數';
-            let remainingAmount = 0, remainingBudget = 0;
-            
-            if (pricingMode === 'CPM') {
-                targetUnit = 'impressions';
-                remainingLabel = '剩餘曝光數';
-                targetCount = Math.floor((totalBudget / pricingPrice) * 1000);
-                remainingBudget = totalBudget - ((sumImp * pricingPrice) / 1000);
-                remainingAmount = Math.floor((remainingBudget / pricingPrice) * 1000);
-            } else if (pricingMode === 'CPV') {
-                targetUnit = 'views';
-                remainingLabel = '剩餘觀看數';
-                targetCount = Math.floor(totalBudget / pricingPrice);
-                remainingBudget = totalBudget - (sumClk * pricingPrice);
-                remainingAmount = Math.floor(remainingBudget / pricingPrice);
-            } else {
-                targetUnit = 'clicks';
-                remainingLabel = '剩餘點擊數';
-                targetCount = Math.floor(totalBudget / pricingPrice);
-                remainingBudget = totalBudget - (sumClk * pricingPrice);
-                remainingAmount = Math.floor(remainingBudget / pricingPrice);
-            }
-            
-            const remainingDailyValue = (remainingDays > 0 && remainingAmount > 0) ? 
-                Math.ceil(Math.max(0, remainingAmount) / remainingDays) : 0;
-
-            // === 開始建構 Excel 內容 ===
-
-            // 1. 插入 Logo 圖片
+            // 1. 插入 Logo 圖片（同原本邏輯）
             let logoInserted = false;
             
             // 嘗試載入本地 logo 圖片
@@ -1141,10 +1287,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         extension: 'jpeg',
                     });
                     
-                    // 在 B2:C3 區域插入圖片，調整尺寸適應儲存格
                     worksheet.addImage(imageId, {
-                        tl: { col: 1, row: 1 }, // B2 (從0開始計算)
-                        ext: { width: 200, height: 60 } // 調整為適合的大小 (原圖 300x300 縮放)
+                        tl: { col: 1, row: 1 },
+                        ext: { width: 200, height: 60 }
                     });
                     logoInserted = true;
                     console.log('✅ Logo 圖片載入成功');
@@ -1153,11 +1298,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.warn('⚠️ 本地 logo 圖片載入失敗:', error);
             }
             
-            // 如果本地圖片載入失敗，嘗試 CDN 備案
             if (!logoInserted) {
                 try {
-                    // 如果您有 CDN URL，請在這裡替換
-                    const cdnUrl = 'https://static.ottercdn.com/trek/media/e19b2b54-641e-4519-a34f-a84deeea878e.png'; // 請替換為您的 CDN URL，例如: 'https://your-cdn.com/logo.jpeg'
+                    const cdnUrl = 'https://static.ottercdn.com/trek/media/e19b2b54-641e-4519-a34f-a84deeea878e.png';
                     
                     if (cdnUrl) {
                         console.log('🔄 嘗試 CDN 備案...', cdnUrl);
@@ -1176,15 +1319,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             logoInserted = true;
                             console.log('✅ CDN Logo 圖片載入成功');
                         }
-                    } else {
-                        console.log('💡 提示：如需使用 CDN 圖片，請設定 cdnUrl 變數');
                     }
                 } catch (cdnError) {
                     console.warn('⚠️ CDN logo 圖片載入失敗:', cdnError);
                 }
             }
             
-            // 如果圖片都載入失敗，在 Logo 區域放入文字
             if (!logoInserted) {
                 worksheet.getCell('B2').value = 'ASEAL';
                 applyStyle(worksheet.getCell('B2'), styles.grayBg);
@@ -1216,9 +1356,10 @@ document.addEventListener('DOMContentLoaded', function() {
             worksheet.mergeCells('B2:C3'); // Logo 區域
             worksheet.mergeCells('E2:F2'); // 活動名稱值
             worksheet.mergeCells('E3:F3'); // 廣告類型值
-            
 
-            // 3. 剩餘數據行（第4-5行，往右移一欄）
+            // 3. 剩餘數據行（第4-5行）
+            const remainingDailyValue = calculateRemainingDailyValue(totalBudget, pricingMode, pricingPrice, remainingDays);
+
             worksheet.getCell('B4').value = '剩餘天數';
             applyStyle(worksheet.getCell('B4'), styles.grayBg);
             worksheet.getCell('C4').value = `(${remainingDays})`;
@@ -1231,152 +1372,60 @@ document.addEventListener('DOMContentLoaded', function() {
             applyStyle(worksheet.getCell('F4'), styles.whiteBg);
             worksheet.getCell('G4').value = '剩餘花費';
             applyStyle(worksheet.getCell('G4'), styles.grayBg);
-            worksheet.getCell('H4').value = isOngoing ? 
-                `${currency}${Math.max(0, remainingBudget).toLocaleString()}` : '(已結束)';
+            worksheet.getCell('H4').value = isOngoing ? `${currency}${Math.max(0, remainingDailyValue.remainingBudget).toLocaleString()}` : '(已結束)';
             applyStyle(worksheet.getCell('H4'), styles.redFont);
 
             worksheet.getCell('B5').value = '剩餘每日';
             applyStyle(worksheet.getCell('B5'), styles.grayBg);
-            worksheet.getCell('C5').value = remainingDailyValue;
+            worksheet.getCell('C5').value = remainingDailyValue.remainingDaily;
             applyStyle(worksheet.getCell('C5'), styles.redFont);
             worksheet.getCell('D5').value = '廣告目標';
             applyStyle(worksheet.getCell('D5'), styles.grayBg);
-            worksheet.getCell('E5').value = targetCount.toLocaleString();
+            worksheet.getCell('E5').value = remainingDailyValue.targetCount.toLocaleString();
             applyStyle(worksheet.getCell('E5'), styles.whiteBg);
-            worksheet.getCell('F5').value = targetUnit;
+            worksheet.getCell('F5').value = remainingDailyValue.targetUnit;
             applyStyle(worksheet.getCell('F5'), styles.whiteBg);
-            worksheet.getCell('G5').value = remainingLabel;
+            worksheet.getCell('G5').value = remainingDailyValue.remainingLabel;
             applyStyle(worksheet.getCell('G5'), styles.grayBg);
-            worksheet.getCell('H5').value = isOngoing ? Math.max(0, remainingAmount) : '0';
+            worksheet.getCell('H5').value = isOngoing ? Math.max(0, remainingDailyValue.remainingAmount) : '0';
             applyStyle(worksheet.getCell('H5'), styles.redFont);
 
-            // 4. 表頭（第7行）
-            const tableStartRow = 7;
-            for (let i = 0; i < headers.length; i++) {
-                const cell = worksheet.getCell(tableStartRow, i + 2); // 從B欄開始
-                cell.value = headers[i];
-                applyStyle(cell, (i < 5) ? styles.header : styles.orangeHeader);
+            currentRow = 7;
+
+            // 4. 總合報表區段
+            currentRow = await addMergedReportSection(worksheet, styles, currentRow, applyStyle);
+
+            // 5. 個別 AdSet 報表區段
+            if (currentReportData.allAdsetReports) {
+                currentRow = await addIndividualAdsetSections(worksheet, styles, currentRow, applyStyle);
             }
 
-            // 5. 數據行
-            let currentRow = tableStartRow + 1;
-            for (const rowData of dataRows) {
-                // 日期欄（B）
-                const dateCell = worksheet.getCell(currentRow, 2);
-                dateCell.value = rowData.date;
-                applyStyle(dateCell, rowData.isEmpty ? styles.emptyRow : styles.normal);
-
-                // 星期欄（C）
-                const weekCell = worksheet.getCell(currentRow, 3);
-                if (rowData.weekday) weekCell.value = rowData.weekday;
-                applyStyle(weekCell, rowData.isEmpty ? styles.emptyRow : styles.normal);
-
-                // 其他數據欄
-                let colIndex = 4; // 從D欄開始（曝光數）
-                for (let i = 2; i < headers.length; i++) { // 跳過日期、星期
-                    const cell = worksheet.getCell(currentRow, colIndex);
-                    const header = headers[i];
-                    
-                    if (!rowData.isEmpty) {
-                        if (header.includes('曝光數') || header.includes('播放數')) {
-                            if (rowData.imp > 0) cell.value = rowData.imp;
-                        } else if (header.includes('點擊數')) {
-                            if (rowData.clk > 0) cell.value = rowData.clk;
-                        } else if (header.includes('點擊率') || header.includes('觀看率')) {
-                            if (rowData.ctr) cell.value = rowData.ctr;
-                        } else if (header.includes('cut')) {
-                            const cutValue = rowData.cutValues[header];
-                            if (cutValue > 0) cell.value = cutValue;
-                        } else if (header.includes('文案')) {
-                            if (rowData.txt > 0) cell.value = rowData.txt;
-                        } else if (rowData.originalRow[i]) {
-                            const cellValue = rowData.originalRow[i].textContent.trim();
-                            if (cellValue && cellValue !== '—') cell.value = cellValue;
-                        }
-                    }
-                    
-                    applyStyle(cell, rowData.isEmpty ? styles.emptyRow : styles.normal);
-                    colIndex++;
-                }
-                currentRow++;
-            }
-
-            // 6. TOTAL 行
-            const totalRow = currentRow;
-            const totCtr = sumImp ? ((sumClk / sumImp) * 100).toFixed(2) + '%' : '0.00%';
-
-            worksheet.mergeCells(totalRow, 2, totalRow, 3);
-            const totalCell = worksheet.getCell(totalRow, 2);
-                totalCell.value = 'TOTAL';
-                totalCell.font = {
-                    name: 'Helvetica',
-                    bold: true,
-                    size: 13
-                };
-                totalCell.alignment = {
-                    vertical: 'middle',
-                    horizontal: 'center'
-                };
-                totalCell.border = {
-                    top: { style: 'thin' },
-                    left: { style: 'thin' },
-                    bottom: { style: 'thin' },
-                    right: { style: 'thin' }
-                };
-
-            // TOTAL 行數據
-            let colIndex = 4;
-            for (let i = 2; i < headers.length; i++) {
-                const cell = worksheet.getCell(totalRow, colIndex);
-                const header = headers[i];
-                
-                if (header.includes('曝光數') || header.includes('播放數')) {
-                    cell.value = sumImp;
-                    applyStyle(cell, styles.total); // 改為統一的 total 樣式
-                } else if (header.includes('點擊數')) {
-                    cell.value = sumClk;
-                    applyStyle(cell, styles.total);
-                } else if (header.includes('點擊率') || header.includes('觀看率')) {
-                    cell.value = totCtr;
-                    applyStyle(cell, styles.total);
-                    cell.font = { bold: true, color: { argb: 'FFFF0000' }, size: 13, name: 'Helvetica' }; // 保持紅色字體
-                } else if (header.includes('cut')) {
-                    cell.value = cutSums[header] || 0;
-                    applyStyle(cell, styles.total);
-                } else if (header.includes('文案')) {
-                    cell.value = sumTxt;
-                    applyStyle(cell, styles.total);
-                } else {
-                    applyStyle(cell, styles.total);
-                }
-                colIndex++;
-            }
-
-            /* === 6. 產出檔案 (瀏覽器用 writeBuffer) =================== */
+            // 產出檔案
             const buffer = await workbook.xlsx.writeBuffer({ useStyles: true });
-            const blob   = new Blob([buffer], {
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            const blob = new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             });
-            const url  = URL.createObjectURL(blob);
+            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `廣告報表_${currentReportData.setId.slice(0,8)}_${new Date().toISOString().slice(0,10)}.xlsx`;
+            link.download = `廣告報表_${currentReportData.campaignId.slice(0,8)}_${new Date().toISOString().slice(0,10)}.xlsx`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
 
             // 顯示成功訊息
-            const totalDataRows = dataRows.length;
-            const hasDataRows = dataRows.filter(row => !row.isEmpty).length;
+            const totalDataRows = countTotalDataRows();
+            const hasDataRows = countHasDataRows();
             const emptyRows = totalDataRows - hasDataRows;
             
             let successMessage = `✅ Excel 報表已成功產出！檔案已下載。`;
             
             if (currentAdsetInfo && currentAdsetInfo.success) {
-                const budgetSource = info.parsedBudget > 0 ? '從活動名稱解析' : '使用原始預算';
+                const budgetSource = info.campaignBudget !== undefined ? '從 Campaign 取得' : (info.parsedBudget > 0 ? '從活動名稱解析' : '使用原始預算');
                 const scheduleInfo = remainingDays > 0 ? `剩餘 ${remainingDays} 天` : '活動已結束';
-                successMessage += `\n📊 已套用完整樣式和廣告集資訊：\n- 計價方式：${pricingMode}\n- 價格：${currency}${pricingPrice}\n- 活動名稱：${activityName}\n- 預算：${currency}${totalBudget.toLocaleString()} (${budgetSource})\n- 走期狀態：${scheduleInfo}\n📅 數據統計：${hasDataRows} 筆實際數據，${emptyRows} 筆空白日期`;
+                const adsetCount = info.adsetCount || 1;
+                successMessage += `\n📊 已包含完整活動資訊：\n- 活動名稱：${activityName}\n- 廣告集數量：${adsetCount} 個\n- 計價方式：${pricingMode} (${currency}${pricingPrice})\n- 總預算：${currency}${totalBudget.toLocaleString()} (${budgetSource})\n- 走期狀態：${scheduleInfo}\n📅 包含總合數據和 ${adsetCount} 個個別廣告集詳細數據`;
             }
             alert(successMessage);
 
@@ -1384,6 +1433,233 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('產出 Excel 報表失敗:', err);
             alert('❌ 產出 Excel 報表失敗：' + err.message);
         }
+    }
+
+    // 計算剩餘每日數值的輔助函數
+    function calculateRemainingDailyValue(totalBudget, pricingMode, pricingPrice, remainingDays) {
+        // 解析表格數據以計算已使用的預算
+        const trs = currentReportData.table.querySelectorAll('tr');
+        let sumImp = 0, sumClk = 0;
+        
+        for (let i = 1; i < trs.length; i++) {
+            const td = trs[i].querySelectorAll('td,th');
+            if (td.length < 2) continue;
+            
+            const date = td[0].textContent.trim();
+            if (date === 'TOTAL') continue;
+            
+            // 提取曝光數和點擊數
+            if (td.length > 2) {
+                const imp = +(td[2].textContent.replace(/[,—]/g,'')) || 0;
+                sumImp += imp;
+            }
+            if (td.length > 3) {
+                const clk = +(td[3].textContent.replace(/[,—]/g,'')) || 0;
+                sumClk += clk;
+            }
+        }
+        
+        let targetUnit = 'clicks', targetCount = 0, remainingLabel = '剩餘點擊數';
+        let remainingAmount = 0, remainingBudget = 0;
+        
+        if (pricingMode === 'CPM') {
+            targetUnit = 'impressions';
+            remainingLabel = '剩餘曝光數';
+            targetCount = Math.floor((totalBudget / pricingPrice) * 1000);
+            remainingBudget = totalBudget - ((sumImp * pricingPrice) / 1000);
+            remainingAmount = Math.floor((remainingBudget / pricingPrice) * 1000);
+        } else if (pricingMode === 'CPV') {
+            targetUnit = 'views';
+            remainingLabel = '剩餘觀看數';
+            targetCount = Math.floor(totalBudget / pricingPrice);
+            remainingBudget = totalBudget - (sumClk * pricingPrice);
+            remainingAmount = Math.floor(remainingBudget / pricingPrice);
+        } else {
+            targetUnit = 'clicks';
+            remainingLabel = '剩餘點擊數';
+            targetCount = Math.floor(totalBudget / pricingPrice);
+            remainingBudget = totalBudget - (sumClk * pricingPrice);
+            remainingAmount = Math.floor(remainingBudget / pricingPrice);
+        }
+        
+        const remainingDaily = (remainingDays > 0 && remainingAmount > 0) ? 
+            Math.ceil(Math.max(0, remainingAmount) / remainingDays) : 0;
+
+        return {
+            targetUnit,
+            targetCount,
+            remainingLabel,
+            remainingAmount,
+            remainingBudget,
+            remainingDaily
+        };
+    }
+
+    // 添加總合報表區段
+    async function addMergedReportSection(worksheet, styles, startRow, applyStyle) {
+        // 添加區段標題
+        worksheet.mergeCells(startRow, 2, startRow, 9);
+        const sectionCell = worksheet.getCell(startRow, 2);
+        sectionCell.value = '📈 總合報表數據';
+        applyStyle(sectionCell, styles.sectionHeader);
+        
+        let currentRow = startRow + 2;
+        
+        // 解析總合表格數據
+        const trs = currentReportData.table.querySelectorAll('tr');
+        const headerRow = trs[0];
+        const headers = Array.from(headerRow.querySelectorAll('th,td')).map(h => h.textContent.trim());
+        
+        // 添加表頭
+        for (let i = 0; i < headers.length; i++) {
+            const cell = worksheet.getCell(currentRow, i + 2);
+            cell.value = headers[i];
+            applyStyle(cell, (i < 5) ? styles.header : styles.orangeHeader);
+        }
+        currentRow++;
+        
+        // 添加數據行
+        for (let i = 1; i < trs.length; i++) {
+            const td = trs[i].querySelectorAll('td,th');
+            if (td.length < 2) continue;
+            
+            const date = td[0].textContent.trim();
+            
+            for (let j = 0; j < td.length; j++) {
+                const cell = worksheet.getCell(currentRow, j + 2);
+                const cellValue = td[j].textContent.trim();
+                
+                if (!isNaN(cellValue.replace(/[,]/g, '')) && cellValue !== '') {
+                    cell.value = +cellValue.replace(/[,]/g, '');
+                } else {
+                    cell.value = cellValue;
+                }
+                
+                if (date === 'TOTAL') {
+                    applyStyle(cell, styles.total);
+                    if (cellValue.includes('%')) {
+                        cell.font = { bold: true, color: { argb: 'FFFF0000' }, size: 13, name: 'Helvetica' };
+                    }
+                } else {
+                    applyStyle(cell, styles.normal);
+                }
+            }
+            currentRow++;
+        }
+        
+        return currentRow + 2; // 留一些空間
+    }
+
+    // 添加個別 AdSet 報表區段
+    async function addIndividualAdsetSections(worksheet, styles, startRow, applyStyle) {
+        let currentRow = startRow;
+        
+        // 添加個別報表區段標題
+        worksheet.mergeCells(currentRow, 2, currentRow, 9);
+        const sectionCell = worksheet.getCell(currentRow, 2);
+        sectionCell.value = '📋 個別廣告集報表';
+        applyStyle(sectionCell, styles.sectionHeader);
+        
+        currentRow += 2;
+        
+        // 處理每個 AdSet 的報表
+        for (const [adsetId, report] of Object.entries(currentReportData.allAdsetReports)) {
+            if (report.success) {
+                // 添加 AdSet 名稱
+                worksheet.mergeCells(currentRow, 2, currentRow, 9);
+                const adsetTitleCell = worksheet.getCell(currentRow, 2);
+                adsetTitleCell.value = `📊 ${report.name}`;
+                adsetTitleCell.font = { name: 'Helvetica', bold: true, size: 12, color: { argb: 'FF2E7D32' } };
+                adsetTitleCell.alignment = { vertical: 'middle', horizontal: 'left' };
+                
+                currentRow += 1;
+                
+                // 解析並添加 AdSet 表格
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(report.content, 'text/html');
+                const table = findDailyReportTable(doc);
+                
+                if (table) {
+                    const rows = table.querySelectorAll('tr');
+                    
+                    // 添加表頭
+                    const headerCells = rows[0].querySelectorAll('th,td');
+                    for (let j = 0; j < headerCells.length; j++) {
+                        const cell = worksheet.getCell(currentRow, j + 2);
+                        cell.value = headerCells[j].textContent.trim();
+                        applyStyle(cell, (j < 5) ? styles.header : styles.orangeHeader);
+                    }
+                    currentRow++;
+                    
+                    // 添加數據行
+                    for (let i = 1; i < rows.length; i++) {
+                        const rowCells = rows[i].querySelectorAll('td,th');
+                        if (rowCells.length < 2) continue;
+                        
+                        const date = rowCells[0].textContent.trim();
+                        
+                        for (let j = 0; j < rowCells.length; j++) {
+                            const cell = worksheet.getCell(currentRow, j + 2);
+                            const cellValue = rowCells[j].textContent.trim();
+                            
+                            if (!isNaN(cellValue.replace(/[,]/g, '')) && cellValue !== '') {
+                                cell.value = +cellValue.replace(/[,]/g, '');
+                            } else {
+                                cell.value = cellValue;
+                            }
+                            
+                            if (date === 'TOTAL') {
+                                applyStyle(cell, styles.total);
+                                if (cellValue.includes('%')) {
+                                    cell.font = { bold: true, color: { argb: 'FFFF0000' }, size: 13, name: 'Helvetica' };
+                                }
+                            } else {
+                                applyStyle(cell, styles.normal);
+                            }
+                        }
+                        currentRow++;
+                    }
+                }
+            } else {
+                // 顯示失敗的 AdSet
+                worksheet.mergeCells(currentRow, 2, currentRow, 9);
+                const errorCell = worksheet.getCell(currentRow, 2);
+                errorCell.value = `❌ ${report.name} - 查詢失敗: ${report.error}`;
+                errorCell.font = { name: 'Helvetica', bold: true, size: 12, color: { argb: 'FFDC3545' } };
+                errorCell.alignment = { vertical: 'middle', horizontal: 'left' };
+                currentRow += 1;
+            }
+            
+            currentRow += 2; // 在每個 AdSet 之間留空間
+        }
+        
+        return currentRow;
+    }
+
+    // 計算總數據行數的輔助函數
+    function countTotalDataRows() {
+        if (!currentReportData.table) return 0;
+        const rows = currentReportData.table.querySelectorAll('tr');
+        return Math.max(0, rows.length - 1); // 扣除表頭
+    }
+
+    // 計算有數據的行數的輔助函數
+    function countHasDataRows() {
+        if (!currentReportData.table) return 0;
+        const rows = currentReportData.table.querySelectorAll('tr');
+        let count = 0;
+        
+        for (let i = 1; i < rows.length; i++) {
+            const cells = rows[i].querySelectorAll('td,th');
+            if (cells.length > 2) {
+                const cellContent = cells[2].textContent.trim();
+                if (cellContent && cellContent !== '—' && cellContent !== 'TOTAL') {
+                    count++;
+                }
+            }
+        }
+        
+        return count;
     }
 
     // 建構 slide 廣告報表表格（包含 cut 數據）
@@ -1639,14 +1915,14 @@ document.addEventListener('DOMContentLoaded', function() {
             container.insertBefore(slideMsg, container.firstChild);
         }
         
-        // 顯示走期資訊（強調是自動從 AdSet 取得）
+        // 顯示走期資訊（強調是自動從 Campaign 取得）
         if (campaignEndDate && currentDate) {
             const scheduleMsg = document.createElement('div');
             scheduleMsg.className = 'cookie-status';
             scheduleMsg.style.backgroundColor = '#fff3cd';
             scheduleMsg.style.borderColor = '#ffeaa7';
             scheduleMsg.style.color = '#856404';
-            scheduleMsg.innerHTML = `📅 走期設定：結束日期 ${campaignEndDate}（自動從 AdSet.toTime 取得），當前日期 ${currentDate}`;
+            scheduleMsg.innerHTML = `📅 走期設定：結束日期 ${campaignEndDate}（自動從 Campaign.toTime 取得），當前日期 ${currentDate}`;
             container.insertBefore(scheduleMsg, container.firstChild);
         } else if (campaignEndDate) {
             // 只有走期結束日期，沒有當前日期
@@ -1655,7 +1931,7 @@ document.addEventListener('DOMContentLoaded', function() {
             scheduleMsg.style.backgroundColor = '#fff3cd';
             scheduleMsg.style.borderColor = '#ffeaa7';
             scheduleMsg.style.color = '#856404';
-            scheduleMsg.innerHTML = `📅 走期設定：結束日期 ${campaignEndDate}（自動從 AdSet.toTime 取得）`;
+            scheduleMsg.innerHTML = `📅 走期設定：結束日期 ${campaignEndDate}（自動從 Campaign.toTime 取得）`;
             container.insertBefore(scheduleMsg, container.firstChild);
         }
         
@@ -1671,9 +1947,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const currency = pricing.currency === 'TWD' ? '$' : pricing.currency;
             
             // 顯示預算解析資訊
-            let budgetInfo = `${currency}${info.budget.toLocaleString()}`;
-            if (info.parsedBudget > 0) {
-                budgetInfo += ` (從活動名稱解析: ${currency}${info.parsedBudget.toLocaleString()})`;
+            let budgetInfo = '';
+            if (info.campaignBudget !== undefined) {
+                budgetInfo = `${currency}${info.campaignBudget.toLocaleString()} (從 Campaign 取得)`;
+            } else if (info.parsedBudget > 0) {
+                budgetInfo = `${currency}${info.parsedBudget.toLocaleString()} (從活動名稱解析)`;
+            } else {
+                budgetInfo = `${currency}${info.budget.toLocaleString()} (原始預算)`;
             }
             
             // 顯示時間戳資訊

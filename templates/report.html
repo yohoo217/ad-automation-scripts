@@ -130,6 +130,140 @@
         transform: none;
         box-shadow: none;
     }
+    
+    /* 新增樣式：選擇器相關 */
+    .selection-section {
+        display: none;
+        margin-top: 20px;
+        padding: 20px;
+        background: #f8fff9;
+        border-radius: 8px;
+        border: 1px solid #28a745;
+    }
+    
+    .selection-controls {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .selection-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .selection-group label {
+        font-weight: 600;
+        color: #2e7d32;
+        font-size: 14px;
+    }
+    
+    .selection-list {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 10px;
+        background: white;
+    }
+    
+    .selection-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .selection-item:last-child {
+        border-bottom: none;
+    }
+    
+    .selection-item input[type="checkbox"] {
+        transform: scale(1.1);
+    }
+    
+    .selection-item-label {
+        flex: 1;
+        font-size: 13px;
+        color: #333;
+    }
+    
+    .selection-item-subtitle {
+        font-size: 11px;
+        color: #666;
+        margin-left: 20px;
+    }
+    
+    .batch-settings {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .batch-settings label {
+        font-size: 14px;
+        color: #495057;
+    }
+    
+    .batch-settings input {
+        padding: 6px 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        width: 80px;
+    }
+    
+    .selection-summary {
+        background: #e3f2fd;
+        padding: 10px;
+        border-radius: 6px;
+        margin-top: 10px;
+        font-size: 13px;
+        color: #1976d2;
+    }
+    
+    /* 新增樣式：自訂時間區段 */
+    .custom-time-section {
+        margin-top: 20px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .custom-time-controls {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .time-input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .time-input-group label {
+        font-weight: 600;
+        color: #2e7d32;
+        font-size: 14px;
+    }
+    
+    .time-input-group input[type="date"] {
+        padding: 6px 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        width: 150px;
+    }
+    
+    .time-help {
+        font-size: 12px;
+        color: #666;
+    }
 </style>
 {% endblock %}
 
@@ -155,6 +289,43 @@
             <div class="help-text">勾選此項目將會查詢所有 AdUnit 並顯示各 cut 的詳細數據</div>
         </div>
         
+        <!-- 新增：批次處理設定 -->
+        <div class="form-row">
+            <div class="batch-settings">
+                <label for="batchSize">AdUnit 查詢批次大小：</label>
+                <input type="number" id="batchSize" name="batchSize" value="10" min="1" max="50">
+                <span style="font-size: 12px; color: #666;">每批次處理的 AdUnit 數量，預設 10 個（減少併發請求提升穩定性）</span>
+            </div>
+        </div>
+        
+        <!-- 新增：自訂時間區段設定 -->
+        <div class="form-row">
+            <label for="useCustomTime">
+                <input type="checkbox" id="useCustomTime" name="useCustomTime" style="margin-right: 8px;">
+                🕒 使用自訂時間區段（預設自動從 Campaign 取得走期時間）
+            </label>
+            <div class="help-text">勾選後可手動設定查詢的開始和結束時間，否則使用活動的完整走期時間</div>
+        </div>
+        
+        <!-- 摺疊式自訂時間選擇區域 -->
+        <div id="customTimeSection" class="custom-time-section" style="display: none;">
+            <div class="custom-time-controls">
+                <div class="time-input-group">
+                    <label for="customStartDate">開始日期：</label>
+                    <input type="date" id="customStartDate" name="customStartDate">
+                </div>
+                <div class="time-input-group">
+                    <label for="customEndDate">結束日期：</label>
+                    <input type="date" id="customEndDate" name="customEndDate">
+                </div>
+                <div class="time-help">
+                    <span style="font-size: 12px; color: #666;">
+                        💡 提示：未填寫時將使用活動的完整走期時間
+                    </span>
+                </div>
+            </div>
+        </div>
+        
         <!-- 隱藏的輸入框，用於儲存從 Campaign 取得的數據 -->
         <input type="hidden" id="sinceDate" name="sinceDate">
         <input type="hidden" id="toDate" name="toDate">
@@ -163,6 +334,33 @@
         
         <button type="button" id="fetchReport" class="button">📈 取得報表</button>
         <button type="button" id="exportExcel" class="export-button" disabled>📊 產出 XLSX 報表</button>
+    </div>
+    
+    <!-- 新增：選擇報表內容區域 -->
+    <div id="selectionSection" class="selection-section">
+        <h4>🎯 選擇要顯示的報表內容</h4>
+        <div class="selection-controls">
+            <div class="selection-group">
+                <label>📊 廣告集 (AdSet)</label>
+                <div class="selection-list" id="adsetSelectionList">
+                    <!-- AdSet 選項將動態生成 -->
+                </div>
+            </div>
+            <div class="selection-group">
+                <label>🎯 廣告單元 (AdUnit)</label>
+                <div class="selection-list" id="adunitSelectionList">
+                    <!-- AdUnit 選項將動態生成 -->
+                </div>
+            </div>
+        </div>
+        <div class="selection-controls">
+            <button type="button" id="selectAllAdsets" class="button" style="background: #17a2b8;">全選 AdSet</button>
+            <button type="button" id="deselectAllAdsets" class="button" style="background: #dc3545;">取消全選 AdSet</button>
+            <button type="button" id="selectAllAdunits" class="button" style="background: #17a2b8;">全選 AdUnit</button>
+            <button type="button" id="deselectAllAdunits" class="button" style="background: #dc3545;">取消全選 AdUnit</button>
+            <button type="button" id="updateReport" class="button" style="background: #ffc107; color: #000;">🔄 更新報表顯示</button>
+        </div>
+        <div id="selectionSummary" class="selection-summary"></div>
     </div>
     
     <div id="reportContent" class="report-content" style="display: none;">
@@ -237,26 +435,83 @@ document.addEventListener('DOMContentLoaded', function() {
         exportToExcel();
     });
     
+    // 新增：選擇控制按鈕事件
+    document.getElementById('selectAllAdsets').addEventListener('click', function() {
+        toggleAllCheckboxes('adsetSelectionList', true);
+        updateSelectionSummary();
+    });
+    
+    document.getElementById('deselectAllAdsets').addEventListener('click', function() {
+        toggleAllCheckboxes('adsetSelectionList', false);
+        updateSelectionSummary();
+    });
+    
+    document.getElementById('selectAllAdunits').addEventListener('click', function() {
+        toggleAllCheckboxes('adunitSelectionList', true);
+        updateSelectionSummary();
+    });
+    
+    document.getElementById('deselectAllAdunits').addEventListener('click', function() {
+        toggleAllCheckboxes('adunitSelectionList', false);
+        updateSelectionSummary();
+    });
+    
+    document.getElementById('updateReport').addEventListener('click', function() {
+        updateReportDisplay();
+    });
+    
+    // 新增：自訂時間切換事件
+    document.getElementById('useCustomTime').addEventListener('change', function() {
+        const customTimeSection = document.getElementById('customTimeSection');
+        if (this.checked) {
+            customTimeSection.style.display = 'block';
+            // 設定預設的日期範圍（最近30天）
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 30);
+            
+            document.getElementById('customEndDate').value = endDate.toISOString().split('T')[0];
+            document.getElementById('customStartDate').value = startDate.toISOString().split('T')[0];
+        } else {
+            customTimeSection.style.display = 'none';
+        }
+    });
+    
     // 儲存報表資料供導出使用
     let currentReportData = null;
     let currentAdsetInfo = null; // 儲存廣告集資訊
     let currentCutData = {}; // 儲存 cut 數據
     let isSlideAd = false; // 是否為 slide 廣告
     let allAdsetReports = {}; // 儲存所有 AdSet 的報表數據
+    let allAdunitReports = {}; // 儲存所有 AdUnit 的報表數據
+    let adunitByAdset = {}; // 按 AdSet 分組的 AdUnit 報表數據
+    
+    // 新增：選擇狀態
+    let selectedAdsets = new Set(); // 選中的 AdSet ID
+    let selectedAdunits = new Set(); // 選中的 AdUnit UUID
+    
+    // 將選擇狀態設為全域變數
+    window.selectedAdsets = selectedAdsets;
+    window.selectedAdunits = selectedAdunits;
     
     // 取得報表資料
     async function fetchReportData(campaignId, sinceDate, toDate) {
         const loadingElement = document.getElementById('loadingMessage');
         const reportElement = document.getElementById('reportContent');
         const errorElement = document.getElementById('errorMessage');
+        const selectionSection = document.getElementById('selectionSection');
         
         // 檢查是否為 slide 廣告
         isSlideAd = document.getElementById('isSlideAd').checked;
+        
+        // 取得批次大小設定
+        const batchSize = parseInt(document.getElementById('batchSize').value) || 10;
         
         // 顯示載入中
         loadingElement.style.display = 'block';
         reportElement.style.display = 'none';
         errorElement.style.display = 'none';
+        selectionSection.style.display = 'none';
         
         try {
             // 第一步：先查詢廣告活動資訊，取得正確的時間戳
@@ -318,12 +573,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
             }
             
+            // 檢查是否使用自訂時間
+            const useCustomTime = document.getElementById('useCustomTime').checked;
+            if (useCustomTime) {
+                const customStartDate = document.getElementById('customStartDate').value;
+                const customEndDate = document.getElementById('customEndDate').value;
+                
+                if (customStartDate && customEndDate) {
+                    // 將日期轉換為時間戳
+                    const startDateTime = new Date(customStartDate + 'T00:00:00');
+                    const endDateTime = new Date(customEndDate + 'T23:59:59');
+                    
+                    actualSinceDate = startDateTime.getTime();
+                    actualToDate = endDateTime.getTime();
+                    
+                    console.log('使用自訂時間區段:', {
+                        startDate: customStartDate,
+                        endDate: customEndDate,
+                        sinceTimestamp: actualSinceDate,
+                        toTimestamp: actualToDate
+                    });
+                } else {
+                    console.warn('自訂時間未完整填寫，將使用自動取得的時間');
+                }
+            }
+            
             // 第二步：使用正確的時間戳查詢報表
             console.log('正在查詢報表，使用時間戳:', `從 ${actualSinceDate} 到 ${actualToDate}`);
+            console.log('使用批次大小:', batchSize);
             
             const queries = [
-                // 查詢報表資料
+                // 查詢 AdSet 層級報表資料
                 fetch(`/api/report-proxy?campaignId=${encodeURIComponent(campaignId)}&sinceDate=${encodeURIComponent(actualSinceDate)}&toDate=${encodeURIComponent(actualToDate)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                }),
+                // 查詢 AdUnit 層級報表資料（加入批次大小參數）
+                fetch(`/api/adunit-reports?campaignId=${encodeURIComponent(campaignId)}&batchSize=${batchSize}&sinceDate=${encodeURIComponent(actualSinceDate)}&toDate=${encodeURIComponent(actualToDate)}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -348,18 +637,40 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 並行查詢
             const responses = await Promise.all(queries);
-            const [reportResponse, adunitResponse] = responses;
+            const [reportResponse, adunitReportResponse, adunitResponse] = responses;
             
-            // 處理報表回應
+            // 處理 AdSet 層級報表回應
             if (!reportResponse.ok) {
-                throw new Error(`報表請求失敗: HTTP ${reportResponse.status}: ${reportResponse.statusText}`);
+                throw new Error(`AdSet 報表請求失敗: HTTP ${reportResponse.status}: ${reportResponse.statusText}`);
             }
             
             const jsonResponse = await reportResponse.json();
-            console.log('收到代理回應:', jsonResponse);
+            console.log('收到 AdSet 代理回應:', jsonResponse);
             
             // 儲存所有 AdSet 的報表數據
             allAdsetReports = jsonResponse.adset_reports || {};
+            
+            // 處理 AdUnit 層級報表回應
+            if (adunitReportResponse && adunitReportResponse.ok) {
+                const adunitJsonResponse = await adunitReportResponse.json();
+                console.log('收到 AdUnit 報表回應:', adunitJsonResponse);
+                
+                if (adunitJsonResponse.success) {
+                    allAdunitReports = adunitJsonResponse.adunit_reports || {};
+                    adunitByAdset = adunitJsonResponse.adunit_by_adset || {};
+                    
+                    // 儲存查詢效能資訊到全域變數
+                    if (adunitJsonResponse.summary) {
+                        window.adunitQuerySummary = adunitJsonResponse.summary;
+                        console.log('AdUnit 查詢效能:', adunitJsonResponse.summary);
+                    }
+                }
+            } else {
+                console.warn('AdUnit 報表查詢失敗或跳過');
+                allAdunitReports = {};
+                adunitByAdset = {};
+                window.adunitQuerySummary = null;
+            }
             
             // 處理 AdUnit 和 cut 數據
             let cutData = {};
@@ -406,8 +717,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const htmlContent = jsonResponse.content;
                 console.log('收到 HTML 內容，長度:', htmlContent.length);
                 
+                // 初始化選擇狀態（預設全選）
+                initializeSelections();
+                
+                // 建立選擇器界面
+                buildSelectionInterface();
+                
                 // 解析並顯示合併的每日報表
                 displayMergedDailyReport(htmlContent, jsonResponse.summary);
+                
+                // 顯示選擇區域
+                // selectionSection.style.display = 'block';
             } else {
                 throw new Error(jsonResponse.error || '代理請求失敗');
             }
@@ -439,8 +759,194 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // 新增：初始化選擇狀態
+    function initializeSelections() {
+        selectedAdsets.clear();
+        selectedAdunits.clear();
+        
+        // 預設選擇在時間區段內且成功的 AdSet
+        for (const adsetId in allAdsetReports) {
+            const report = allAdsetReports[adsetId];
+            if (report.success && isAdsetInTimeRange(report)) {
+                selectedAdsets.add(adsetId);
+                console.log(`預設選擇 AdSet: ${report.name}`);
+            } else {
+                console.log(`跳過 AdSet: ${report.name} (成功: ${report.success}, 在時間區段: ${isAdsetInTimeRange(report)})`);
+            }
+        }
+        
+        // 預設選擇在時間區段內且成功的 AdUnit
+        for (const adunitUuid in allAdunitReports) {
+            const report = allAdunitReports[adunitUuid];
+            if (report.success && isAdunitInTimeRange(report)) {
+                selectedAdunits.add(adunitUuid);
+                console.log(`預設選擇 AdUnit: ${report.name}`);
+            } else {
+                console.log(`跳過 AdUnit: ${report.name} (成功: ${report.success}, 在時間區段: ${isAdunitInTimeRange(report)})`);
+            }
+        }
+        
+        // 同步到全域變數
+        window.selectedAdsets = selectedAdsets;
+        window.selectedAdunits = selectedAdunits;
+        
+        console.log(`初始化完成 - 選擇的 AdSet: ${selectedAdsets.size}/${Object.keys(allAdsetReports).length}, AdUnit: ${selectedAdunits.size}/${Object.keys(allAdunitReports).length}`);
+    }
+    
+    // 新增：建立選擇器界面
+    function buildSelectionInterface() {
+        const adsetList = document.getElementById('adsetSelectionList');
+        const adunitList = document.getElementById('adunitSelectionList');
+        
+        // 清空現有內容
+        adsetList.innerHTML = '';
+        adunitList.innerHTML = '';
+        
+        // 建立 AdSet 選擇器
+        for (const [adsetId, report] of Object.entries(allAdsetReports)) {
+            const item = document.createElement('div');
+            item.className = 'selection-item';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `adset_${adsetId}`;
+            checkbox.value = adsetId;
+            checkbox.checked = selectedAdsets.has(adsetId) && report.success;
+            checkbox.disabled = !report.success;
+            checkbox.addEventListener('change', updateSelectionSummary);
+            
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            label.className = 'selection-item-label';
+            label.textContent = `${report.name} ${report.success ? '✅' : '❌'}`;
+            
+            if (!report.success) {
+                const errorInfo = document.createElement('div');
+                errorInfo.className = 'selection-item-subtitle';
+                errorInfo.textContent = `錯誤: ${report.error}`;
+                label.appendChild(errorInfo);
+            }
+            
+            item.appendChild(checkbox);
+            item.appendChild(label);
+            adsetList.appendChild(item);
+        }
+        
+        // 建立 AdUnit 選擇器
+        for (const [adsetId, adsetData] of Object.entries(adunitByAdset)) {
+            // 添加 AdSet 標題
+            const adsetHeader = document.createElement('div');
+            adsetHeader.style.fontWeight = 'bold';
+            adsetHeader.style.color = '#2e7d32';
+            adsetHeader.style.marginTop = '10px';
+            adsetHeader.style.marginBottom = '5px';
+            adsetHeader.textContent = `📊 ${adsetData.adsetName}`;
+            adunitList.appendChild(adsetHeader);
+            
+            // 添加該 AdSet 下的所有 AdUnit
+            for (const adunitReport of adsetData.adunits) {
+                const item = document.createElement('div');
+                item.className = 'selection-item';
+                item.style.marginLeft = '15px';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `adunit_${adunitReport.uuid}`;
+                checkbox.value = adunitReport.uuid;
+                checkbox.checked = selectedAdunits.has(adunitReport.uuid) && adunitReport.success;
+                checkbox.disabled = !adunitReport.success;
+                checkbox.addEventListener('change', updateSelectionSummary);
+                
+                const label = document.createElement('label');
+                label.htmlFor = checkbox.id;
+                label.className = 'selection-item-label';
+                label.textContent = `${adunitReport.name} ${adunitReport.success ? '✅' : '❌'}`;
+                
+                const subtitle = document.createElement('div');
+                subtitle.className = 'selection-item-subtitle';
+                subtitle.textContent = `UUID: ${adunitReport.uuid.slice(0, 8)}...`;
+                
+                if (!adunitReport.success) {
+                    subtitle.textContent += ` | 錯誤: ${adunitReport.error}`;
+                }
+                
+                label.appendChild(subtitle);
+                
+                item.appendChild(checkbox);
+                item.appendChild(label);
+                adunitList.appendChild(item);
+            }
+        }
+        
+        updateSelectionSummary();
+    }
+    
+    // 新增：切換所有 checkbox
+    function toggleAllCheckboxes(listId, checked) {
+        const list = document.getElementById(listId);
+        const checkboxes = list.querySelectorAll('input[type="checkbox"]:not(:disabled)');
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = checked;
+            
+            if (listId === 'adsetSelectionList') {
+                if (checked) {
+                    selectedAdsets.add(checkbox.value);
+                } else {
+                    selectedAdsets.delete(checkbox.value);
+                }
+            } else if (listId === 'adunitSelectionList') {
+                if (checked) {
+                    selectedAdunits.add(checkbox.value);
+                } else {
+                    selectedAdunits.delete(checkbox.value);
+                }
+            }
+        });
+    }
+    
+    // 新增：更新選擇摘要
+    function updateSelectionSummary() {
+        // 從 DOM 更新選擇狀態
+        selectedAdsets.clear();
+        selectedAdunits.clear();
+        
+        document.querySelectorAll('#adsetSelectionList input[type="checkbox"]:checked').forEach(cb => {
+            selectedAdsets.add(cb.value);
+        });
+        
+        document.querySelectorAll('#adunitSelectionList input[type="checkbox"]:checked').forEach(cb => {
+            selectedAdunits.add(cb.value);
+        });
+        
+        const summary = document.getElementById('selectionSummary');
+        const totalAdsets = Object.keys(allAdsetReports).filter(id => allAdsetReports[id].success).length;
+        const totalAdunits = Object.keys(allAdunitReports).filter(id => allAdunitReports[id].success).length;
+        
+        summary.innerHTML = `
+            📊 已選擇：${selectedAdsets.size}/${totalAdsets} 個 AdSet，${selectedAdunits.size}/${totalAdunits} 個 AdUnit
+            ${selectedAdsets.size === 0 && selectedAdunits.size === 0 ? '<br>⚠️ 請至少選擇一個項目' : ''}
+        `;
+    }
+    
+    // 新增：更新報表顯示
+    function updateReportDisplay() {
+        if (selectedAdsets.size === 0 && selectedAdunits.size === 0) {
+            alert('請至少選擇一個 AdSet 或 AdUnit');
+            return;
+        }
+        
+        // 重新顯示報表，只包含選中的項目
+        const htmlContent = allAdsetReports[Object.keys(allAdsetReports)[0]]?.content || '';
+        displayMergedDailyReport(htmlContent, {
+            total_adsets: selectedAdsets.size,
+            successful_reports: selectedAdsets.size,
+            failed_reports: 0
+        }, true); // 傳入 true 表示這是更新顯示
+    }
+
     // 顯示合併的每日報表
-    function displayMergedDailyReport(primaryHtmlContent, summary) {
+    function displayMergedDailyReport(primaryHtmlContent, summary, isUpdate) {
         const loadingElement = document.getElementById('loadingMessage');
         const reportElement = document.getElementById('reportContent');
         const dailyReportContainer = document.getElementById('dailyReportContainer');
@@ -503,6 +1009,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 啟用導出按鈕並儲存報表資料
                 enableExportButton();
+                
+                // 綁定重新生成按鈕事件
+                const refreshBtn = document.getElementById('refreshReportBtn');
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', regenerateMergedReport);
+                }
+                
                 currentReportData = {
                     campaignId: document.getElementById('campaignId').value.trim(),
                     sinceDate: document.getElementById('sinceDate').value,
@@ -512,7 +1025,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     table: finalTable,
                     isSlideAd: isSlideAd,
                     cutData: currentCutData,
-                    allAdsetReports: allAdsetReports
+                    allAdsetReports: allAdsetReports,
+                    allAdunitReports: allAdunitReports,
+                    adunitByAdset: adunitByAdset
                 };
             } else {
                 throw new Error('無法合併報表數據');
@@ -543,16 +1058,31 @@ document.addEventListener('DOMContentLoaded', function() {
             return null;
         }
         
-        const successfulReports = Object.values(allAdsetReports).filter(report => report.success);
-        if (successfulReports.length === 0) {
+        // 根據選擇過濾 AdSet 報表，並過濾時間區段
+        const filteredReports = Object.entries(allAdsetReports)
+            .filter(([adsetId, report]) => {
+                if (!selectedAdsets.has(adsetId) || !report.success) {
+                    return false;
+                }
+                
+                // 檢查時間區段過濾
+                if (!isAdsetInTimeRange(report)) {
+                    return false;
+                }
+                
+                return true;
+            })
+            .map(([adsetId, report]) => report);
+        
+        if (filteredReports.length === 0) {
             return null;
         }
         
-        console.log(`開始合併 ${successfulReports.length} 個報表`);
+        console.log(`開始合併 ${filteredReports.length} 個選中且在時間區段內的報表`);
         
-        // 解析所有成功的報表表格
+        // 解析所有選中的報表表格
         const parsedTables = [];
-        for (const report of successfulReports) {
+        for (const report of filteredReports) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(report.content, 'text/html');
             const table = findDailyReportTable(doc);
@@ -575,6 +1105,194 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 合併多個表格的數據
         return mergeTables(parsedTables);
+    }
+    
+    // 新增：檢查 AdSet 是否在時間區段內
+    function isAdsetInTimeRange(report) {
+        const useCustomTime = document.getElementById('useCustomTime').checked;
+        if (!useCustomTime) {
+            return true; // 如果沒有使用自訂時間，所有 AdSet 都顯示
+        }
+        
+        const customStartDate = document.getElementById('customStartDate').value;
+        const customEndDate = document.getElementById('customEndDate').value;
+        
+        if (!customStartDate || !customEndDate) {
+            return true; // 如果時間設定不完整，顯示所有
+        }
+        
+        console.log(`檢查 AdSet 時間區段: ${report.name}, 區段: ${customStartDate} ~ ${customEndDate}`);
+        
+        // 解析報表內容，檢查是否有在時間區段內的數據
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(report.content, 'text/html');
+        const table = findDailyReportTable(doc);
+        
+        if (!table) {
+            console.log(`AdSet ${report.name}: 找不到表格`);
+            return true;
+        }
+        
+        const rows = table.querySelectorAll('tr');
+        const startTime = new Date(customStartDate).getTime();
+        const endTime = new Date(customEndDate + 'T23:59:59').getTime();
+        
+        console.log(`時間區段範圍: ${startTime} ~ ${endTime}`);
+        
+        let hasDataInRange = false;
+        
+        // 檢查表格中是否有在時間區段內的數據行
+        for (let i = 1; i < rows.length; i++) {
+            const cells = rows[i].querySelectorAll('td, th');
+            if (cells.length === 0) continue;
+            
+            const dateText = cells[0].textContent.trim();
+            if (dateText === 'TOTAL') continue;
+            
+            // 解析日期 - 增強版本
+            let rowDate = null;
+            
+            // 格式 1: YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateText)) {
+                rowDate = new Date(dateText);
+            } 
+            // 格式 2: MM/DD (使用當前年份)
+            else if (/^\d{1,2}\/\d{1,2}$/.test(dateText)) {
+                const [month, day] = dateText.split('/').map(num => parseInt(num));
+                const currentYear = new Date().getFullYear();
+                rowDate = new Date(currentYear, month - 1, day);
+            } 
+            // 格式 3: MM-DD (使用當前年份)
+            else if (/^\d{1,2}-\d{1,2}$/.test(dateText)) {
+                const [month, day] = dateText.split('-').map(num => parseInt(num));
+                const currentYear = new Date().getFullYear();
+                rowDate = new Date(currentYear, month - 1, day);
+            }
+            // 格式 4: YYYY/MM/DD
+            else if (/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(dateText)) {
+                const [year, month, day] = dateText.split('/').map(num => parseInt(num));
+                rowDate = new Date(year, month - 1, day);
+            }
+            // 格式 5: DD/MM/YYYY (某些地區格式)
+            else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateText)) {
+                const parts = dateText.split('/').map(num => parseInt(num));
+                // 假設是 DD/MM/YYYY 格式
+                const day = parts[0];
+                const month = parts[1];
+                const year = parts[2];
+                rowDate = new Date(year, month - 1, day);
+            }
+            
+            if (rowDate && !isNaN(rowDate.getTime())) {
+                const rowTime = rowDate.getTime();
+                console.log(`  檢查日期: ${dateText} -> ${rowDate.toISOString().split('T')[0]} (${rowTime})`);
+                
+                if (rowTime >= startTime && rowTime <= endTime) {
+                    console.log(`    ✅ 在區段內!`);
+                    hasDataInRange = true;
+                    break; // 找到一筆在範圍內的數據就足夠了
+                } else {
+                    console.log(`    ❌ 不在區段內`);
+                }
+            } else {
+                console.log(`  無法解析日期: ${dateText}`);
+            }
+        }
+        
+        console.log(`AdSet ${report.name} 最終結果: ${hasDataInRange ? '顯示' : '隱藏'}`);
+        return hasDataInRange;
+    }
+    
+    // 新增：檢查 AdUnit 是否在時間區段內
+    function isAdunitInTimeRange(adunitReport) {
+        const useCustomTime = document.getElementById('useCustomTime').checked;
+        if (!useCustomTime) {
+            return true;
+        }
+        
+        const customStartDate = document.getElementById('customStartDate').value;
+        const customEndDate = document.getElementById('customEndDate').value;
+        
+        if (!customStartDate || !customEndDate) {
+            return true;
+        }
+        
+        console.log(`檢查 AdUnit 時間區段: ${adunitReport.name}, 區段: ${customStartDate} ~ ${customEndDate}`);
+        
+        // 解析 AdUnit 報表內容
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(adunitReport.content, 'text/html');
+        const table = findDailyReportTable(doc);
+        
+        if (!table) {
+            console.log(`AdUnit ${adunitReport.name}: 找不到表格`);
+            return true;
+        }
+        
+        const rows = table.querySelectorAll('tr');
+        const startTime = new Date(customStartDate).getTime();
+        const endTime = new Date(customEndDate + 'T23:59:59').getTime();
+        
+        let hasDataInRange = false;
+        
+        for (let i = 1; i < rows.length; i++) {
+            const cells = rows[i].querySelectorAll('td, th');
+            if (cells.length === 0) continue;
+            
+            const dateText = cells[0].textContent.trim();
+            if (dateText === 'TOTAL') continue;
+            
+            // 解析日期 - 增強版本 (與 AdSet 相同邏輯)
+            let rowDate = null;
+            
+            // 格式 1: YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateText)) {
+                rowDate = new Date(dateText);
+            } 
+            // 格式 2: MM/DD (使用當前年份)
+            else if (/^\d{1,2}\/\d{1,2}$/.test(dateText)) {
+                const [month, day] = dateText.split('/').map(num => parseInt(num));
+                const currentYear = new Date().getFullYear();
+                rowDate = new Date(currentYear, month - 1, day);
+            } 
+            // 格式 3: MM-DD (使用當前年份)
+            else if (/^\d{1,2}-\d{1,2}$/.test(dateText)) {
+                const [month, day] = dateText.split('-').map(num => parseInt(num));
+                const currentYear = new Date().getFullYear();
+                rowDate = new Date(currentYear, month - 1, day);
+            }
+            // 格式 4: YYYY/MM/DD
+            else if (/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(dateText)) {
+                const [year, month, day] = dateText.split('/').map(num => parseInt(num));
+                rowDate = new Date(year, month - 1, day);
+            }
+            // 格式 5: DD/MM/YYYY (某些地區格式)
+            else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateText)) {
+                const parts = dateText.split('/').map(num => parseInt(num));
+                const day = parts[0];
+                const month = parts[1];
+                const year = parts[2];
+                rowDate = new Date(year, month - 1, day);
+            }
+            
+            if (rowDate && !isNaN(rowDate.getTime())) {
+                const rowTime = rowDate.getTime();
+                console.log(`  檢查 AdUnit 日期: ${dateText} -> ${rowDate.toISOString().split('T')[0]} (${rowTime})`);
+                
+                if (rowTime >= startTime && rowTime <= endTime) {
+                    console.log(`    ✅ AdUnit 在區段內!`);
+                    hasDataInRange = true;
+                    break;
+                } else {
+                    console.log(`    ❌ AdUnit 不在區段內`);
+                }
+            } else {
+                console.log(`  無法解析 AdUnit 日期: ${dateText}`);
+            }
+        }
+        
+        console.log(`AdUnit ${adunitReport.name} 最終結果: ${hasDataInRange ? '顯示' : '隱藏'}`);
+        return hasDataInRange;
     }
     
     // 合併多個表格的函數
@@ -618,18 +1336,29 @@ document.addEventListener('DOMContentLoaded', function() {
                     // 合併數值數據
                     for (let j = 1; j < cells.length; j++) {
                         const cellText = cells[j].textContent.trim();
-                        const cellValue = parseFloat(cellText.replace(/[,]/g, '')) || 0;
                         
                         if (!mergedData[dateText][j]) {
-                            mergedData[dateText][j] = 0;
+                            mergedData[dateText][j] = {
+                                value: 0,
+                                isPercentage: false,
+                                impressions: 0,
+                                clicks: 0
+                            };
                         }
                         
-                        // 對於百分比欄位，需要特殊處理
+                        // 檢查是否為百分比欄位
                         if (cellText.includes('%')) {
-                            // 暫時儲存原始值，稍後重新計算
-                            mergedData[dateText][j] = cellText;
+                            mergedData[dateText][j].isPercentage = true;
                         } else {
-                            mergedData[dateText][j] += cellValue;
+                            const cellValue = parseFloat(cellText.replace(/[,]/g, '')) || 0;
+                            mergedData[dateText][j].value += cellValue;
+                            
+                            // 特別處理曝光數和點擊數，用於重新計算點擊率
+                            if (headers[j] && (headers[j].includes('曝光數') || headers[j].includes('播放數'))) {
+                                mergedData[dateText][j].impressions += cellValue;
+                            } else if (headers[j] && headers[j].includes('點擊數')) {
+                                mergedData[dateText][j].clicks += cellValue;
+                            }
                         }
                     }
                 }
@@ -662,26 +1391,37 @@ document.addEventListener('DOMContentLoaded', function() {
             const rowData = mergedData[date];
             for (let j = 1; j < headers.length; j++) {
                 const cell = document.createElement('td');
-                const value = rowData[j] || 0;
+                const data = rowData[j] || { value: 0, isPercentage: false, impressions: 0, clicks: 0 };
                 
-                // 特殊處理曝光數和點擊數
-                if (headers[j].includes('曝光數') || headers[j].includes('播放數')) {
-                    totalImp += value;
-                    cell.textContent = value > 0 ? value.toLocaleString() : '';
-                } else if (headers[j].includes('點擊數')) {
-                    totalClk += value;
-                    cell.textContent = value > 0 ? value.toString() : '';
-                } else if (headers[j].includes('點擊率') || headers[j].includes('觀看率')) {
-                    // 重新計算點擊率
-                    const imp = rowData[2] || 0; // 假設曝光數在第3欄
-                    const clk = rowData[3] || 0; // 假設點擊數在第4欄
-                    if (imp > 0) {
-                        cell.textContent = ((clk / imp) * 100).toFixed(2) + '%';
+                if (data.isPercentage) {
+                    // 重新計算點擊率/觀看率
+                    let impressions = 0, clicks = 0;
+                    
+                    // 找到曝光數和點擊數欄位
+                    for (let k = 1; k < headers.length; k++) {
+                        if (headers[k].includes('曝光數') || headers[k].includes('播放數')) {
+                            impressions = rowData[k] ? rowData[k].value : 0;
+                        } else if (headers[k].includes('點擊數')) {
+                            clicks = rowData[k] ? rowData[k].value : 0;
+                        }
+                    }
+                    
+                    if (impressions > 0) {
+                        cell.textContent = ((clicks / impressions) * 100).toFixed(2) + '%';
                     } else {
                         cell.textContent = '0.00%';
                     }
                 } else {
-                    cell.textContent = value > 0 ? value.toString() : '';
+                    const value = data.value;
+                    if (headers[j] && (headers[j].includes('曝光數') || headers[j].includes('播放數'))) {
+                        totalImp += value;
+                        cell.textContent = value > 0 ? value.toLocaleString() : '';
+                    } else if (headers[j] && headers[j].includes('點擊數')) {
+                        totalClk += value;
+                        cell.textContent = value > 0 ? value.toString() : '';
+                    } else {
+                        cell.textContent = value > 0 ? value.toString() : '';
+                    }
                 }
                 
                 row.appendChild(cell);
@@ -699,11 +1439,11 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let j = 1; j < headers.length; j++) {
             const cell = document.createElement('td');
             
-            if (headers[j].includes('曝光數') || headers[j].includes('播放數')) {
+            if (headers[j] && (headers[j].includes('曝光數') || headers[j].includes('播放數'))) {
                 cell.textContent = totalImp > 0 ? totalImp.toLocaleString() : '';
-            } else if (headers[j].includes('點擊數')) {
+            } else if (headers[j] && headers[j].includes('點擊數')) {
                 cell.textContent = totalClk > 0 ? totalClk.toString() : '';
-            } else if (headers[j].includes('點擊率') || headers[j].includes('觀看率')) {
+            } else if (headers[j] && (headers[j].includes('點擊率') || headers[j].includes('觀看率'))) {
                 if (totalImp > 0) {
                     cell.textContent = ((totalClk / totalImp) * 100).toFixed(2) + '%';
                 } else {
@@ -728,37 +1468,143 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         content += `<div class="daily-report-section">
-            <h4>📋 個別廣告集報表</h4>
+            <h4>📋 個別廣告集報表 <button id="refreshReportBtn" class="button" style="margin-left: 10px; font-size: 12px;">🔄 重新生成總合報表</button></h4>
         `;
         
-        for (const [adsetId, report] of Object.entries(allAdsetReports)) {
-            if (report.success) {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(report.content, 'text/html');
-                const table = findDailyReportTable(doc);
-                
-                if (table) {
-                    content += `
-                        <div style="margin: 20px 0; padding: 15px; border: 1px solid #dee2e6; border-radius: 8px; background: #f8f9fa;">
-                            <h5 style="color: #495057; margin-bottom: 15px;">📊 ${report.name}</h5>
+        // 過濾並顯示在時間區段內的 AdSet
+        const filteredAdsets = Object.entries(allAdsetReports).filter(([adsetId, report]) => {
+            return report.success && isAdsetInTimeRange(report);
+        });
+        
+        if (filteredAdsets.length === 0) {
+            content += `
+                <div style="margin: 20px 0; padding: 15px; border: 1px solid #ffc107; border-radius: 8px; background: #fff3cd;">
+                    <p style="color: #856404; margin: 0;">📅 在當前時間區段內沒有找到任何廣告集數據</p>
+                </div>
+            `;
+        }
+        
+        for (const [adsetId, report] of filteredAdsets) {
+            const isCollapsed = !selectedAdsets.has(adsetId);
+            const buttonText = isCollapsed ? '➕' : '➖';
+            const buttonStyle = isCollapsed ? 'background: #6c757d; color: white;' : 'background: #28a745; color: white;';
+            const displayStyle = isCollapsed ? 'display: none;' : '';
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(report.content, 'text/html');
+            const table = findDailyReportTable(doc);
+            
+            if (table) {
+                content += `
+                    <div style="margin: 20px 0; padding: 15px; border: 1px solid #dee2e6; border-radius: 8px; background: #f8f9fa;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h5 style="color: #495057; margin: 0;">📊 ${report.name}</h5>
+                            <button onclick="toggleAdsetCollapse('${adsetId}')" class="button" style="${buttonStyle} font-size: 12px; padding: 6px 12px;">
+                                ${buttonText}
+                            </button>
+                        </div>
+                        <div id="adset-content-${adsetId}" style="${displayStyle}">
                             ${table.outerHTML}
                         </div>
-                    `;
-                }
-            } else {
-                content += `
-                    <div style="margin: 20px 0; padding: 15px; border: 1px solid #dc3545; border-radius: 8px; background: #f8d7da;">
-                        <h5 style="color: #721c24; margin-bottom: 10px;">❌ ${report.name}</h5>
-                        <p style="color: #721c24; margin: 0;">查詢失敗: ${report.error}</p>
                     </div>
                 `;
+                
+                // 添加該 AdSet 下在時間區段內的 AdUnit 報表
+                if (adunitByAdset[adsetId] && adunitByAdset[adsetId].adunits.length > 0) {
+                    // 過濾在時間區段內的 AdUnit
+                    const filteredAdunits = adunitByAdset[adsetId].adunits.filter(adunitReport => {
+                        return adunitReport.success && isAdunitInTimeRange(adunitReport);
+                    });
+                    
+                    if (filteredAdunits.length > 0) {
+                        content += `
+                            <div id="adunit-section-${adsetId}" style="margin: 10px 0 20px 20px; padding: 15px; border: 1px solid #28a745; border-radius: 8px; background: #f8fff9; ${displayStyle}">
+                                <h6 style="color: #28a745; margin-bottom: 15px;">🎯 AdUnit 報表 (${filteredAdunits.length} 個在時間區段內)</h6>
+                        `;
+                        
+                        for (const adunitReport of filteredAdunits) {
+                            const isAdunitCollapsed = !selectedAdunits.has(adunitReport.uuid);
+                            const adunitButtonText = isAdunitCollapsed ? '➕' : '➖';
+                            const adunitButtonStyle = isAdunitCollapsed ? 'background: #6c757d; color: white;' : 'background: #28a745; color: white;';
+                            const adunitDisplayStyle = isAdunitCollapsed ? 'display: none;' : '';
+                            
+                            const adunitParser = new DOMParser();
+                            const adunitDoc = adunitParser.parseFromString(adunitReport.content, 'text/html');
+                            const adunitTable = findDailyReportTable(adunitDoc);
+                            
+                            if (adunitTable) {
+                                content += `
+                                    <div style="margin: 15px 0; padding: 12px; border: 1px solid #6c757d; border-radius: 6px; background: #ffffff;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                            <h6 style="color: #6c757d; margin: 0; font-size: 14px;">
+                                                🎯 ${adunitReport.name}
+                                                <span style="color: #6c757d; font-size: 12px;">(${adunitReport.uuid.slice(0, 8)}...)</span>
+                                            </h6>
+                                            <button onclick="toggleAdunitCollapse('${adunitReport.uuid}')" class="button" style="${adunitButtonStyle} font-size: 11px; padding: 4px 8px;">
+                                                ${adunitButtonText}
+                                            </button>
+                                        </div>
+                                        <div id="adunit-content-${adunitReport.uuid}" style="${adunitDisplayStyle}">
+                                            ${adunitTable.outerHTML}
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        }
+                        
+                        content += `</div>`;
+                    }
+                }
             }
         }
         
         content += '</div>';
         return content;
     }
-
+    
+    // 新增：切換 AdSet 收合狀態
+    function toggleAdsetCollapse(adsetId) {
+        const contentDiv = document.getElementById(`adset-content-${adsetId}`);
+        const adunitSection = document.getElementById(`adunit-section-${adsetId}`);
+        const button = event.target;
+        
+        if (selectedAdsets.has(adsetId)) {
+            // 當前是展開狀態，要收合
+            selectedAdsets.delete(adsetId);
+            contentDiv.style.display = 'none';
+            if (adunitSection) adunitSection.style.display = 'none';
+            button.textContent = '➕';
+            button.style.background = '#6c757d';
+        } else {
+            // 當前是收合狀態，要展開
+            selectedAdsets.add(adsetId);
+            contentDiv.style.display = 'block';
+            if (adunitSection) adunitSection.style.display = 'block';
+            button.textContent = '➖';
+            button.style.background = '#28a745';
+        }
+    }
+    
+    // 新增：切換 AdUnit 收合狀態
+    function toggleAdunitCollapse(adunitUuid) {
+        const contentDiv = document.getElementById(`adunit-content-${adunitUuid}`);
+        const button = event.target;
+        
+        if (selectedAdunits.has(adunitUuid)) {
+            // 當前是展開狀態，要收合
+            selectedAdunits.delete(adunitUuid);
+            contentDiv.style.display = 'none';
+            button.textContent = '➕';
+            button.style.background = '#6c757d';
+        } else {
+            // 當前是收合狀態，要展開
+            selectedAdunits.add(adunitUuid);
+            contentDiv.style.display = 'block';
+            button.textContent = '➖';
+            button.style.background = '#28a745';
+        }
+    }
+    
     // 尋找每日報表表格
     function findDailyReportTable(doc) {
         // 專門查找每日報表的表格
@@ -1356,7 +2202,7 @@ document.addEventListener('DOMContentLoaded', function() {
             worksheet.mergeCells('B2:C3'); // Logo 區域
             worksheet.mergeCells('E2:F2'); // 活動名稱值
             worksheet.mergeCells('E3:F3'); // 廣告類型值
-
+            
             // 3. 剩餘數據行（第4-5行）
             const remainingDailyValue = calculateRemainingDailyValue(totalBudget, pricingMode, pricingPrice, remainingDays);
 
@@ -1425,7 +2271,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 const budgetSource = info.campaignBudget !== undefined ? '從 Campaign 取得' : (info.parsedBudget > 0 ? '從活動名稱解析' : '使用原始預算');
                 const scheduleInfo = remainingDays > 0 ? `剩餘 ${remainingDays} 天` : '活動已結束';
                 const adsetCount = info.adsetCount || 1;
-                successMessage += `\n📊 已包含完整活動資訊：\n- 活動名稱：${activityName}\n- 廣告集數量：${adsetCount} 個\n- 計價方式：${pricingMode} (${currency}${pricingPrice})\n- 總預算：${currency}${totalBudget.toLocaleString()} (${budgetSource})\n- 走期狀態：${scheduleInfo}\n📅 包含總合數據和 ${adsetCount} 個個別廣告集詳細數據`;
+                
+                // 計算選擇的統計
+                const totalAvailableAdsets = Object.keys(currentReportData.allAdsetReports || {}).filter(id => currentReportData.allAdsetReports[id].success).length;
+                const selectedAdsetCount = selectedAdsets.size;
+                
+                const totalAvailableAdunits = Object.keys(currentReportData.allAdunitReports || {}).filter(id => currentReportData.allAdunitReports[id].success).length;
+                const selectedAdunitCount = selectedAdunits.size;
+                
+                // 效能資訊
+                let performanceInfo = '';
+                if (window.adunitQuerySummary) {
+                    const summary = window.adunitQuerySummary;
+                    const method = summary.processing_method === 'batch_processing' ? '分批處理' : '並行處理';
+                    const batchInfo = summary.total_batches ? ` (${summary.total_batches} 批次, 每批 ${summary.batch_size} 個)` : ` (${summary.max_workers || 0} 執行緒)`;
+                    performanceInfo = `\n- 查詢效能：${summary.query_duration}秒 ${method}${batchInfo}`;
+                }
+                
+                successMessage += `\n📊 已匯出選擇的報表內容：\n- 活動名稱：${activityName}\n- 選擇的廣告集：${selectedAdsetCount}/${totalAvailableAdsets} 個\n- 選擇的 AdUnit：${selectedAdunitCount}/${totalAvailableAdunits} 個${performanceInfo}\n- 計價方式：${pricingMode} (${currency}${pricingPrice})\n- 總預算：${currency}${totalBudget.toLocaleString()} (${budgetSource})\n- 走期狀態：${scheduleInfo}\n📅 包含總合數據、${selectedAdsetCount} 個廣告集詳細數據，以及 ${selectedAdunitCount} 個 AdUnit 詳細數據`;
             }
             alert(successMessage);
 
@@ -1511,11 +2374,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const headers = Array.from(headerRow.querySelectorAll('th,td')).map(h => h.textContent.trim());
         
         // 添加表頭
-        for (let i = 0; i < headers.length; i++) {
+            for (let i = 0; i < headers.length; i++) {
             const cell = worksheet.getCell(currentRow, i + 2);
-            cell.value = headers[i];
-            applyStyle(cell, (i < 5) ? styles.header : styles.orangeHeader);
-        }
+                cell.value = headers[i];
+                applyStyle(cell, (i < 5) ? styles.header : styles.orangeHeader);
+            }
         currentRow++;
         
         // 添加數據行
@@ -1543,10 +2406,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     applyStyle(cell, styles.normal);
                 }
+                }
+                currentRow++;
             }
-            currentRow++;
-        }
-        
+
         return currentRow + 2; // 留一些空間
     }
 
@@ -1562,8 +2425,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         currentRow += 2;
         
-        // 處理每個 AdSet 的報表
+        // 處理每個選中的 AdSet 的報表
         for (const [adsetId, report] of Object.entries(currentReportData.allAdsetReports)) {
+            if (!selectedAdsets.has(adsetId)) {
+                continue; // 跳過未選中的 AdSet
+            }
+            
             if (report.success) {
                 // 添加 AdSet 名稱
                 worksheet.mergeCells(currentRow, 2, currentRow, 9);
@@ -1609,15 +2476,106 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                             
                             if (date === 'TOTAL') {
-                                applyStyle(cell, styles.total);
+                    applyStyle(cell, styles.total);
                                 if (cellValue.includes('%')) {
                                     cell.font = { bold: true, color: { argb: 'FFFF0000' }, size: 13, name: 'Helvetica' };
                                 }
-                            } else {
+                } else {
                                 applyStyle(cell, styles.normal);
                             }
                         }
                         currentRow++;
+                    }
+                }
+                
+                // 添加該 AdSet 下的選中 AdUnit 報表
+                if (adunitByAdset[adsetId] && adunitByAdset[adsetId].adunits.length > 0) {
+                    // 過濾選中的 AdUnit
+                    const selectedAdunitReports = adunitByAdset[adsetId].adunits.filter(
+                        adunitReport => selectedAdunits.has(adunitReport.uuid)
+                    );
+                    
+                    if (selectedAdunitReports.length > 0) {
+                        currentRow += 1;
+                        
+                        // 添加 AdUnit 區段標題
+                        worksheet.mergeCells(currentRow, 2, currentRow, 9);
+                        const adunitSectionCell = worksheet.getCell(currentRow, 2);
+                        adunitSectionCell.value = `🎯 AdUnit 報表 (${selectedAdunitReports.length} 個已選擇)`;
+                        adunitSectionCell.font = { name: 'Helvetica', bold: true, size: 11, color: { argb: 'FF28A745' } };
+                        adunitSectionCell.alignment = { vertical: 'middle', horizontal: 'left' };
+                        
+                        currentRow += 1;
+                        
+                        for (const adunitReport of selectedAdunitReports) {
+                            if (adunitReport.success) {
+                                // 添加 AdUnit 名稱
+                                worksheet.mergeCells(currentRow, 2, currentRow, 9);
+                                const adunitTitleCell = worksheet.getCell(currentRow, 2);
+                                adunitTitleCell.value = `🎯 ${adunitReport.name} (${adunitReport.uuid.slice(0, 8)}...)`;
+                                adunitTitleCell.font = { name: 'Helvetica', bold: true, size: 10, color: { argb: 'FF6C757D' } };
+                                adunitTitleCell.alignment = { vertical: 'middle', horizontal: 'left' };
+                                
+                                currentRow += 1;
+                                
+                                // 解析並添加 AdUnit 表格
+                                const adunitParser = new DOMParser();
+                                const adunitDoc = adunitParser.parseFromString(adunitReport.content, 'text/html');
+                                const adunitTable = findDailyReportTable(adunitDoc);
+                                
+                                if (adunitTable) {
+                                    const adunitRows = adunitTable.querySelectorAll('tr');
+                                    
+                                    // 添加 AdUnit 表頭
+                                    const adunitHeaderCells = adunitRows[0].querySelectorAll('th,td');
+                                    for (let j = 0; j < adunitHeaderCells.length; j++) {
+                                        const cell = worksheet.getCell(currentRow, j + 2);
+                                        cell.value = adunitHeaderCells[j].textContent.trim();
+                                        applyStyle(cell, (j < 5) ? styles.header : styles.orangeHeader);
+                                    }
+                                    currentRow++;
+                                    
+                                    // 添加 AdUnit 數據行
+                                    for (let i = 1; i < adunitRows.length; i++) {
+                                        const adunitRowCells = adunitRows[i].querySelectorAll('td,th');
+                                        if (adunitRowCells.length < 2) continue;
+                                        
+                                        const date = adunitRowCells[0].textContent.trim();
+                                        
+                                        for (let j = 0; j < adunitRowCells.length; j++) {
+                                            const cell = worksheet.getCell(currentRow, j + 2);
+                                            const cellValue = adunitRowCells[j].textContent.trim();
+                                            
+                                            if (!isNaN(cellValue.replace(/[,]/g, '')) && cellValue !== '') {
+                                                cell.value = +cellValue.replace(/[,]/g, '');
+                                            } else {
+                                                cell.value = cellValue;
+                                            }
+                                            
+                                            if (date === 'TOTAL') {
+                    applyStyle(cell, styles.total);
+                                                if (cellValue.includes('%')) {
+                                                    cell.font = { bold: true, color: { argb: 'FFFF0000' }, size: 13, name: 'Helvetica' };
+                                                }
+                                            } else {
+                                                applyStyle(cell, styles.normal);
+                                            }
+                                        }
+                                        currentRow++;
+                                    }
+                                }
+                            } else {
+                                // 顯示失敗的 AdUnit
+                                worksheet.mergeCells(currentRow, 2, currentRow, 9);
+                                const errorCell = worksheet.getCell(currentRow, 2);
+                                errorCell.value = `❌ ${adunitReport.name} (${adunitReport.uuid.slice(0, 8)}...) - 查詢失敗: ${adunitReport.error}`;
+                                errorCell.font = { name: 'Helvetica', bold: true, size: 10, color: { argb: 'FFDC3545' } };
+                                errorCell.alignment = { vertical: 'middle', horizontal: 'left' };
+                                currentRow += 1;
+                            }
+                            
+                            currentRow += 1; // 在每個 AdUnit 之間留空間
+                        }
                     }
                 }
             } else {
@@ -1898,6 +2856,37 @@ document.addEventListener('DOMContentLoaded', function() {
         successMsg.innerHTML = `✓ 每日報表載入成功！${isSlideAd ? ' (含 Cut 分析數據)' : ''}`;
         container.insertBefore(successMsg, container.firstChild);
         
+        // 顯示 AdUnit 統計資訊
+        if (Object.keys(allAdunitReports).length > 0) {
+            const adunitMsg = document.createElement('div');
+            adunitMsg.className = 'cookie-status';
+            adunitMsg.style.backgroundColor = '#e8f5e8';
+            adunitMsg.style.borderColor = '#4caf50';
+            adunitMsg.style.color = '#2e7d32';
+            
+            const totalAdunits = Object.keys(allAdunitReports).length;
+            const successfulAdunits = Object.values(allAdunitReports).filter(report => report.success).length;
+            const failedAdunits = totalAdunits - successfulAdunits;
+            
+            // 按 AdSet 分組顯示
+            let adunitBreakdown = '';
+            for (const [adsetId, adsetData] of Object.entries(adunitByAdset)) {
+                const adsetAdunits = adsetData.adunits.length;
+                const adsetSuccess = adsetData.adunits.filter(unit => unit.success).length;
+                adunitBreakdown += `\n  • ${adsetData.adsetName}: ${adsetSuccess}/${adsetAdunits} 個 AdUnit`;
+            }
+            
+            // 檢查是否有效能資訊
+            let performanceInfo = '';
+            if (window.adunitQuerySummary) {
+                const summary = window.adunitQuerySummary;
+                performanceInfo = ` | ⚡ 並行查詢耗時: ${summary.query_duration}秒 (${summary.max_workers} 執行緒)`;
+            }
+            
+            adunitMsg.innerHTML = `🎯 AdUnit 報表統計：成功查詢 ${successfulAdunits}/${totalAdunits} 個 AdUnit${performanceInfo}${adunitBreakdown}`;
+            container.insertBefore(adunitMsg, container.firstChild);
+        }
+        
         // 顯示 slide 廣告資訊
         if (isSlideAd && Object.keys(currentCutData).length > 0) {
             const slideMsg = document.createElement('div');
@@ -1913,6 +2902,23 @@ document.addEventListener('DOMContentLoaded', function() {
             
             slideMsg.innerHTML = `🎬 Slide 廣告資訊：找到 ${adunitCount} 個 AdUnit<br>AdUnit 名稱：${adunitNames}`;
             container.insertBefore(slideMsg, container.firstChild);
+        }
+        
+        // 顯示查詢時間範圍資訊
+        const useCustomTime = document.getElementById('useCustomTime').checked;
+        if (useCustomTime) {
+            const customStartDate = document.getElementById('customStartDate').value;
+            const customEndDate = document.getElementById('customEndDate').value;
+            
+            if (customStartDate && customEndDate) {
+                const timeRangeMsg = document.createElement('div');
+                timeRangeMsg.className = 'cookie-status';
+                timeRangeMsg.style.backgroundColor = '#e8f4fd';
+                timeRangeMsg.style.borderColor = '#42a5f5';
+                timeRangeMsg.style.color = '#1565c0';
+                timeRangeMsg.innerHTML = `🕒 使用自訂時間區段：${customStartDate} ~ ${customEndDate}（用戶手動設定）`;
+                container.insertBefore(timeRangeMsg, container.firstChild);
+            }
         }
         
         // 顯示走期資訊（強調是自動從 Campaign 取得）
@@ -1986,6 +2992,139 @@ document.addEventListener('DOMContentLoaded', function() {
             container.insertBefore(structureMsg, container.firstChild);
         }
     }
+
+    // 新增：切換 AdSet 選擇狀態
+    function toggleAdsetSelection(adsetId) {
+        toggleAdsetCollapse(adsetId);
+    }
+    
+    // 新增：切換 AdUnit 選擇狀態
+    function toggleAdunitSelection(adunitUuid) {
+        toggleAdunitCollapse(adunitUuid);
+    }
+    
+    // 新增：重新顯示個別報表
+    function refreshIndividualReports() {
+        const container = document.getElementById('dailyReportContainer');
+        
+        // 保留現有的訊息和總合報表，只更新個別報表部分
+        const reports = container.querySelectorAll('.daily-report-section');
+        
+        // 找到個別報表區域並替換
+        for (let report of reports) {
+            const title = report.querySelector('h4');
+            if (title && title.textContent.includes('個別廣告集報表')) {
+                const newReportContent = displayIndividualAdsetReports();
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = newReportContent;
+                report.replaceWith(tempDiv.firstElementChild);
+                
+                // 重新綁定重新生成按鈕事件
+                const refreshBtn = document.getElementById('refreshReportBtn');
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', regenerateMergedReport);
+                }
+                break;
+            }
+        }
+    }
+    
+    // 新增：重新生成總合報表
+    function regenerateMergedReport() {
+        const container = document.getElementById('dailyReportContainer');
+        
+        // 重新生成合併報表
+        const mergedTable = mergeAllAdsetReports();
+        if (mergedTable) {
+            // 處理 slide 廣告和走期
+            let finalTable = mergedTable;
+            if (isSlideAd && Object.keys(currentCutData).length > 0) {
+                finalTable = buildSlideReportTable(mergedTable, currentCutData);
+            }
+            
+            const campaignEndDate = currentReportData.campaignEndDate;
+            const currentDate = currentReportData.currentDate;
+            if (campaignEndDate && currentDate) {
+                finalTable = processTableBySchedule(finalTable, campaignEndDate, currentDate);
+            }
+            
+            // 更新總合報表區域
+            const reports = container.querySelectorAll('.daily-report-section');
+            for (let report of reports) {
+                const title = report.querySelector('h4');
+                if (title && title.textContent.includes('總合報表數據')) {
+                    const newContent = `
+                        <h4>📈 總合報表數據${isSlideAd ? '（含 Cut 分析數據）' : ''}</h4>
+                        ${finalTable.outerHTML}
+                    `;
+                    report.innerHTML = newContent;
+                    
+                    // 美化表格
+                    const table = report.querySelector('table');
+                    if (table) {
+                        table.className = 'report-table';
+                    }
+                    break;
+                }
+            }
+            
+            // 更新報表資料
+            currentReportData.table = finalTable;
+            
+            // 顯示成功訊息
+            const selectedAdsetCount = selectedAdsets.size;
+            const selectedAdunitCount = selectedAdunits.size;
+            alert(`✅ 總合報表已重新生成！\n已包含 ${selectedAdsetCount} 個 AdSet 和 ${selectedAdunitCount} 個 AdUnit 的數據。`);
+        } else {
+            alert('❌ 無法生成總合報表，請確保至少選擇一個 AdSet。');
+        }
+    }
 });
+
+// 在 DOMContentLoaded 外部定義全域函數，供按鈕點擊事件使用
+function toggleAdsetCollapse(adsetId) {
+    const contentDiv = document.getElementById(`adset-content-${adsetId}`);
+    const adunitSection = document.getElementById(`adunit-section-${adsetId}`);
+    const button = event.target;
+    
+    // 更新全域的 selectedAdsets
+    if (window.selectedAdsets && window.selectedAdsets.has(adsetId)) {
+        // 當前是展開狀態，要收合
+        window.selectedAdsets.delete(adsetId);
+        contentDiv.style.display = 'none';
+        if (adunitSection) adunitSection.style.display = 'none';
+        button.textContent = '➕';
+        button.style.background = '#6c757d';
+    } else {
+        // 當前是收合狀態，要展開
+        if (!window.selectedAdsets) window.selectedAdsets = new Set();
+        window.selectedAdsets.add(adsetId);
+        contentDiv.style.display = 'block';
+        if (adunitSection) adunitSection.style.display = 'block';
+        button.textContent = '➖';
+        button.style.background = '#28a745';
+    }
+}
+
+function toggleAdunitCollapse(adunitUuid) {
+    const contentDiv = document.getElementById(`adunit-content-${adunitUuid}`);
+    const button = event.target;
+    
+    // 更新全域的 selectedAdunits
+    if (window.selectedAdunits && window.selectedAdunits.has(adunitUuid)) {
+        // 當前是展開狀態，要收合
+        window.selectedAdunits.delete(adunitUuid);
+        contentDiv.style.display = 'none';
+        button.textContent = '➕';
+        button.style.background = '#6c757d';
+    } else {
+        // 當前是收合狀態，要展開
+        if (!window.selectedAdunits) window.selectedAdunits = new Set();
+        window.selectedAdunits.add(adunitUuid);
+        contentDiv.style.display = 'block';
+        button.textContent = '➖';
+        button.style.background = '#28a745';
+    }
+}
 </script>
 {% endblock %} 

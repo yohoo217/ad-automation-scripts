@@ -4,6 +4,8 @@ import os
 from playwright.sync_api import sync_playwright
 import requests
 from urllib.parse import quote_plus
+import concurrent.futures
+import time
 
 # 導入 MongoDB 連接
 from app.models.database import get_mongo_client, get_activity_name_by_adset_id
@@ -1179,4 +1181,248 @@ def get_cut_data():
         return jsonify({'error': f'請求失敗: {str(e)}'}), 500
     except Exception as e:
         logger.error(f"查詢 cut 數據時發生錯誤: {str(e)}")
-        return jsonify({'error': f'查詢失敗: {str(e)}'}), 500 
+        return jsonify({'error': f'查詢失敗: {str(e)}'}), 500
+
+@main_bp.route('/api/adunit-reports')
+def get_adunit_reports():
+    """查詢指定 Campaign 所有 AdSet 下所有 AdUnit 的報表數據 - 使用分批處理提升穩定性"""
+    try:
+        campaign_id = request.args.get('campaignId')
+        batch_size = int(request.args.get('batchSize', 10))  # 可自定義批次大小，預設 10
+        since_date = request.args.get('sinceDate')  # 新增：開始時間戳
+        to_date = request.args.get('toDate')  # 新增：結束時間戳
+        
+        if not campaign_id:
+            return jsonify({'error': '缺少 campaignId 參數'}), 400
+        
+        from app.models.database import get_mongo_client, MONGO_DATABASE
+        import concurrent.futures
+        import time
+        
+        client = get_mongo_client()
+        if not client:
+            return jsonify({'error': 'MongoDB 連接失敗'}), 500
+        
+        db = client[MONGO_DATABASE]
+        
+        # 先查詢該 Campaign 下的所有 AdSet
+        adset_collection = db['AdSet']
+        adsets = list(adset_collection.find({'campId': campaign_id}, {'uuid': 1, 'name': 1}))
+        
+        if not adsets:
+            return jsonify({'error': f'找不到廣告活動 ID: {campaign_id} 的任何廣告集'}), 404
+        
+        # 取得所有 AdSet ID
+        adset_ids = [adset['uuid'] for adset in adsets]
+        
+        # 查詢所有 AdSet 的 AdUnit
+        adunit_collection = db['AdUnit']
+        query = {"setId": {"$in": adset_ids}}
+        projection = {
+            "uuid": 1,
+            "name": 1, 
+            "title": 1,
+            "setId": 1,
+            "_id": 0
+        }
+        
+        adunits = list(adunit_collection.find(query, projection))
+        
+        if not adunits:
+            return jsonify({'error': f'找不到任何 AdUnit'}), 404
+        
+        # 建立 AdSet 名稱對照表
+        adset_names = {adset['uuid']: adset['name'] for adset in adsets}
+        
+        # 設置請求標頭，包含認證信息
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Cookie': 'AOTTERBD_SESSION=757418f543a95a889184e798ec5ab66d4fad04e5-lats=1724229220332&sso=PIg4zu/Vdnn/A15vMEimFlVAGliNhoWlVd5FTvtEMRAFpk/VvBGvAetanw8DLATSLexy9pee/t52uNojvoFS2Q==;aotter=eyJ1c2VyIjp7ImlkIjoiNjNkYjRkNDBjOTFiNTUyMmViMjk4YjBkIiwiZW1haWwiOiJpYW4uY2hlbkBhb3R0ZXIubmV0IiwiY3JlYXRlZEF0IjoxNjc1MzE2NTQ0LCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJsZWdhY3lJZCI6bnVsbCwibGVnYWN5U2VxSWQiOjE2NzUzMTY1NDQ3ODI5NzQwMDB9LCJhY2Nlc3NUb2tlbiI6IjJkYjQyZTNkOTM5MDUzMjdmODgyZmYwMDRiZmI4YmEzZjBhNTlmMDQwYzhiN2Y4NGY5MmZmZTIzYTU0ZTQ2MDQiLCJ1ZWEiOm51bGx9; _Secure-1PSID=vlPPgXupFroiSjP1/A02minugZVZDgIG4K; _Secure-1PSIDCC=g.a000mwhavReSVd1vN09AVTswXkPAhyuW7Tgj8-JFhj-FZya9I_l1B6W2gqTIWAtQUTQMkTxoAwACgYKAW0SARISFQHGX2MiC--NJ2PzCzDpJ0m3odxHhxoVAUF8yKr8r49abq8oe4UxCA0t_QCW0076; _Secure-3PSID=AKEyXzUuXI1zywmFmkEBEBHfg6GRkRM9cJ9BiJZxmaR46x5im_krhaPtmL4Jhw8gQsz5uFFkfbc; _Secure-3PSIDCC=sidts-CjEBUFGohzUF6oK3ZMACCk2peoDBDp6djBwJhGc4Lxgu2zOlzbVFeVpXF4q1TYZ5ba6cEAA'
+        }
+        
+        def fetch_adunit_report(adunit):
+            """查詢單個 AdUnit 報表的函數"""
+            adunit_uuid = adunit.get('uuid')
+            adunit_name = adunit.get('title') or adunit.get('name') or adunit_uuid[:8]
+            adset_id = adunit.get('setId')
+            adset_name = adset_names.get(adset_id, '未知廣告集')
+            
+            # 構建目標 URL
+            base_url = f"https://trek.aotter.net/dontblockme/action_adset_read/getadunitreporttemplate/?setId={quote_plus(adset_id)}&uuid={quote_plus(adunit_uuid)}"
+            
+            # 如果有時間參數，加入到 URL
+            if since_date and to_date:
+                target_url = f"{base_url}&sinceDate={quote_plus(since_date)}&toDate={quote_plus(to_date)}"
+            else:
+                target_url = base_url
+            
+            # 重試機制設定
+            max_retries = 3
+            retry_delay = 1  # 重試間隔秒數
+            timeout_duration = 60  # 延長超時時間到60秒
+            
+            for attempt in range(max_retries):
+                try:
+                    logger.info(f"[Batch] 查詢 AdUnit {adunit_name} 報表 (嘗試 {attempt + 1}/{max_retries}): {target_url}")
+                    
+                    # 發送請求到目標 API，使用更長的超時時間
+                    response = requests.get(target_url, headers=headers, timeout=timeout_duration)
+                    
+                    if response.status_code == 200:
+                        logger.info(f"[Batch] AdUnit {adunit_name} 查詢成功")
+                        return {
+                            'uuid': adunit_uuid,
+                            'name': adunit_name,
+                            'adsetId': adset_id,
+                            'adsetName': adset_name,
+                            'content': response.text,
+                            'success': True
+                        }
+                    else:
+                        logger.warning(f"[Batch] AdUnit {adunit_name} 查詢失敗: HTTP {response.status_code} (嘗試 {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            time.sleep(retry_delay)
+                            continue
+                        else:
+                            return {
+                                'uuid': adunit_uuid,
+                                'name': adunit_name,
+                                'adsetId': adset_id,
+                                'adsetName': adset_name,
+                                'content': None,
+                                'success': False,
+                                'error': f'HTTP {response.status_code} (經過 {max_retries} 次重試)'
+                            }
+                            
+                except requests.exceptions.Timeout as e:
+                    logger.warning(f"[Batch] AdUnit {adunit_name} 查詢超時 (嘗試 {attempt + 1}/{max_retries}): {str(e)}")
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay * (attempt + 1))  # 漸進式延遲
+                        continue
+                    else:
+                        return {
+                            'uuid': adunit_uuid,
+                            'name': adunit_name,
+                            'adsetId': adset_id,
+                            'adsetName': adset_name,
+                            'content': None,
+                            'success': False,
+                            'error': f'查詢超時 (經過 {max_retries} 次重試，每次 {timeout_duration} 秒)'
+                        }
+                        
+                except Exception as e:
+                    logger.error(f"[Batch] 查詢 AdUnit {adunit_name} 時發生錯誤 (嘗試 {attempt + 1}/{max_retries}): {str(e)}")
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay)
+                        continue
+                    else:
+                        return {
+                            'uuid': adunit_uuid,
+                            'name': adunit_name,
+                            'adsetId': adset_id,
+                            'adsetName': adset_name,
+                            'content': None,
+                            'success': False,
+                            'error': f'{str(e)} (經過 {max_retries} 次重試)'
+                        }
+        
+        # 使用分批處理查詢所有 AdUnit 報表
+        logger.info(f"開始分批查詢 {len(adunits)} 個 AdUnit 報表，批次大小：{batch_size}")
+        start_time = time.time()
+        
+        adunit_reports = {}
+        batch_count = 0
+        total_batches = (len(adunits) + batch_size - 1) // batch_size  # 向上取整
+        
+        # 將 AdUnit 分成批次
+        for i in range(0, len(adunits), batch_size):
+            batch_count += 1
+            batch_adunits = adunits[i:i + batch_size]
+            
+            logger.info(f"[Batch {batch_count}/{total_batches}] 處理 {len(batch_adunits)} 個 AdUnit ({i+1} 到 {min(i+batch_size, len(adunits))})")
+            
+            # 對每個批次使用 ThreadPoolExecutor 並行查詢
+            # 批次內的並行執行緒數量限制為批次大小的一半，但最少1個，最多3個
+            max_workers = max(1, min(3, len(batch_adunits) // 2))
+            
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # 提交當前批次的所有 AdUnit 查詢任務
+                future_to_adunit = {
+                    executor.submit(fetch_adunit_report, adunit): adunit 
+                    for adunit in batch_adunits
+                }
+                
+                # 收集當前批次的所有結果
+                for future in concurrent.futures.as_completed(future_to_adunit):
+                    adunit = future_to_adunit[future]
+                    try:
+                        result = future.result()
+                        adunit_reports[result['uuid']] = result
+                    except Exception as exc:
+                        adunit_uuid = adunit.get('uuid')
+                        adunit_name = adunit.get('title') or adunit.get('name') or adunit_uuid[:8]
+                        logger.error(f"[Batch {batch_count}] AdUnit {adunit_name} 查詢異常: {exc}")
+                        
+                        # 生成錯誤結果
+                        adunit_reports[adunit_uuid] = {
+                            'uuid': adunit_uuid,
+                            'name': adunit_name,
+                            'adsetId': adunit.get('setId'),
+                            'adsetName': adset_names.get(adunit.get('setId'), '未知廣告集'),
+                            'content': None,
+                            'success': False,
+                            'error': f'執行緒異常: {str(exc)}'
+                        }
+            
+            # 批次間等待，避免對伺服器造成過大負擔
+            if batch_count < total_batches:
+                batch_delay = 2  # 批次間等待 2 秒
+                logger.info(f"[Batch {batch_count}] 完成，等待 {batch_delay} 秒後處理下一批次...")
+                time.sleep(batch_delay)
+        
+        end_time = time.time()
+        query_duration = round(end_time - start_time, 2)
+        
+        # 檢查是否有成功的報表
+        successful_reports = [report for report in adunit_reports.values() if report['success']]
+        
+        # 按 AdSet 分組整理結果
+        adunit_by_adset = {}
+        for adunit_uuid, report in adunit_reports.items():
+            adset_id = report['adsetId']
+            if adset_id not in adunit_by_adset:
+                adunit_by_adset[adset_id] = {
+                    'adsetName': report['adsetName'],
+                    'adunits': []
+                }
+            adunit_by_adset[adset_id]['adunits'].append(report)
+        
+        logger.info(f"分批查詢 Campaign {campaign_id} 的 AdUnit 報表完成：{len(successful_reports)}/{len(adunits)} 成功，共 {total_batches} 批次，耗時 {query_duration} 秒")
+        
+        return jsonify({
+            'success': True,
+            'campaignId': campaign_id,
+            'adunit_reports': adunit_reports,  # 所有 AdUnit 的報表
+            'adunit_by_adset': adunit_by_adset,  # 按 AdSet 分組的結果
+            'summary': {
+                'total_adsets': len(adsets),
+                'total_adunits': len(adunits),
+                'successful_reports': len(successful_reports),
+                'failed_reports': len(adunits) - len(successful_reports),
+                'query_duration': query_duration,
+                'batch_size': batch_size,
+                'total_batches': total_batches,
+                'processing_method': 'batch_processing'
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"查詢 AdUnit 報表時發生錯誤: {str(e)}")
+        return jsonify({'error': f'查詢失敗: {str(e)}'}), 500

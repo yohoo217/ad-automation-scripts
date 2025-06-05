@@ -72,6 +72,15 @@ def get_adset_info():
         
         logger.info(f"找到 {len(adsets)} 個廣告集")
         
+        # 特別為測試廣告活動顯示所有 AdSet 名稱
+        if campaign_id == 'eed11b7d-ce2f-46cd-842f-005c5a3c6397':
+            logger.info(f"📋 廣告活動 {campaign_id} 所有 AdSet 清單:")
+            for i, adset in enumerate(adsets, 1):
+                adset_name = adset.get('name', '')
+                adset_uuid = adset.get('uuid', '')
+                is_demo = 'demo' in adset_name.lower()
+                logger.info(f"  {i}. {adset_name} (UUID: {adset_uuid[:8]}...) [{'DEMO' if is_demo else 'NORMAL'}]")
+        
         # 從 Campaign 集合取得活動名稱和總預算
         campaign_collection = db['Campaign']
         campaign_data = campaign_collection.find_one({'uuid': campaign_id})
@@ -92,6 +101,7 @@ def get_adset_info():
         
         for adset_data in adsets:
             adset_id = adset_data.get('uuid')
+            adset_name = adset_data.get('name', '')
             
             # 提取計價方式和價格
             b_mode = adset_data.get('bMode', '')
@@ -109,15 +119,39 @@ def get_adset_info():
             elif b_mode == 'CPV':
                 pricing_info['price'] = adset_data.get('cpv', 0)
             
-            # 如果這是第一個 AdSet，設定為主要計價方式
-            if primary_pricing is None:
+            # 過濾包含 "demo" 的 AdSet，優先設定非 demo 的計價方式
+            is_demo = 'demo' in adset_name.lower()
+            
+            # 加強日誌，特別是對於特定的廣告活動
+            if campaign_id == 'eed11b7d-ce2f-46cd-842f-005c5a3c6397':
+                logger.info(f"🔍 廣告活動 {campaign_id} - AdSet 詳情:")
+                logger.info(f"  AdSet UUID: {adset_id}")
+                logger.info(f"  AdSet 名稱: '{adset_name}'")
+                logger.info(f"  計價方式: {b_mode} ${pricing_info['price']}")
+                logger.info(f"  是否為 demo: {is_demo}")
+                logger.info(f"  目前 primary_pricing: {primary_pricing}")
+            
+            if primary_pricing is None and not is_demo:
+                primary_pricing = pricing_info
+                logger.info(f"✅ 設定主要計價方式從非 demo AdSet: {adset_name} - {b_mode} ${pricing_info['price']}")
+            elif primary_pricing is None and is_demo:
+                # 如果目前只有 demo AdSet，暫時設定但標記為 demo
+                logger.warning(f"⚠️ 暫時使用 demo AdSet 的計價方式: {adset_name} - {b_mode} ${pricing_info['price']}")
+                primary_pricing = pricing_info
+            elif not is_demo and primary_pricing:
+                # 如果已經有 primary_pricing，但現在找到非 demo 的，替換掉
+                logger.info(f"🔄 發現非 demo AdSet，替換計價方式: {adset_name} - {b_mode} ${pricing_info['price']} (原: {primary_pricing})")
                 primary_pricing = pricing_info
             
             # 從活動名稱解析預算（使用 AdSet 的 name）
-            adset_name = adset_data.get('name', '')
             parsed_budget = parse_budget_from_name(adset_name)
             actual_budget = parsed_budget if parsed_budget > 0 else adset_data.get('budget', 0)
-            total_budget += actual_budget
+            
+            # 如果是 demo AdSet，不計入總預算
+            if not is_demo:
+                total_budget += actual_budget
+            else:
+                logger.info(f"跳過 demo AdSet 的預算計算: {adset_name} (${actual_budget})")
             
             # 處理時間戳
             from_time = adset_data.get('fromTime')
@@ -165,7 +199,8 @@ def get_adset_info():
                 'originalBudget': adset_data.get('budget', 0),
                 'pricing': pricing_info,
                 'fromTimestamp': from_timestamp,
-                'toTimestamp': to_timestamp
+                'toTimestamp': to_timestamp,
+                'isDemo': is_demo
             })
         
         # 計算活動結束日期
@@ -189,12 +224,21 @@ def get_adset_info():
             'toTimestamp': latest_to_time
         }
         
-        logger.info(f"查詢成功: {campaign_id} - 找到 {len(adsets)} 個廣告集, 總預算: ${campaign_budget or total_budget}")
+        # 確保有計價方式設定
+        if primary_pricing is None:
+            logger.warning(f"沒有找到非 demo 的 AdSet，使用預設計價方式")
+            primary_pricing = {'bMode': 'CPC', 'price': 7.0, 'currency': 'TWD'}
+        
+        # 統計資訊
+        non_demo_count = len([info for info in adset_infos if not info.get('isDemo', False)])
+        demo_count = len([info for info in adset_infos if info.get('isDemo', False)])
+        
+        logger.info(f"查詢成功: {campaign_id} - 找到 {len(adsets)} 個廣告集 (非demo: {non_demo_count}, demo: {demo_count}), 總預算: ${campaign_budget or total_budget}")
         
         return jsonify({
             'success': True,
             'campaignId': campaign_id,
-            'pricing': primary_pricing or {'bMode': 'CPC', 'price': 0, 'currency': 'TWD'},
+            'pricing': primary_pricing,
             'info': additional_info
         })
         

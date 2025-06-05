@@ -355,6 +355,7 @@
         <button type="button" id="fetchReport" class="button">📈 取得報表</button>
         <button type="button" id="exportExcel" class="export-button" disabled>📊 產出 XLSX 報表</button>
         <button type="button" id="clearAllCaches" class="button" style="background: #6c757d; margin-left: 10px;">🗑️ 清除所有緩存</button>
+        <button type="button" id="clearCurrentCache" class="button" style="background: #dc3545; margin-left: 10px;">🗑️ 清除當前活動緩存</button>
     </div>
     
     <!-- 新增：選擇報表內容區域 -->
@@ -465,6 +466,11 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             alert('ℹ️ 沒有找到需要清除的緩存');
         }
+    });
+    
+    // 清除當前活動緩存按鈕
+    document.getElementById('clearCurrentCache').addEventListener('click', function() {
+        clearCurrentCampaignCache();
     });
     
     // 新增：選擇控制按鈕事件
@@ -746,8 +752,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     adsetInfo = await adsetResponse.json();
                     console.log('收到廣告活動資訊:', adsetInfo);
                     
-                    // 緩存基本資訊（24小時）
-                    setCampaignCache(basicCacheKey, adsetInfo);
+                            // 緩存基本資訊（6小時，與報表緩存一致）
+        setCampaignCache(basicCacheKey, adsetInfo);
                 } else {
                     console.warn('查詢廣告活動資訊失敗，將使用預設值');
                     adsetInfo = {
@@ -3308,9 +3314,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 timestampInfo = ` | 📅 走期：${fromDate} ~ ${toDate}`;
             }
             
+            // 檢查計價方式來源
+            let pricingSource = '';
+            if (info.adsets) {
+                const nonDemoAdsets = info.adsets.filter(adset => !adset.isDemo);
+                const demoAdsets = info.adsets.filter(adset => adset.isDemo);
+                
+                console.log(`💰 計價方式分析 - 廣告活動: ${document.getElementById('campaignId').value}`);
+                console.log(`  非 demo AdSet (${nonDemoAdsets.length} 個):`);
+                nonDemoAdsets.forEach(adset => {
+                    console.log(`    - ${adset.name}: ${adset.pricing.bMode} $${adset.pricing.price}`);
+                });
+                console.log(`  Demo AdSet (${demoAdsets.length} 個):`);
+                demoAdsets.forEach(adset => {
+                    console.log(`    - ${adset.name}: ${adset.pricing.bMode} $${adset.pricing.price}`);
+                });
+                console.log(`  最終選擇: ${pricing.bMode} $${pricing.price}`);
+                
+                if (nonDemoAdsets.length > 0) {
+                    const primaryAdset = nonDemoAdsets.find(adset => 
+                        adset.pricing.bMode === pricing.bMode && adset.pricing.price === pricing.price
+                    );
+                    if (primaryAdset) {
+                        pricingSource = ` (來自: ${primaryAdset.name.slice(0, 20)}...)`;
+                        console.log(`  ✅ 計價來源: 非 demo AdSet "${primaryAdset.name}"`);
+                    } else {
+                        pricingSource = ` (來自非 demo 廣告集)`;
+                        console.log(`  ✅ 計價來源: 某個非 demo AdSet`);
+                    }
+                } else if (demoAdsets.length > 0) {
+                    pricingSource = ` (⚠️ 僅有 demo 廣告集)`;
+                    console.log(`  ⚠️ 計價來源: 僅有 demo AdSet 可用`);
+                } else {
+                    pricingSource = ` (預設值)`;
+                    console.log(`  🔧 計價來源: 系統預設值`);
+                }
+            }
+            
             adsetInfoMsg.innerHTML = `
                 📊 廣告集資訊：${info.name || '未知活動'} | 
-                💰 計價方式：${pricing.bMode} (${currency}${pricing.price}) | 
+                💰 計價方式：${pricing.bMode} (${currency}${pricing.price})${pricingSource} | 
                 🎯 廣告類型：${info.adType || 'NATIVE'} | 
                 💵 總預算：${budgetInfo}${timestampInfo}
             `;

@@ -289,12 +289,22 @@
             <div class="help-text">勾選此項目將會查詢所有 AdUnit 並顯示各 cut 的詳細數據</div>
         </div>
         
-        <!-- 新增：批次處理設定 -->
+        <!-- 修改：查詢策略設定 -->
         <div class="form-row">
             <div class="batch-settings">
-                <label for="batchSize">AdUnit 查詢批次大小：</label>
-                <input type="number" id="batchSize" name="batchSize" value="10" min="1" max="50">
-                <span style="font-size: 12px; color: #666;">每批次處理的 AdUnit 數量，預設 10 個（減少併發請求提升穩定性）</span>
+                <label for="queryStrategy">AdUnit 查詢策略：</label>
+                <select id="queryStrategy" name="queryStrategy">
+                    <option value="sequential">逐一查詢（保護線上服務，較慢但安全）</option>
+                    <option value="disabled">停用 AdUnit 查詢（只查詢 AdSet 層級）</option>
+                </select>
+                <span style="font-size: 12px; color: #666;">為了不影響線上功能，建議使用逐一查詢，每個 AdUnit 間會等待 3 秒</span>
+            </div>
+        </div>
+        
+        <!-- 新增：過濾提示 -->
+        <div class="form-row">
+            <div style="padding: 10px; background: #e8f5e8; border-radius: 6px; border: 1px solid #28a745;">
+                <span style="font-size: 12px; color: #2e7d32;">📋 注意：系統會自動過濾掉名稱包含 "demo" 的廣告集</span>
             </div>
         </div>
         
@@ -504,8 +514,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // 檢查是否為 slide 廣告
         isSlideAd = document.getElementById('isSlideAd').checked;
         
-        // 取得批次大小設定
-        const batchSize = parseInt(document.getElementById('batchSize').value) || 10;
+        // 取得查詢策略設定
+        const queryStrategy = document.getElementById('queryStrategy').value;
         
         // 顯示載入中
         loadingElement.style.display = 'block';
@@ -600,7 +610,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 第二步：使用正確的時間戳查詢報表
             console.log('正在查詢報表，使用時間戳:', `從 ${actualSinceDate} 到 ${actualToDate}`);
-            console.log('使用批次大小:', batchSize);
+            console.log('使用查詢策略:', queryStrategy);
             
             const queries = [
                 // 查詢 AdSet 層級報表資料
@@ -610,16 +620,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
                     }
-                }),
-                // 查詢 AdUnit 層級報表資料（加入批次大小參數）
-                fetch(`/api/adunit-reports?campaignId=${encodeURIComponent(campaignId)}&batchSize=${batchSize}&sinceDate=${encodeURIComponent(actualSinceDate)}&toDate=${encodeURIComponent(actualToDate)}`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
                 })
             ];
+            
+            // 根據查詢策略決定是否查詢 AdUnit 層級報表
+            if (queryStrategy === 'sequential') {
+                queries.push(
+                    fetch(`/api/adunit-reports-sequential?campaignId=${encodeURIComponent(campaignId)}&sinceDate=${encodeURIComponent(actualSinceDate)}&toDate=${encodeURIComponent(actualToDate)}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                );
+            }
             
             // 如果是 slide 廣告，加入 AdUnit 查詢
             if (isSlideAd) {
@@ -759,19 +774,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // 新增：檢查 AdSet 是否應該被過濾（包含 demo）
+    function shouldFilterAdset(report) {
+        if (!report || !report.name) return false;
+        return report.name.toLowerCase().includes('demo');
+    }
+    
     // 新增：初始化選擇狀態
     function initializeSelections() {
         selectedAdsets.clear();
         selectedAdunits.clear();
         
-        // 預設選擇在時間區段內且成功的 AdSet
+        // 預設選擇在時間區段內且成功的 AdSet（過濾掉包含 demo 的）
         for (const adsetId in allAdsetReports) {
             const report = allAdsetReports[adsetId];
-            if (report.success && isAdsetInTimeRange(report)) {
+            if (report.success && isAdsetInTimeRange(report) && !shouldFilterAdset(report)) {
                 selectedAdsets.add(adsetId);
                 console.log(`預設選擇 AdSet: ${report.name}`);
             } else {
-                console.log(`跳過 AdSet: ${report.name} (成功: ${report.success}, 在時間區段: ${isAdsetInTimeRange(report)})`);
+                const filterReason = shouldFilterAdset(report) ? '包含 demo' : `成功: ${report.success}, 在時間區段: ${isAdsetInTimeRange(report)}`;
+                console.log(`跳過 AdSet: ${report.name} (${filterReason})`);
             }
         }
         
@@ -802,8 +824,14 @@ document.addEventListener('DOMContentLoaded', function() {
         adsetList.innerHTML = '';
         adunitList.innerHTML = '';
         
-        // 建立 AdSet 選擇器
+        // 建立 AdSet 選擇器（過濾掉包含 demo 的）
         for (const [adsetId, report] of Object.entries(allAdsetReports)) {
+            // 過濾包含 demo 的 AdSet
+            if (shouldFilterAdset(report)) {
+                console.log(`過濾掉包含 demo 的 AdSet: ${report.name}`);
+                continue;
+            }
+            
             const item = document.createElement('div');
             item.className = 'selection-item';
             
@@ -832,8 +860,15 @@ document.addEventListener('DOMContentLoaded', function() {
             adsetList.appendChild(item);
         }
         
-        // 建立 AdUnit 選擇器
+        // 建立 AdUnit 選擇器（過濾掉包含 demo 的 AdSet）
         for (const [adsetId, adsetData] of Object.entries(adunitByAdset)) {
+            // 檢查對應的 AdSet 是否應該被過濾
+            const adsetReport = allAdsetReports[adsetId];
+            if (adsetReport && shouldFilterAdset(adsetReport)) {
+                console.log(`過濾掉包含 demo 的 AdSet 下的 AdUnit: ${adsetData.adsetName}`);
+                continue;
+            }
+            
             // 添加 AdSet 標題
             const adsetHeader = document.createElement('div');
             adsetHeader.style.fontWeight = 'bold';
@@ -920,7 +955,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         const summary = document.getElementById('selectionSummary');
-        const totalAdsets = Object.keys(allAdsetReports).filter(id => allAdsetReports[id].success).length;
+        const totalAdsets = Object.keys(allAdsetReports).filter(id => allAdsetReports[id].success && !shouldFilterAdset(allAdsetReports[id])).length;
         const totalAdunits = Object.keys(allAdunitReports).filter(id => allAdunitReports[id].success).length;
         
         summary.innerHTML = `
@@ -1058,10 +1093,16 @@ document.addEventListener('DOMContentLoaded', function() {
             return null;
         }
         
-        // 根據選擇過濾 AdSet 報表，並過濾時間區段
+        // 根據選擇過濾 AdSet 報表，並過濾時間區段和包含 demo 的
         const filteredReports = Object.entries(allAdsetReports)
             .filter(([adsetId, report]) => {
                 if (!selectedAdsets.has(adsetId) || !report.success) {
+                    return false;
+                }
+                
+                // 過濾包含 demo 的 AdSet
+                if (shouldFilterAdset(report)) {
+                    console.log(`合併報表時過濾掉包含 demo 的 AdSet: ${report.name}`);
                     return false;
                 }
                 
@@ -1471,9 +1512,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <h4>📋 個別廣告集報表 <button id="refreshReportBtn" class="button" style="margin-left: 10px; font-size: 12px;">🔄 重新生成總合報表</button></h4>
         `;
         
-        // 過濾並顯示在時間區段內的 AdSet
+        // 過濾並顯示在時間區段內且不包含 demo 的 AdSet
         const filteredAdsets = Object.entries(allAdsetReports).filter(([adsetId, report]) => {
-            return report.success && isAdsetInTimeRange(report);
+            return report.success && isAdsetInTimeRange(report) && !shouldFilterAdset(report);
         });
         
         if (filteredAdsets.length === 0) {
@@ -2425,10 +2466,16 @@ document.addEventListener('DOMContentLoaded', function() {
         
         currentRow += 2;
         
-        // 處理每個選中的 AdSet 的報表
+        // 處理每個選中的 AdSet 的報表（過濾掉包含 demo 的）
         for (const [adsetId, report] of Object.entries(currentReportData.allAdsetReports)) {
             if (!selectedAdsets.has(adsetId)) {
                 continue; // 跳過未選中的 AdSet
+            }
+            
+            // 過濾包含 demo 的 AdSet
+            if (shouldFilterAdset(report)) {
+                console.log(`Excel 導出時過濾掉包含 demo 的 AdSet: ${report.name}`);
+                continue;
             }
             
             if (report.success) {

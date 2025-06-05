@@ -1183,20 +1183,18 @@ def get_cut_data():
         logger.error(f"查詢 cut 數據時發生錯誤: {str(e)}")
         return jsonify({'error': f'查詢失敗: {str(e)}'}), 500
 
-@main_bp.route('/api/adunit-reports')
-def get_adunit_reports():
-    """查詢指定 Campaign 所有 AdSet 下所有 AdUnit 的報表數據 - 使用分批處理提升穩定性"""
+@main_bp.route('/api/adunit-reports-sequential')
+def get_adunit_reports_sequential():
+    """查詢指定 Campaign 所有 AdSet 下所有 AdUnit 的報表數據 - 使用逐一查詢保護線上服務"""
     try:
         campaign_id = request.args.get('campaignId')
-        batch_size = int(request.args.get('batchSize', 10))  # 可自定義批次大小，預設 10
-        since_date = request.args.get('sinceDate')  # 新增：開始時間戳
-        to_date = request.args.get('toDate')  # 新增：結束時間戳
+        since_date = request.args.get('sinceDate')  # 開始時間戳
+        to_date = request.args.get('toDate')  # 結束時間戳
         
         if not campaign_id:
             return jsonify({'error': '缺少 campaignId 參數'}), 400
         
         from app.models.database import get_mongo_client, MONGO_DATABASE
-        import concurrent.futures
         import time
         
         client = get_mongo_client()
@@ -1264,19 +1262,19 @@ def get_adunit_reports():
                 target_url = base_url
             
             # 重試機制設定
-            max_retries = 3
-            retry_delay = 1  # 重試間隔秒數
-            timeout_duration = 60  # 延長超時時間到60秒
+            max_retries = 2  # 減少重試次數以保護伺服器
+            retry_delay = 2  # 增加重試間隔
+            timeout_duration = 60  # 減少超時時間
             
             for attempt in range(max_retries):
                 try:
-                    logger.info(f"[Batch] 查詢 AdUnit {adunit_name} 報表 (嘗試 {attempt + 1}/{max_retries}): {target_url}")
+                    logger.info(f"[Sequential] 查詢 AdUnit {adunit_name} 報表 (嘗試 {attempt + 1}/{max_retries}): {target_url}")
                     
-                    # 發送請求到目標 API，使用更長的超時時間
+                    # 發送請求到目標 API
                     response = requests.get(target_url, headers=headers, timeout=timeout_duration)
                     
                     if response.status_code == 200:
-                        logger.info(f"[Batch] AdUnit {adunit_name} 查詢成功")
+                        logger.info(f"[Sequential] AdUnit {adunit_name} 查詢成功")
                         return {
                             'uuid': adunit_uuid,
                             'name': adunit_name,
@@ -1286,7 +1284,7 @@ def get_adunit_reports():
                             'success': True
                         }
                     else:
-                        logger.warning(f"[Batch] AdUnit {adunit_name} 查詢失敗: HTTP {response.status_code} (嘗試 {attempt + 1}/{max_retries})")
+                        logger.warning(f"[Sequential] AdUnit {adunit_name} 查詢失敗: HTTP {response.status_code} (嘗試 {attempt + 1}/{max_retries})")
                         if attempt < max_retries - 1:
                             time.sleep(retry_delay)
                             continue
@@ -1302,9 +1300,9 @@ def get_adunit_reports():
                             }
                             
                 except requests.exceptions.Timeout as e:
-                    logger.warning(f"[Batch] AdUnit {adunit_name} 查詢超時 (嘗試 {attempt + 1}/{max_retries}): {str(e)}")
+                    logger.warning(f"[Sequential] AdUnit {adunit_name} 查詢超時 (嘗試 {attempt + 1}/{max_retries}): {str(e)}")
                     if attempt < max_retries - 1:
-                        time.sleep(retry_delay * (attempt + 1))  # 漸進式延遲
+                        time.sleep(retry_delay * (attempt + 1))
                         continue
                     else:
                         return {
@@ -1318,7 +1316,7 @@ def get_adunit_reports():
                         }
                         
                 except Exception as e:
-                    logger.error(f"[Batch] 查詢 AdUnit {adunit_name} 時發生錯誤 (嘗試 {attempt + 1}/{max_retries}): {str(e)}")
+                    logger.error(f"[Sequential] 查詢 AdUnit {adunit_name} 時發生錯誤 (嘗試 {attempt + 1}/{max_retries}): {str(e)}")
                     if attempt < max_retries - 1:
                         time.sleep(retry_delay)
                         continue
@@ -1333,59 +1331,27 @@ def get_adunit_reports():
                             'error': f'{str(e)} (經過 {max_retries} 次重試)'
                         }
         
-        # 使用分批處理查詢所有 AdUnit 報表
-        logger.info(f"開始分批查詢 {len(adunits)} 個 AdUnit 報表，批次大小：{batch_size}")
+        # 使用逐一查詢所有 AdUnit 報表，保護線上服務
+        logger.info(f"開始逐一查詢 {len(adunits)} 個 AdUnit 報表，每個間隔 3 秒")
         start_time = time.time()
         
         adunit_reports = {}
-        batch_count = 0
-        total_batches = (len(adunits) + batch_size - 1) // batch_size  # 向上取整
+        query_delay = 3  # 每個查詢間等待 3 秒
         
-        # 將 AdUnit 分成批次
-        for i in range(0, len(adunits), batch_size):
-            batch_count += 1
-            batch_adunits = adunits[i:i + batch_size]
+        for index, adunit in enumerate(adunits):
+            adunit_uuid = adunit.get('uuid')
+            adunit_name = adunit.get('title') or adunit.get('name') or adunit_uuid[:8]
             
-            logger.info(f"[Batch {batch_count}/{total_batches}] 處理 {len(batch_adunits)} 個 AdUnit ({i+1} 到 {min(i+batch_size, len(adunits))})")
+            logger.info(f"[Sequential {index + 1}/{len(adunits)}] 查詢 AdUnit: {adunit_name}")
             
-            # 對每個批次使用 ThreadPoolExecutor 並行查詢
-            # 批次內的並行執行緒數量限制為批次大小的一半，但最少1個，最多3個
-            max_workers = max(1, min(3, len(batch_adunits) // 2))
+            # 查詢單個 AdUnit 報表
+            result = fetch_adunit_report(adunit)
+            adunit_reports[result['uuid']] = result
             
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                # 提交當前批次的所有 AdUnit 查詢任務
-                future_to_adunit = {
-                    executor.submit(fetch_adunit_report, adunit): adunit 
-                    for adunit in batch_adunits
-                }
-                
-                # 收集當前批次的所有結果
-                for future in concurrent.futures.as_completed(future_to_adunit):
-                    adunit = future_to_adunit[future]
-                    try:
-                        result = future.result()
-                        adunit_reports[result['uuid']] = result
-                    except Exception as exc:
-                        adunit_uuid = adunit.get('uuid')
-                        adunit_name = adunit.get('title') or adunit.get('name') or adunit_uuid[:8]
-                        logger.error(f"[Batch {batch_count}] AdUnit {adunit_name} 查詢異常: {exc}")
-                        
-                        # 生成錯誤結果
-                        adunit_reports[adunit_uuid] = {
-                            'uuid': adunit_uuid,
-                            'name': adunit_name,
-                            'adsetId': adunit.get('setId'),
-                            'adsetName': adset_names.get(adunit.get('setId'), '未知廣告集'),
-                            'content': None,
-                            'success': False,
-                            'error': f'執行緒異常: {str(exc)}'
-                        }
-            
-            # 批次間等待，避免對伺服器造成過大負擔
-            if batch_count < total_batches:
-                batch_delay = 2  # 批次間等待 2 秒
-                logger.info(f"[Batch {batch_count}] 完成，等待 {batch_delay} 秒後處理下一批次...")
-                time.sleep(batch_delay)
+            # 在查詢間等待，避免對伺服器造成負擔
+            if index < len(adunits) - 1:  # 最後一個不需要等待
+                logger.info(f"[Sequential] 等待 {query_delay} 秒後查詢下一個 AdUnit...")
+                time.sleep(query_delay)
         
         end_time = time.time()
         query_duration = round(end_time - start_time, 2)
@@ -1404,7 +1370,7 @@ def get_adunit_reports():
                 }
             adunit_by_adset[adset_id]['adunits'].append(report)
         
-        logger.info(f"分批查詢 Campaign {campaign_id} 的 AdUnit 報表完成：{len(successful_reports)}/{len(adunits)} 成功，共 {total_batches} 批次，耗時 {query_duration} 秒")
+        logger.info(f"逐一查詢 Campaign {campaign_id} 的 AdUnit 報表完成：{len(successful_reports)}/{len(adunits)} 成功，耗時 {query_duration} 秒")
         
         return jsonify({
             'success': True,
@@ -1417,12 +1383,21 @@ def get_adunit_reports():
                 'successful_reports': len(successful_reports),
                 'failed_reports': len(adunits) - len(successful_reports),
                 'query_duration': query_duration,
-                'batch_size': batch_size,
-                'total_batches': total_batches,
-                'processing_method': 'batch_processing'
+                'query_delay': query_delay,
+                'processing_method': 'sequential_processing'
             }
         })
         
     except Exception as e:
         logger.error(f"查詢 AdUnit 報表時發生錯誤: {str(e)}")
         return jsonify({'error': f'查詢失敗: {str(e)}'}), 500
+
+
+# 保留原有的批次查詢 API 作為備用（但已停用以保護線上服務）
+@main_bp.route('/api/adunit-reports')
+def get_adunit_reports():
+    """查詢指定 Campaign 所有 AdSet 下所有 AdUnit 的報表數據 - 已停用以保護線上服務"""
+    return jsonify({
+        'success': False,
+        'error': '批次查詢已停用以保護線上服務，請使用逐一查詢模式'
+    }), 400

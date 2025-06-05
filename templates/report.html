@@ -308,6 +308,16 @@
             </div>
         </div>
         
+        <!-- 新增：緩存說明 -->
+        <div class="form-row">
+            <div style="padding: 10px; background: #e8f4fd; border-radius: 6px; border: 1px solid #42a5f5;">
+                <span style="font-size: 12px; color: #1565c0;">
+                    🎯 智能緩存：相同查詢條件的數據會緩存 6 小時，提升查詢速度並減少服務器負擔
+                    <span id="cacheStatus" style="margin-left: 10px;"></span>
+                </span>
+            </div>
+        </div>
+        
         <!-- 新增：自訂時間區段設定 -->
         <div class="form-row">
             <label for="useCustomTime">
@@ -344,6 +354,7 @@
         
         <button type="button" id="fetchReport" class="button">📈 取得報表</button>
         <button type="button" id="exportExcel" class="export-button" disabled>📊 產出 XLSX 報表</button>
+        <button type="button" id="clearAllCaches" class="button" style="background: #6c757d; margin-left: 10px;">🗑️ 清除所有緩存</button>
     </div>
     
     <!-- 新增：選擇報表內容區域 -->
@@ -445,6 +456,17 @@ document.addEventListener('DOMContentLoaded', function() {
         exportToExcel();
     });
     
+    // 清除所有緩存按鈕
+    document.getElementById('clearAllCaches').addEventListener('click', function() {
+        const clearedCount = clearAllCampaignCaches();
+        if (clearedCount > 0) {
+            alert(`✅ 已清除 ${clearedCount} 個廣告活動緩存`);
+            updateCacheStatus(); // 更新緩存狀態顯示
+        } else {
+            alert('ℹ️ 沒有找到需要清除的緩存');
+        }
+    });
+    
     // 新增：選擇控制按鈕事件
     document.getElementById('selectAllAdsets').addEventListener('click', function() {
         toggleAllCheckboxes('adsetSelectionList', true);
@@ -496,6 +518,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let allAdunitReports = {}; // 儲存所有 AdUnit 的報表數據
     let adunitByAdset = {}; // 按 AdSet 分組的 AdUnit 報表數據
     
+    // 緩存管理
+    const CACHE_DURATION = 6 * 60 * 60 * 1000; // 6小時（毫秒）
+    const CACHE_PREFIX = 'adCampaignCache_';
+    
     // 新增：選擇狀態
     let selectedAdsets = new Set(); // 選中的 AdSet ID
     let selectedAdunits = new Set(); // 選中的 AdUnit UUID
@@ -503,6 +529,181 @@ document.addEventListener('DOMContentLoaded', function() {
     // 將選擇狀態設為全域變數
     window.selectedAdsets = selectedAdsets;
     window.selectedAdunits = selectedAdunits;
+    
+    // 緩存管理函數
+    function getCacheKey(campaignId, queryParams) {
+        // 生成緩存鍵，包含廣告活動ID和查詢參數
+        const key = `${campaignId}_${queryParams.isSlideAd}_${queryParams.queryStrategy}_${queryParams.sinceDate}_${queryParams.toDate}`;
+        const cacheKey = CACHE_PREFIX + btoa(key).replace(/[^a-zA-Z0-9]/g, ''); // Base64編碼並清理特殊字符
+        console.log('🔑 生成緩存鍵值詳情:', {
+            原始鍵值: key,
+            編碼後: cacheKey,
+            參數: queryParams
+        });
+        return cacheKey;
+    }
+    
+    function setCampaignCache(cacheKey, data) {
+        try {
+            const cacheData = {
+                timestamp: Date.now(),
+                data: data
+            };
+            localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+            console.log(`✅ 緩存已保存: ${cacheKey}`);
+        } catch (error) {
+            console.warn('⚠️ 緩存保存失敗:', error);
+        }
+    }
+    
+    function getCampaignCache(cacheKey) {
+        try {
+            console.log(`🔍 檢查緩存: ${cacheKey}`);
+            const cached = localStorage.getItem(cacheKey);
+            if (!cached) {
+                console.log(`❌ 未找到緩存: ${cacheKey}`);
+                return null;
+            }
+            
+            const cacheData = JSON.parse(cached);
+            const now = Date.now();
+            
+            // 檢查緩存是否過期
+            if (now - cacheData.timestamp > CACHE_DURATION) {
+                console.log(`⏰ 緩存已過期，將清除: ${cacheKey} (${Math.round((now - cacheData.timestamp) / 60000)} 分鐘前創建)`);
+                localStorage.removeItem(cacheKey);
+                return null;
+            }
+            
+            console.log(`🎯 使用緩存數據: ${cacheKey} (${Math.round((now - cacheData.timestamp) / 60000)} 分鐘前)`);
+            return cacheData.data;
+        } catch (error) {
+            console.warn('⚠️ 緩存讀取失敗:', error);
+            return null;
+        }
+    }
+    
+    function clearExpiredCaches() {
+        try {
+            const keys = Object.keys(localStorage);
+            const now = Date.now();
+            let clearedCount = 0;
+            
+            keys.forEach(key => {
+                if (key.startsWith(CACHE_PREFIX)) {
+                    try {
+                        const cached = JSON.parse(localStorage.getItem(key));
+                        if (now - cached.timestamp > CACHE_DURATION) {
+                            localStorage.removeItem(key);
+                            clearedCount++;
+                        }
+                    } catch (error) {
+                        // 清除損壞的緩存
+                        localStorage.removeItem(key);
+                        clearedCount++;
+                    }
+                }
+            });
+            
+            if (clearedCount > 0) {
+                console.log(`🧹 清理了 ${clearedCount} 個過期緩存`);
+            }
+        } catch (error) {
+            console.warn('⚠️ 緩存清理失敗:', error);
+        }
+    }
+    
+    function clearAllCampaignCaches() {
+        try {
+            const keys = Object.keys(localStorage);
+            let clearedCount = 0;
+            
+            keys.forEach(key => {
+                if (key.startsWith(CACHE_PREFIX)) {
+                    localStorage.removeItem(key);
+                    clearedCount++;
+                }
+            });
+            
+            console.log(`🗑️ 清除了所有 ${clearedCount} 個廣告活動緩存`);
+            return clearedCount;
+        } catch (error) {
+            console.warn('⚠️ 緩存清除失敗:', error);
+            return 0;
+        }
+    }
+    
+    // 頁面載入時清理過期緩存
+    clearExpiredCaches();
+    
+    // 更新緩存狀態顯示
+    function updateCacheStatus() {
+        const cacheStatusElement = document.getElementById('cacheStatus');
+        if (!cacheStatusElement) return;
+        
+        try {
+            const keys = Object.keys(localStorage);
+            const cacheKeys = keys.filter(key => key.startsWith(CACHE_PREFIX));
+            const validCaches = cacheKeys.filter(key => {
+                try {
+                    const cached = JSON.parse(localStorage.getItem(key));
+                    return (Date.now() - cached.timestamp) <= CACHE_DURATION;
+                } catch {
+                    return false;
+                }
+            });
+            
+            if (validCaches.length > 0) {
+                cacheStatusElement.textContent = `(${validCaches.length} 個活動已緩存)`;
+                cacheStatusElement.style.color = '#28a745';
+            } else {
+                cacheStatusElement.textContent = '(無緩存)';
+                cacheStatusElement.style.color = '#6c757d';
+            }
+        } catch (error) {
+            cacheStatusElement.textContent = '(狀態未知)';
+            cacheStatusElement.style.color = '#dc3545';
+        }
+    }
+    
+    // 初始化緩存狀態顯示
+    updateCacheStatus();
+    
+    // 定期更新緩存狀態 (每30秒)
+    setInterval(updateCacheStatus, 30000);
+    
+    // 顯示緩存提示訊息
+    function showCacheMessage(cacheTimestamp) {
+        const now = Date.now();
+        const ageMinutes = Math.round((now - cacheTimestamp) / 60000);
+        const ageHours = Math.round(ageMinutes / 60);
+        
+        let ageText = '';
+        if (ageMinutes < 60) {
+            ageText = `${ageMinutes} 分鐘前`;
+        } else {
+            ageText = `${ageHours} 小時前`;
+        }
+        
+        const cacheMsg = document.createElement('div');
+        cacheMsg.className = 'cookie-status';
+        cacheMsg.style.backgroundColor = '#e8f4fd';
+        cacheMsg.style.borderColor = '#42a5f5';
+        cacheMsg.style.color = '#1565c0';
+        cacheMsg.innerHTML = `
+            🎯 使用緩存數據 (${ageText} 緩存)
+            <button onclick="clearCurrentCampaignCache()" style="margin-left: 10px; font-size: 11px; padding: 4px 8px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                🗑️ 清除緩存
+            </button>
+        `;
+        
+        const container = document.getElementById('dailyReportContainer');
+        if (container) {
+            container.insertBefore(cacheMsg, container.firstChild);
+        }
+    }
+    
+
     
     // 取得報表資料
     async function fetchReportData(campaignId, sinceDate, toDate) {
@@ -527,60 +728,73 @@ document.addEventListener('DOMContentLoaded', function() {
             // 第一步：先查詢廣告活動資訊，取得正確的時間戳
             console.log('正在查詢廣告活動資訊:', `/api/adset-info?campaignId=${encodeURIComponent(campaignId)}`);
             
-            const adsetResponse = await fetch(`/api/adset-info?campaignId=${encodeURIComponent(campaignId)}`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
+            // 先嘗試從緩存獲取廣告活動基本資訊
+            const basicCacheKey = `${CACHE_PREFIX}basic_${campaignId}`;
+            let adsetInfo = getCampaignCache(basicCacheKey);
+            
+            if (!adsetInfo) {
+                // 沒有緩存，調用 API
+                const adsetResponse = await fetch(`/api/adset-info?campaignId=${encodeURIComponent(campaignId)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (adsetResponse.ok) {
+                    adsetInfo = await adsetResponse.json();
+                    console.log('收到廣告活動資訊:', adsetInfo);
+                    
+                    // 緩存基本資訊（24小時）
+                    setCampaignCache(basicCacheKey, adsetInfo);
+                } else {
+                    console.warn('查詢廣告活動資訊失敗，將使用預設值');
+                    adsetInfo = {
+                        success: false,
+                        pricing: { bMode: 'CPC', price: 7.0, currency: 'TWD' },
+                        info: { 
+                            name: '未知活動', 
+                            adType: '原生互動廣告', 
+                            budget: 0, 
+                            campaignEndDate: null,
+                            fromTimestamp: null,
+                            toTimestamp: null
+                        }
+                    };
                 }
-            });
+            } else {
+                console.log('🎯 使用緩存的廣告活動基本資訊');
+            }
+            
+            currentAdsetInfo = adsetInfo;
             
             let actualSinceDate = sinceDate;
             let actualToDate = toDate;
             
-            // 處理廣告活動資訊回應
-            if (adsetResponse.ok) {
-                const adsetInfo = await adsetResponse.json();
-                console.log('收到廣告活動資訊:', adsetInfo);
-                currentAdsetInfo = adsetInfo;
-                
-                if (adsetInfo.success && adsetInfo.info) {
-                    // 自動設置走期結束日期
-                    if (adsetInfo.info.campaignEndDate) {
-                        document.getElementById('campaignEndDate').value = adsetInfo.info.campaignEndDate;
-                        console.log('自動設置走期結束日期:', adsetInfo.info.campaignEndDate);
-                    }
-                    
-                    // 自動設置開始和結束時間戳
-                    if (adsetInfo.info.fromTimestamp) {
-                        actualSinceDate = adsetInfo.info.fromTimestamp;
-                        document.getElementById('sinceDate').value = actualSinceDate;
-                        console.log('自動設置開始時間戳:', actualSinceDate);
-                    }
-                    if (adsetInfo.info.toTimestamp) {
-                        actualToDate = adsetInfo.info.toTimestamp;
-                        document.getElementById('toDate').value = actualToDate;
-                        console.log('自動設置結束時間戳:', actualToDate);
-                    }
-                    
-                    // 設置當前日期
-                    const today = new Date().toISOString().split('T')[0];
-                    document.getElementById('currentDate').value = today;
+            // 處理廣告活動資訊
+            if (adsetInfo.success && adsetInfo.info) {
+                // 自動設置走期結束日期
+                if (adsetInfo.info.campaignEndDate) {
+                    document.getElementById('campaignEndDate').value = adsetInfo.info.campaignEndDate;
+                    console.log('自動設置走期結束日期:', adsetInfo.info.campaignEndDate);
                 }
-            } else {
-                console.warn('查詢廣告活動資訊失敗，將使用傳入的預設時間戳');
-                currentAdsetInfo = {
-                    success: false,
-                    pricing: { bMode: 'CPC', price: 7.0, currency: 'TWD' },
-                    info: { 
-                        name: '未知活動', 
-                        adType: '原生互動廣告', 
-                        budget: 0, 
-                        campaignEndDate: null,
-                        fromTimestamp: null,
-                        toTimestamp: null
-                    }
-                };
+                
+                // 自動設置開始和結束時間戳
+                if (adsetInfo.info.fromTimestamp) {
+                    actualSinceDate = adsetInfo.info.fromTimestamp;
+                    document.getElementById('sinceDate').value = actualSinceDate;
+                    console.log('自動設置開始時間戳:', actualSinceDate);
+                }
+                if (adsetInfo.info.toTimestamp) {
+                    actualToDate = adsetInfo.info.toTimestamp;
+                    document.getElementById('toDate').value = actualToDate;
+                    console.log('自動設置結束時間戳:', actualToDate);
+                }
+                
+                // 設置當前日期
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('currentDate').value = today;
             }
             
             // 檢查是否使用自訂時間
@@ -606,6 +820,64 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     console.warn('自訂時間未完整填寫，將使用自動取得的時間');
                 }
+            }
+            
+            // 現在生成緩存參數和鍵值（使用正確的時間戳）
+            const queryParams = {
+                isSlideAd: isSlideAd,
+                queryStrategy: queryStrategy,
+                sinceDate: actualSinceDate,
+                toDate: actualToDate,
+                useCustomTime: document.getElementById('useCustomTime').checked,
+                customStartDate: document.getElementById('customStartDate').value,
+                customEndDate: document.getElementById('customEndDate').value
+            };
+            
+            const cacheKey = getCacheKey(campaignId, queryParams);
+            console.log('🔑 生成緩存鍵值:', cacheKey, '參數:', queryParams);
+            
+            // 檢查報表數據緩存
+            const cachedData = getCampaignCache(cacheKey);
+            if (cachedData) {
+                console.log('🎯 使用緩存的報表數據，跳過網路請求');
+                
+                // 從緩存恢復數據
+                allAdsetReports = cachedData.allAdsetReports;
+                allAdunitReports = cachedData.allAdunitReports;
+                adunitByAdset = cachedData.adunitByAdset;
+                currentCutData = cachedData.currentCutData;
+                
+                // 恢復隱藏欄位的值
+                if (cachedData.hiddenFieldValues) {
+                    Object.keys(cachedData.hiddenFieldValues).forEach(fieldId => {
+                        const element = document.getElementById(fieldId);
+                        if (element) {
+                            element.value = cachedData.hiddenFieldValues[fieldId];
+                        }
+                    });
+                }
+                
+                // 直接顯示結果，跳過網路請求
+                loadingElement.style.display = 'none';
+                
+                // 初始化選擇狀態（預設全選）
+                initializeSelections();
+                
+                // 建立選擇器界面
+                buildSelectionInterface();
+                
+                // 顯示緩存提示
+                showCacheMessage(cachedData.cacheTimestamp);
+                
+                // 解析並顯示合併的每日報表
+                if (allAdsetReports && Object.keys(allAdsetReports).length > 0) {
+                    const firstReport = Object.values(allAdsetReports)[0];
+                    if (firstReport && firstReport.content) {
+                        displayMergedDailyReport(firstReport.content, cachedData.summary);
+                    }
+                }
+                
+                return; // 使用緩存，直接返回
             }
             
             // 第二步：使用正確的時間戳查詢報表
@@ -731,6 +1003,25 @@ document.addEventListener('DOMContentLoaded', function() {
             if (jsonResponse.success) {
                 const htmlContent = jsonResponse.content;
                 console.log('收到 HTML 內容，長度:', htmlContent.length);
+                
+                // 保存到緩存
+                const cacheData = {
+                    currentAdsetInfo: currentAdsetInfo,
+                    allAdsetReports: allAdsetReports,
+                    allAdunitReports: allAdunitReports,
+                    adunitByAdset: adunitByAdset,
+                    currentCutData: currentCutData,
+                    summary: jsonResponse.summary,
+                    cacheTimestamp: Date.now(),
+                    hiddenFieldValues: {
+                        sinceDate: document.getElementById('sinceDate').value,
+                        toDate: document.getElementById('toDate').value,
+                        campaignEndDate: document.getElementById('campaignEndDate').value,
+                        currentDate: document.getElementById('currentDate').value
+                    }
+                };
+                
+                setCampaignCache(cacheKey, cacheData);
                 
                 // 初始化選擇狀態（預設全選）
                 initializeSelections();
@@ -3127,6 +3418,44 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+// 全域緩存管理函數
+function clearCurrentCampaignCache() {
+    const campaignId = document.getElementById('campaignId').value.trim();
+    if (!campaignId) {
+        alert('請先輸入廣告活動 ID');
+        return;
+    }
+    
+    const CACHE_PREFIX = 'adCampaignCache_';
+    
+    try {
+        // 清除基本資訊緩存
+        const basicCacheKey = `${CACHE_PREFIX}basic_${campaignId}`;
+        localStorage.removeItem(basicCacheKey);
+        
+        // 清除所有相關的報表緩存
+        const keys = Object.keys(localStorage);
+        let clearedCount = 0;
+        
+        keys.forEach(key => {
+            if (key.startsWith(CACHE_PREFIX) && key.includes(campaignId)) {
+                localStorage.removeItem(key);
+                clearedCount++;
+                console.log(`🗑️ 已清除緩存: ${key}`);
+            }
+        });
+        
+        alert(`✅ 已清除該廣告活動的所有緩存 (共 ${clearedCount} 個)，下次查詢將重新從伺服器獲取數據`);
+        
+        // 更新緩存狀態顯示
+        if (typeof updateCacheStatus === 'function') {
+            updateCacheStatus();
+        }
+    } catch (error) {
+        alert('❌ 清除緩存失敗: ' + error.message);
+    }
+}
 
 // 在 DOMContentLoaded 外部定義全域函數，供按鈕點擊事件使用
 function toggleAdsetCollapse(adsetId) {

@@ -65,7 +65,7 @@ def get_adset_info():
         adset_collection = db['AdSet']
         
         # 查詢該 Campaign 下的所有 AdSet
-        adsets = list(adset_collection.find({'campId': campaign_id}))
+        adsets = list(adset_collection.find({'campId': campaign_id}, {'_id': 0}))
         
         if not adsets:
             return jsonify({'error': f'找不到廣告活動 ID: {campaign_id} 的任何廣告集'}), 404
@@ -304,6 +304,26 @@ def report_proxy():
         if not adsets:
             return jsonify({'error': f'找不到廣告活動 ID: {campaign_id} 的任何廣告集'}), 404
         
+        # 過濾掉名稱包含 "demo" 的 AdSet
+        original_adset_count = len(adsets)
+        filtered_adsets = []
+        filtered_out_adsets = []
+        
+        for adset in adsets:
+            adset_name = adset.get('name', '').lower()
+            if 'demo' in adset_name:
+                filtered_out_adsets.append(adset)
+                logger.info(f"[Report-Proxy] 過濾掉包含 demo 的 AdSet: {adset.get('name')}")
+            else:
+                filtered_adsets.append(adset)
+        
+        if not filtered_adsets:
+            logger.warning(f"[Report-Proxy] 過濾後沒有可用的 AdSet (原有 {original_adset_count} 個，全部包含 demo)")
+            return jsonify({'error': f'該廣告活動的所有廣告集都包含 demo，已被過濾'}), 404
+        
+        logger.info(f"[Report-Proxy] AdSet 過濾結果: {len(filtered_adsets)}/{original_adset_count} 個可用 ({len(filtered_out_adsets)} 個包含 demo 被過濾)")
+        
+        adsets = filtered_adsets  # 更新為過濾後的結果
         logger.info(f"找到 {len(adsets)} 個廣告集，開始查詢報表")
         
         # 設置請求標頭，包含認證信息
@@ -334,7 +354,7 @@ def report_proxy():
             
             try:
                 # 發送請求到目標 API
-                response = requests.get(target_url, headers=headers, timeout=30)
+                response = requests.get(target_url, headers=headers, timeout=90)
                 
                 if response.status_code == 200:
                     adset_reports[adset_id] = {
@@ -381,6 +401,8 @@ def report_proxy():
             'content_type': 'text/html',
             'summary': {
                 'total_adsets': len(adsets),
+                'original_adsets': original_adset_count,
+                'filtered_out_adsets': len(filtered_out_adsets),
                 'successful_reports': len(successful_reports),
                 'failed_reports': len(adsets) - len(successful_reports)
             }
@@ -1148,7 +1170,7 @@ def get_adunits():
         
         # 先查詢該 Campaign 下的所有 AdSet
         adset_collection = db['AdSet']
-        adsets = list(adset_collection.find({'campId': campaign_id}, {'uuid': 1, 'name': 1}))
+        adsets = list(adset_collection.find({'campId': campaign_id}, {'uuid': 1, 'name': 1, '_id': 0}))
         
         if not adsets:
             return jsonify({'error': f'找不到廣告活動 ID: {campaign_id} 的任何廣告集'}), 404
@@ -1206,26 +1228,47 @@ def get_cut_data():
         # 查詢 tkrecorder API
         tkrecorder_url = f"https://tkrecorder.aotter.net/sp/list/v/{uuid}"
         
-        logger.info(f"正在查詢 tkrecorder: {tkrecorder_url}")
+        logger.info(f"[Cut Data] 正在查詢 tkrecorder: {tkrecorder_url}")
         
-        response = requests.get(tkrecorder_url, timeout=30)
+        # 增加超時時間並加強錯誤處理
+        response = requests.get(tkrecorder_url, timeout=90)
         
         if response.status_code != 200:
+            logger.warning(f"[Cut Data] tkrecorder API 請求失敗: HTTP {response.status_code}")
             return jsonify({'error': f'tkrecorder API 請求失敗: {response.status_code}'}), 500
         
         data = response.json()
         
+        # 簡單統計 cut 數據
+        success_data = data.get('success', {})
+        cut_count = len(success_data) if success_data else 0
+        total_clicks = 0
+        
+        if success_data:
+            for cut_info in success_data.values():
+                if isinstance(cut_info, list):
+                    total_clicks += sum(item.get('totalCount', 0) for item in cut_info)
+        
+        logger.info(f"[Cut Data] AdUnit {uuid}: 找到 {cut_count} 個 cut，總點擊 {total_clicks}")
+        
         return jsonify({
             'success': True,
             'uuid': uuid,
-            'data': data
+            'data': data,
+            'summary': {
+                'cut_count': cut_count,
+                'total_clicks': total_clicks
+            }
         })
         
+    except requests.Timeout as e:
+        logger.error(f"[Cut Data] tkrecorder API 請求超時: {str(e)}")
+        return jsonify({'error': 'tkrecorder API 請求超時，請稍後再試'}), 500
     except requests.RequestException as e:
-        logger.error(f"請求 tkrecorder API 時發生錯誤: {str(e)}")
+        logger.error(f"[Cut Data] 請求 tkrecorder API 時發生錯誤: {str(e)}")
         return jsonify({'error': f'請求失敗: {str(e)}'}), 500
     except Exception as e:
-        logger.error(f"查詢 cut 數據時發生錯誤: {str(e)}")
+        logger.error(f"[Cut Data] 查詢 cut 數據時發生錯誤: {str(e)}")
         return jsonify({'error': f'查詢失敗: {str(e)}'}), 500
 
 @main_bp.route('/api/adunit-reports-sequential')
@@ -1250,13 +1293,33 @@ def get_adunit_reports_sequential():
         
         # 先查詢該 Campaign 下的所有 AdSet
         adset_collection = db['AdSet']
-        adsets = list(adset_collection.find({'campId': campaign_id}, {'uuid': 1, 'name': 1}))
+        adsets = list(adset_collection.find({'campId': campaign_id}, {'uuid': 1, 'name': 1, '_id': 0}))
         
         if not adsets:
             return jsonify({'error': f'找不到廣告活動 ID: {campaign_id} 的任何廣告集'}), 404
         
-        # 取得所有 AdSet ID
-        adset_ids = [adset['uuid'] for adset in adsets]
+        # 過濾掉名稱包含 "demo" 的 AdSet
+        original_adset_count = len(adsets)
+        filtered_adsets = []
+        filtered_out_adsets = []
+        
+        for adset in adsets:
+            adset_name = adset.get('name', '').lower()
+            if 'demo' in adset_name:
+                filtered_out_adsets.append(adset)
+                logger.info(f"過濾掉包含 demo 的 AdSet: {adset.get('name')}")
+            else:
+                filtered_adsets.append(adset)
+        
+        if not filtered_adsets:
+            logger.warning(f"過濾後沒有可用的 AdSet (原有 {original_adset_count} 個，全部包含 demo)")
+            return jsonify({'error': f'該廣告活動的所有廣告集都包含 demo，已被過濾'}), 404
+        
+        logger.info(f"AdSet 過濾結果: {len(filtered_adsets)}/{original_adset_count} 個可用 ({len(filtered_out_adsets)} 個包含 demo 被過濾)")
+        
+        # 取得過濾後的 AdSet ID
+        adset_ids = [adset['uuid'] for adset in filtered_adsets]
+        adsets = filtered_adsets  # 更新 adsets 變數為過濾後的結果
         
         # 查詢所有 AdSet 的 AdUnit
         adunit_collection = db['AdUnit']
@@ -1428,13 +1491,15 @@ def get_adunit_reports_sequential():
             'adunit_reports': adunit_reports,  # 所有 AdUnit 的報表
             'adunit_by_adset': adunit_by_adset,  # 按 AdSet 分組的結果
             'summary': {
-                'total_adsets': len(adsets),
-                'total_adunits': len(adunits),
+                'total_adsets': len(adsets),  # 過濾後的 AdSet 數量
+                'total_adunits': len(adunits),  # 過濾後的 AdUnit 數量
                 'successful_reports': len(successful_reports),
                 'failed_reports': len(adunits) - len(successful_reports),
                 'query_duration': query_duration,
                 'query_delay': query_delay,
-                'processing_method': 'sequential_processing'
+                'processing_method': 'sequential_processing',
+                'filtered_adsets': len(filtered_out_adsets),  # 被過濾的 AdSet 數量
+                'original_adset_count': original_adset_count  # 原始 AdSet 總數
             }
         })
         

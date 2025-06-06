@@ -442,7 +442,7 @@
     </div>
     
     <div class="input-section">
-        <h3>📊 廣告報表查詢</h3>
+        <h3>廣告報表查詢</h3>
         <div class="form-row">
             <label for="campaignId">廣告活動 ID <span class="required">*</span></label>
             <input type="text" id="campaignId" name="campaignId" placeholder="請輸入廣告活動 ID，例如：02698ef0-faac-4df1-af75-fa2a21674778" required>
@@ -1140,23 +1140,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('收到 AdUnit 資訊:', adunitResult);
                 
                 if (adunitResult.success && adunitResult.adunits.length > 0) {
-                    // 為每個 AdUnit 查詢 cut 數據
-                    const cutQueries = adunitResult.adunits.map(adunit => 
-                        fetch(`/api/cut-data?uuid=${encodeURIComponent(adunit.uuid)}`, {
+                    // 逐一查詢每個 AdUnit 的 cut 數據，避免對線上服務造成壓力
+                    console.log(`🎬 開始逐一查詢 ${adunitResult.adunits.length} 個 AdUnit 的 cut 數據`);
+                    
+                    for (let i = 0; i < adunitResult.adunits.length; i++) {
+                        const adunit = adunitResult.adunits[i];
+                        const adunitName = adunit.title || adunit.name || 'Untitled';
+                        
+                        try {
+                            console.log(`⏳ 查詢 AdUnit ${i + 1}/${adunitResult.adunits.length}: ${adunitName}`);
+                            
+                            const response = await fetch(`/api/cut-data?uuid=${encodeURIComponent(adunit.uuid)}`, {
                             method: 'GET',
                             headers: {
                                 'Accept': 'application/json',
                                 'Content-Type': 'application/json'
                             }
-                        })
-                    );
-                    
-                    const cutResponses = await Promise.all(cutQueries);
-                    
-                    // 處理每個 cut 數據回應
-                    for (let i = 0; i < cutResponses.length; i++) {
-                        const response = cutResponses[i];
-                        const adunit = adunitResult.adunits[i];
+                            });
                         
                         if (response.ok) {
                             const cutResult = await response.json();
@@ -1165,10 +1165,36 @@ document.addEventListener('DOMContentLoaded', function() {
                                     adunit: adunit,
                                     data: cutResult.data
                                 };
-                                console.log(`收到 AdUnit ${adunit.uuid} 的 cut 數據:`, cutResult.data);
+                                    
+                                    // 計算 cut 數據統計
+                                    const successData = cutResult.data.success || {};
+                                    const cutCount = Object.keys(successData).length;
+                                    let totalClicks = 0;
+                                    
+                                    Object.values(successData).forEach(cutInfo => {
+                                        totalClicks += cutInfo.reduce((sum, item) => sum + (item.totalCount || 0), 0);
+                                    });
+                                    
+                                    console.log(`✅ AdUnit ${adunitName}: 找到 ${cutCount} 個 cut，總點擊 ${totalClicks}`);
+                                } else {
+                                    console.log(`⚠️ AdUnit ${adunitName}: cut 數據查詢失敗`);
+                                }
+                            } else {
+                                console.log(`❌ AdUnit ${adunitName}: API 請求失敗 (${response.status})`);
+                            }
+                            
+                            // 在查詢之間加入延遲，保護線上服務
+                            if (i < adunitResult.adunits.length - 1) {
+                                console.log(`⏸️ 等待 2 秒後查詢下一個 AdUnit...`);
+                                await new Promise(resolve => setTimeout(resolve, 2000));
+                            }
+                            
+                        } catch (error) {
+                            console.error(`❌ 查詢 AdUnit ${adunitName} 時發生錯誤:`, error);
                             }
                         }
-                    }
+                    
+                    console.log(`🎉 完成所有 cut 數據查詢，成功取得 ${Object.keys(cutData).length} 個 AdUnit 的數據`);
                 }
             }
             
@@ -1262,13 +1288,26 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // 預設選擇在時間區段內且成功的 AdUnit
+        // 預設選擇在時間區段內且成功的 AdUnit（同時過濾掉包含 demo 的 AdSet 下的 AdUnit）
         for (const adunitUuid in allAdunitReports) {
             const report = allAdunitReports[adunitUuid];
-            if (report.success && isAdunitInTimeRange(report)) {
+            
+            // 檢查對應的 AdSet 是否包含 demo
+            let shouldSkipForDemo = false;
+            for (const [adsetId, adsetData] of Object.entries(adunitByAdset)) {
+                const adsetReport = allAdsetReports[adsetId];
+                if (adsetData.adunits.some(adunit => adunit.uuid === adunitUuid) && 
+                    adsetReport && shouldFilterAdset(adsetReport)) {
+                    shouldSkipForDemo = true;
+                    console.log(`跳過 AdUnit: ${report.name} (所屬 AdSet "${adsetReport.name}" 包含 demo)`);
+                    break;
+                }
+            }
+            
+            if (!shouldSkipForDemo && report.success && isAdunitInTimeRange(report)) {
                 selectedAdunits.add(adunitUuid);
                 console.log(`預設選擇 AdUnit: ${report.name}`);
-            } else {
+            } else if (!shouldSkipForDemo) {
                 console.log(`跳過 AdUnit: ${report.name} (成功: ${report.success}, 在時間區段: ${isAdunitInTimeRange(report)})`);
             }
         }
@@ -1421,7 +1460,22 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const summary = document.getElementById('selectionSummary');
         const totalAdsets = Object.keys(allAdsetReports).filter(id => allAdsetReports[id].success && !shouldFilterAdset(allAdsetReports[id])).length;
-        const totalAdunits = Object.keys(allAdunitReports).filter(id => allAdunitReports[id].success).length;
+        
+        // 計算不屬於包含 demo 的 AdSet 的 AdUnit 總數
+        const totalAdunits = Object.keys(allAdunitReports).filter(adunitUuid => {
+            const report = allAdunitReports[adunitUuid];
+            if (!report.success) return false;
+            
+            // 檢查對應的 AdSet 是否包含 demo
+            for (const [adsetId, adsetData] of Object.entries(adunitByAdset)) {
+                const adsetReport = allAdsetReports[adsetId];
+                if (adsetData.adunits.some(adunit => adunit.uuid === adunitUuid) && 
+                    adsetReport && shouldFilterAdset(adsetReport)) {
+                    return false; // 排除屬於包含 demo 的 AdSet 的 AdUnit
+                }
+            }
+            return true;
+        }).length;
         
         summary.innerHTML = `
             📊 已選擇：${selectedAdsets.size}/${totalAdsets} 個 AdSet，${selectedAdunits.size}/${totalAdunits} 個 AdUnit
@@ -3199,7 +3253,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `廣告報表_${currentReportData.campaignId.slice(0,8)}_${new Date().toISOString().slice(0,10)}.xlsx`;
+            link.download = `${activityName}.xlsx`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -3218,10 +3272,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 const adsetCount = info.adsetCount || 1;
                 
                 // 計算選擇的統計
-                const totalAvailableAdsets = Object.keys(currentReportData.allAdsetReports || {}).filter(id => currentReportData.allAdsetReports[id].success).length;
+                const totalAvailableAdsets = Object.keys(currentReportData.allAdsetReports || {}).filter(id => currentReportData.allAdsetReports[id].success && !shouldFilterAdset(currentReportData.allAdsetReports[id])).length;
                 const selectedAdsetCount = selectedAdsets.size;
                 
-                const totalAvailableAdunits = Object.keys(currentReportData.allAdunitReports || {}).filter(id => currentReportData.allAdunitReports[id].success).length;
+                // 計算不屬於包含 demo 的 AdSet 的可用 AdUnit 總數
+                const totalAvailableAdunits = Object.keys(currentReportData.allAdunitReports || {}).filter(adunitUuid => {
+                    const report = currentReportData.allAdunitReports[adunitUuid];
+                    if (!report.success) return false;
+                    
+                    // 檢查對應的 AdSet 是否包含 demo
+                    for (const [adsetId, adsetData] of Object.entries(currentReportData.adunitByAdset || {})) {
+                        const adsetReport = currentReportData.allAdsetReports[adsetId];
+                        if (adsetData.adunits.some(adunit => adunit.uuid === adunitUuid) && 
+                            adsetReport && shouldFilterAdset(adsetReport)) {
+                            return false; // 排除屬於包含 demo 的 AdSet 的 AdUnit
+                        }
+                    }
+                    return true;
+                }).length;
                 const selectedAdunitCount = selectedAdunits.size;
                 
                 // 效能資訊

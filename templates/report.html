@@ -331,6 +331,83 @@
         border-top: 2px solid #28a745;
     }
     
+    /* AdUnit 圖片預覽樣式 */
+    .adunit-images-section {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #ffffff;
+        border-radius: 8px;
+        border: 2px solid #e3f2fd;
+    }
+    
+    .adunit-images-section h6 {
+        color: #1976d2;
+        margin-bottom: 15px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .adunit-images-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        justify-content: flex-start;
+    }
+    
+    .adunit-image-item {
+        text-align: center;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 10px;
+        background: #fafafa;
+        max-width: 200px;
+        transition: all 0.3s ease;
+    }
+    
+    .adunit-image-item:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        transform: translateY(-2px);
+    }
+    
+    .adunit-image-item .name {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 8px;
+        font-weight: bold;
+        word-break: break-word;
+    }
+    
+    .adunit-image-item img {
+        max-width: 180px;
+        max-height: 120px;
+        object-fit: contain;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+    
+    .adunit-image-item img:hover {
+        transform: scale(1.05);
+    }
+    
+    .adunit-image-item .no-image {
+        color: #999;
+        font-size: 11px;
+        padding: 20px 10px;
+        border: 1px dashed #ccc;
+        border-radius: 4px;
+        background: #f9f9f9;
+    }
+    
+    .adunit-image-item .error-message {
+        color: #999;
+        font-size: 11px;
+        padding: 20px 10px;
+    }
+
     /* 響應式設計 */
     @media (max-width: 1200px) {
         .merged-adunit-table {
@@ -340,6 +417,19 @@
         .merged-adunit-table th,
         .merged-adunit-table td {
             padding: 4px 2px;
+        }
+        
+        .adunit-images-grid {
+            gap: 10px;
+        }
+        
+        .adunit-image-item {
+            max-width: 150px;
+        }
+        
+        .adunit-image-item img {
+            max-width: 130px;
+            max-height: 100px;
         }
     }
 </style>
@@ -1942,8 +2032,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (filteredAdunits.length > 0) {
                         content += `
                             <div id="adunit-section-${adsetId}" style="margin: 10px 0 20px 20px; padding: 15px; border: 1px solid #28a745; border-radius: 8px; background: #f8fff9; ${displayStyle}">
-                                <h6 style="color: #28a745; margin-bottom: 15px;">🎯 AdUnit 報表 (${filteredAdunits.length} 個並排顯示)</h6>
                         `;
+                        
+                        // 添加 AdUnit 圖片展示
+                        content += generateAdunitImagesSection(filteredAdunits);
+                        
+                        content += `<h6 style="color: #28a745; margin-bottom: 15px;">🎯 AdUnit 報表 (${filteredAdunits.length} 個並排顯示)</h6>`;
                         
                         // 生成並排的 AdUnit 報表
                         const mergedAdunitTable = mergeAdunitReportsForAdset(filteredAdunits);
@@ -1963,6 +2057,50 @@ document.addEventListener('DOMContentLoaded', function() {
         return content;
     }
     
+    // 新增：生成 AdUnit 圖片展示區域
+    function generateAdunitImagesSection(adunitReports) {
+        if (!adunitReports || adunitReports.length === 0) return '';
+        
+        let imagesHTML = `
+            <div class="adunit-images-section">
+                <h6>📸 AdUnit 圖片預覽</h6>
+                <div class="adunit-images-grid">
+        `;
+        
+        adunitReports.forEach(adunit => {
+            const imgMain = adunit.img_main || '';
+            const adunitName = adunit.name || adunit.uuid?.substring(0, 8) || 'Unknown';
+            
+            if (imgMain) {
+                imagesHTML += `
+                    <div class="adunit-image-item">
+                        <div class="name">${adunitName}</div>
+                        <img src="${imgMain}" 
+                             alt="${adunitName}" 
+                             title="點擊查看大圖"
+                             onclick="window.open('${imgMain}', '_blank')"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div class="error-message" style="display: none;">圖片載入失敗</div>
+                    </div>
+                `;
+            } else {
+                imagesHTML += `
+                    <div class="adunit-image-item">
+                        <div class="name">${adunitName}</div>
+                        <div class="no-image">無圖片</div>
+                    </div>
+                `;
+            }
+        });
+        
+        imagesHTML += `
+                </div>
+            </div>
+        `;
+        
+        return imagesHTML;
+    }
+
     // 新增：確保 AdSet 表格有 TOTAL 行
     function ensureAdsetTableHasTotal(originalTable) {
         if (!originalTable) return originalTable;
@@ -2958,7 +3096,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             
                             worksheet.addImage(imageId, {
                                 tl: { col: 1, row: 1 },
-                                ext: { width: 80, height: 40 }
+                                ext: { width: 360, height: 188 }
                             });
                             logoInserted = true;
                             console.log('✅ CDN Logo 圖片載入成功');
@@ -3303,16 +3441,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (selectedAdunitReports.length > 0) {
                         currentRow += 1;
                         
-                        // 添加 AdUnit 區段標題
-                        worksheet.mergeCells(currentRow, 2, currentRow, 9);
-                        const adunitSectionCell = worksheet.getCell(currentRow, 2);
-                        adunitSectionCell.value = `🎯 AdUnit 報表 (${selectedAdunitReports.length} 個已選擇)`;
-                        adunitSectionCell.font = { name: 'Helvetica', bold: true, size: 11, color: { argb: 'FF28A745' } };
-                        adunitSectionCell.alignment = { vertical: 'middle', horizontal: 'left' };
+                        // 在 B:C 欄合併並插入 AdSet 標題
+                        worksheet.mergeCells(currentRow, 2, currentRow, 3);
+                        const adsetForAdunitTitleCell = worksheet.getCell(currentRow, 2);
+                        adsetForAdunitTitleCell.value = report.name; // AdSet title
+                        adsetForAdunitTitleCell.font = { name: 'Helvetica', bold: true, size: 12, color: { argb: 'FF2E7D32' } };
+                        adsetForAdunitTitleCell.alignment = { vertical: 'middle', horizontal: 'center' };
                         
-                        currentRow += 1;
-                        
-                        // 生成並排的 AdUnit 報表並添加到 Excel
+                        // 使用同一個 currentRow 來插入 AdUnit 圖片和報表，讓標題和圖片在同一列
                         currentRow = await addMergedAdunitReportToExcel(worksheet, styles, currentRow, applyStyle, selectedAdunitReports);
                     }
                 }
@@ -3331,6 +3467,123 @@ document.addEventListener('DOMContentLoaded', function() {
         
         return currentRow;
     }
+    
+    // 新增：添加 AdUnit 圖片到 Excel
+    async function addAdunitImagesToExcel(worksheet, startRow, adunitReports) {
+        if (!adunitReports || adunitReports.length === 0) {
+            return startRow;
+        }
+        
+        let currentRow = startRow;
+        const imageRowHeight = 188.4; // 圖片行的高度（像素）- 增加以容納更大的圖片
+        
+        // 檢查是否有圖片
+        const hasImages = adunitReports.some(adunit => adunit.img_main);
+        
+        if (hasImages) {
+            // 設置圖片行的高度
+            worksheet.getRow(currentRow).height = imageRowHeight;
+            
+            let colIndex = 4; // 從第4欄(D)開始，因為 B,C 已被 AdSet title 使用
+            
+            // 為每個 AdUnit 添加圖片
+            for (const adunit of adunitReports) {
+                const imgMain = adunit.img_main;
+                const adunitName = adunit.name || adunit.uuid?.substring(0, 8) || 'Unknown';
+                
+                // 為圖片容器合併 D,E,F 欄
+                worksheet.mergeCells(currentRow, colIndex, currentRow, colIndex + 2);
+
+                if (imgMain) {
+                    try {
+                        console.log(`正在下載圖片: ${adunitName} - ${imgMain}`);
+                        
+                        // 使用代理方式下載圖片
+                        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imgMain)}`;
+                        const imageResponse = await fetch(proxyUrl);
+                        
+                        if (imageResponse.ok) {
+                            const imageBlob = await imageResponse.blob();
+                            const arrayBuffer = await imageBlob.arrayBuffer();
+                            
+                            // 獲取圖片副檔名
+                            const extension = getImageExtension(imgMain);
+                            
+                            // 創建圖片 ID
+                            const imageId = worksheet.workbook.addImage({
+                                buffer: arrayBuffer,
+                                extension: extension
+                            });
+                            
+                            // 計算圖片位置和大小
+                            const imageWidth = 360; // 圖片寬度（調整為更大）
+                            const imageHeight = 188.4;  // 圖片高度（調整為更大）
+                            
+                            // 添加圖片到工作表，置中對齊到3欄的中間
+                            worksheet.addImage(imageId, {
+                                tl: { col: colIndex - 0.1, row: currentRow - 0.8 }, // 圖片左上角位置
+                                ext: { width: imageWidth, height: imageHeight }       // 圖片大小
+                            });
+                            
+                            console.log(`成功添加圖片到 Excel: ${adunitName}`);
+                        } else {
+                            console.warn(`無法下載圖片: ${imgMain} - HTTP ${imageResponse.status}`);
+                            
+                            // 添加無圖片提示到第一欄
+                            const noImageCell = worksheet.getCell(currentRow, colIndex);
+                            noImageCell.value = '圖片載入失敗';
+                            noImageCell.font = { name: 'Helvetica', size: 8, italic: true, color: { argb: 'FF999999' } };
+                            noImageCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                        }
+                    } catch (error) {
+                        console.error(`下載圖片時發生錯誤: ${adunitName}`, error);
+                        
+                        // 添加錯誤提示
+                        const errorCell = worksheet.getCell(currentRow, colIndex);
+                        errorCell.value = '圖片處理錯誤';
+                        errorCell.font = { name: 'Helvetica', size: 8, italic: true, color: { argb: 'FFCC0000' } };
+                        errorCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                    }
+                } else {
+                    // 添加無圖片提示
+                    const noImageCell = worksheet.getCell(currentRow, colIndex);
+                    noImageCell.value = '無圖片';
+                    noImageCell.font = { name: 'Helvetica', size: 8, italic: true, color: { argb: 'FF999999' } };
+                    noImageCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                }
+                
+                colIndex += 3; // 每個 AdUnit 佔用 3 欄（對應後面的曝光、點擊、點擊率）
+            }
+            
+            currentRow += 1; // 跳過圖片行
+        }
+        
+        return currentRow;
+    }
+    
+    // 輔助函數：取得圖片副檔名
+    function getImageExtension(url) {
+        if (!url) return 'jpeg';
+        
+        const extension = url.split('.').pop().toLowerCase().split('?')[0]; // 移除查詢參數
+        switch (extension) {
+            case 'jpg':
+            case 'jpeg':
+                return 'jpeg';
+            case 'png':
+                return 'png';
+            case 'gif':
+                return 'gif';
+            case 'webp':
+                return 'webp';
+            case 'bmp':
+                return 'bmp';
+            default:
+                return 'jpeg'; // 預設為 jpeg
+        }
+    }
+    
+
 
     // 新增：添加並排的 AdUnit 報表到 Excel
     async function addMergedAdunitReportToExcel(worksheet, styles, startRow, applyStyle, adunitReports) {
@@ -3339,6 +3592,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!adunitReports || adunitReports.length === 0) {
             return currentRow;
         }
+        
+        // 先添加 AdUnit 圖片行
+        currentRow = await addAdunitImagesToExcel(worksheet, currentRow, adunitReports);
+        
+        // 移除圖片和標題之間的空行
+        // currentRow += 1;
         
         // 解析所有 AdUnit 的報表數據
         const parsedAdunits = [];

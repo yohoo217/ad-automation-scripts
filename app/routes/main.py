@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, session, request, flash, jsonify
+from flask import Blueprint, render_template, redirect, url_for, session, request, flash, jsonify, Response
 import logging
 import os
 from playwright.sync_api import sync_playwright
@@ -1164,6 +1164,7 @@ def get_adunits():
             "name": 1, 
             "title": 1,
             "setId": 1,  # 加入 setId 以便知道屬於哪個 AdSet
+            "img_main": 1,  # 添加 img_main 字段
             "interactSrc.creativeType": 1,
             "_id": 0
         }
@@ -1265,6 +1266,7 @@ def get_adunit_reports_sequential():
             "name": 1, 
             "title": 1,
             "setId": 1,
+            "img_main": 1,  # 添加 img_main 字段
             "_id": 0
         }
         
@@ -1324,6 +1326,7 @@ def get_adunit_reports_sequential():
                             'name': adunit_name,
                             'adsetId': adset_id,
                             'adsetName': adset_name,
+                            'img_main': adunit.get('img_main', ''),  # 添加 img_main
                             'content': response.text,
                             'success': True
                         }
@@ -1338,6 +1341,7 @@ def get_adunit_reports_sequential():
                                 'name': adunit_name,
                                 'adsetId': adset_id,
                                 'adsetName': adset_name,
+                                'img_main': adunit.get('img_main', ''),  # 添加 img_main
                                 'content': None,
                                 'success': False,
                                 'error': f'HTTP {response.status_code} (經過 {max_retries} 次重試)'
@@ -1354,6 +1358,7 @@ def get_adunit_reports_sequential():
                             'name': adunit_name,
                             'adsetId': adset_id,
                             'adsetName': adset_name,
+                            'img_main': adunit.get('img_main', ''),  # 添加 img_main
                             'content': None,
                             'success': False,
                             'error': f'查詢超時 (經過 {max_retries} 次重試，每次 {timeout_duration} 秒)'
@@ -1370,6 +1375,7 @@ def get_adunit_reports_sequential():
                             'name': adunit_name,
                             'adsetId': adset_id,
                             'adsetName': adset_name,
+                            'img_main': adunit.get('img_main', ''),  # 添加 img_main
                             'content': None,
                             'success': False,
                             'error': f'{str(e)} (經過 {max_retries} 次重試)'
@@ -1438,6 +1444,54 @@ def get_adunit_reports_sequential():
 
 
 # 保留原有的批次查詢 API 作為備用（但已停用以保護線上服務）
+@main_bp.route('/api/proxy-image')
+def proxy_image():
+    """代理圖片下載，解決跨域問題"""
+    try:
+        image_url = request.args.get('url')
+        if not image_url:
+            return jsonify({'error': '缺少 url 參數'}), 400
+        
+        logger.info(f"代理下載圖片: {image_url}")
+        
+        # 設置請求標頭
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+            'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Referer': 'https://trek.aotter.net/'
+        }
+        
+        # 下載圖片
+        response = requests.get(image_url, headers=headers, timeout=30, stream=True)
+        
+        if response.status_code == 200:
+            # 獲取圖片類型
+            content_type = response.headers.get('content-type', 'image/jpeg')
+            
+            # 返回圖片數據
+            return Response(
+                response.content,
+                mimetype=content_type,
+                headers={
+                    'Content-Type': content_type,
+                    'Access-Control-Allow-Origin': '*',
+                    'Cache-Control': 'public, max-age=3600'  # 緩存1小時
+                }
+            )
+        else:
+            logger.warning(f"圖片下載失敗: {image_url} - HTTP {response.status_code}")
+            return jsonify({'error': f'圖片下載失敗: HTTP {response.status_code}'}), response.status_code
+            
+    except requests.RequestException as e:
+        logger.error(f"下載圖片時發生錯誤: {str(e)}")
+        return jsonify({'error': f'下載失敗: {str(e)}'}), 500
+    except Exception as e:
+        logger.error(f"代理圖片時發生錯誤: {str(e)}")
+        return jsonify({'error': f'處理失敗: {str(e)}'}), 500
+
 @main_bp.route('/api/adunit-reports')
 def get_adunit_reports():
     """查詢指定 Campaign 所有 AdSet 下所有 AdUnit 的報表數據 - 已停用以保護線上服務"""

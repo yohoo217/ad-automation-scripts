@@ -2790,7 +2790,16 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 添加TOTAL行
         if (totalRow) {
-            newTable.appendChild(totalRow);
+            // 如果我們動態加入了「星期」欄，那麼 TOTAL 行也需要插入一個對應的空儲存格
+            if (needInsertWeekCol) {
+                const newTotalRow = totalRow.cloneNode(true);
+                const emptyTd = document.createElement('td');
+                // total-row 的 class 在 TR 上，所以 TD 會自動繼承樣式，我們只需插入即可
+                newTotalRow.insertBefore(emptyTd, newTotalRow.children[1]);
+                newTable.appendChild(newTotalRow);
+            } else {
+                newTable.appendChild(totalRow);
+            }
         }
         
         return newTable;
@@ -3393,24 +3402,40 @@ document.addEventListener('DOMContentLoaded', function() {
                     const rows = table.querySelectorAll('tr');
                     
                     // 添加表頭
-                    const headerCells = rows[0].querySelectorAll('th,td');
+                    const headerCellsNode = rows[0].querySelectorAll('th,td');
+                    let headerCells = Array.from(headerCellsNode).map(c => c.textContent.trim());
+                    const hasWeekColumn = headerCells.some(h => h.includes('星期') || h.includes('週'));
+                    if (!hasWeekColumn) {
+                        headerCells.splice(1, 0, '星期');
+                    }
                     for (let j = 0; j < headerCells.length; j++) {
                         const cell = worksheet.getCell(currentRow, j + 2);
-                        cell.value = headerCells[j].textContent.trim();
+                        cell.value = headerCells[j];
                         applyStyle(cell, (j < 5) ? styles.header : styles.orangeHeader);
                     }
                     currentRow++;
                     
                     // 添加數據行
                     for (let i = 1; i < rows.length; i++) {
-                        const rowCells = rows[i].querySelectorAll('td,th');
-                        if (rowCells.length < 2) continue;
+                        const rowCellsNode = rows[i].querySelectorAll('td,th');
+                        if (rowCellsNode.length < 1) continue;
                         
-                        const date = rowCells[0].textContent.trim();
+                        let rowCells = Array.from(rowCellsNode).map(c => c.textContent.trim());
+                        const dateText = rowCells[0];
+                        const isTotalRow = dateText === 'TOTAL';
+
+                        if (!hasWeekColumn) {
+                            if (isTotalRow) {
+                                rowCells.splice(1, 0, ''); // TOTAL 行的星期欄留空
+                            } else {
+                                const date = parseDateText(dateText);
+                                rowCells.splice(1, 0, date ? getWeekdayInChinese(date) : '');
+                            }
+                        }
                         
                         for (let j = 0; j < rowCells.length; j++) {
                             const cell = worksheet.getCell(currentRow, j + 2);
-                            const cellValue = rowCells[j].textContent.trim();
+                            const cellValue = rowCells[j];
                             
                             if (!isNaN(cellValue.replace(/[,]/g, '')) && cellValue !== '') {
                                 cell.value = +cellValue.replace(/[,]/g, '');
@@ -3418,12 +3443,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 cell.value = cellValue;
                             }
                             
-                            if (date === 'TOTAL') {
-                    applyStyle(cell, styles.total);
+                            if (isTotalRow) {
+                                applyStyle(cell, styles.total);
                                 if (cellValue.includes('%')) {
                                     cell.font = { bold: true, color: { argb: 'FFFF0000' }, size: 13, name: 'Helvetica' };
                                 }
-                } else {
+                            } else {
                                 applyStyle(cell, styles.normal);
                             }
                         }
@@ -3432,9 +3457,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // 添加該 AdSet 下的選中 AdUnit 報表
-                if (adunitByAdset[adsetId] && adunitByAdset[adsetId].adunits.length > 0) {
+                if (currentReportData.adunitByAdset[adsetId] && currentReportData.adunitByAdset[adsetId].adunits.length > 0) {
                     // 過濾選中的 AdUnit
-                    const selectedAdunitReports = adunitByAdset[adsetId].adunits.filter(
+                    const selectedAdunitReports = currentReportData.adunitByAdset[adsetId].adunits.filter(
                         adunitReport => selectedAdunits.has(adunitReport.uuid)
                     );
                     

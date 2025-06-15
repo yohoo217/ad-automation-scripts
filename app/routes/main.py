@@ -1290,10 +1290,8 @@ def get_adunit_reports_sequential():
             return jsonify({'error': 'MongoDB 連接失敗'}), 500
         
         db = client[MONGO_DATABASE]
-        
-        # 先查詢該 Campaign 下的所有 AdSet
         adset_collection = db['AdSet']
-        adsets = list(adset_collection.find({'campId': campaign_id}, {'uuid': 1, 'name': 1, '_id': 0}))
+        adsets = list(adset_collection.find({'campId': campaign_id}))
         
         if not adsets:
             return jsonify({'error': f'找不到廣告活動 ID: {campaign_id} 的任何廣告集'}), 404
@@ -1564,3 +1562,203 @@ def get_adunit_reports():
         'success': False,
         'error': '批次查詢已停用以保護線上服務，請使用逐一查詢模式'
     }), 400
+
+@main_bp.route('/api/adunit-images')
+def get_adunit_images():
+    """查詢指定 adset 的所有 AdUnit 圖片資訊"""
+    try:
+        adset_id = request.args.get('adsetId')
+        if not adset_id:
+            return jsonify({'error': '缺少 adsetId 參數'}), 400
+        
+        from app.models.database import get_mongo_client, MONGO_DATABASE
+        client = get_mongo_client()
+        if not client:
+            return jsonify({'error': 'MongoDB 連接失敗'}), 500
+        
+        db = client[MONGO_DATABASE]
+        collection = db['AdUnit']
+        
+        # 查詢該 adset 的所有 AdUnit 圖片資訊
+        query = {"setId": adset_id}
+        projection = {
+            "uuid": 1,
+            "name": 1, 
+            "title": 1,
+            "img_main": 1,  # 添加 img_main 字段
+            "_id": 0
+        }
+        
+        adunits = list(collection.find(query, projection))
+        
+        if not adunits:
+            return jsonify({'error': f'找不到任何 AdUnit'}), 404
+        
+        # 建立 AdSet 名稱對照表
+        adset_names = {adset['uuid']: adset['name'] for adset in adsets}
+        
+        # 設置請求標頭，包含認證信息
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Cookie': 'AOTTERBD_SESSION=757418f543a95a889184e798ec5ab66d4fad04e5-lats=1724229220332&sso=PIg4zu/Vdnn/A15vMEimFlVAGliNhoWlVd5FTvtEMRAFpk/VvBGvAetanw8DLATSLexy9pee/t52uNojvoFS2Q==;aotter=eyJ1c2VyIjp7ImlkIjoiNjNkYjRkNDBjOTFiNTUyMmViMjk4YjBkIiwiZW1haWwiOiJpYW4uY2hlbkBhb3R0ZXIubmV0IiwiY3JlYXRlZEF0IjoxNjc1MzE2NTQ0LCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJsZWdhY3lJZCI6bnVsbCwibGVnYWN5U2VxSWQiOjE2NzUzMTY1NDQ3ODI5NzQwMDB9LCJhY2Nlc3NUb2tlbiI6IjJkYjQyZTNkOTM5MDUzMjdmODgyZmYwMDRiZmI4YmEzZjBhNTlmMDQwYzhiN2Y4NGY5MmZmZTIzYTU0ZTQ2MDQiLCJ1ZWEiOm51bGx9; _Secure-1PSID=vlPPgXupFroiSjP1/A02minugZVZDgIG4K; _Secure-1PSIDCC=g.a000mwhavReSVd1vN09AVTswXkPAhyuW7Tgj8-JFhj-FZya9I_l1B6W2gqTIWAtQUTQMkTxoAwACgYKAW0SARISFQHGX2MiC--NJ2PzCzDpJ0m3odxHhxoVAUF8yKr8r49abq8oe4UxCA0t_QCW0076; _Secure-3PSID=AKEyXzUuXI1zywmFmkEBEBHfg6GRkRM9cJ9BiJZxmaR46x5im_krhaPtmL4Jhw8gQsz5uFFkfbc; _Secure-3PSIDCC=sidts-CjEBUFGohzUF6oK3ZMACCk2peoDBDp6djBwJhGc4Lxgu2zOlzbVFeVpXF4q1TYZ5ba6cEAA'
+        }
+        
+        def fetch_adunit_report(adunit):
+            """查詢單個 AdUnit 報表的函數"""
+            adunit_uuid = adunit.get('uuid')
+            adunit_name = adunit.get('title') or adunit.get('name') or adunit_uuid[:8]
+            adset_id = adunit.get('setId')
+            adset_name = adset_names.get(adset_id, '未知廣告集')
+            
+            # 構建目標 URL
+            base_url = f"https://trek.aotter.net/dontblockme/action_adset_read/getadunitreporttemplate/?setId={quote_plus(adset_id)}&uuid={quote_plus(adunit_uuid)}"
+            
+            # 如果有時間參數，加入到 URL
+            if since_date and to_date:
+                target_url = f"{base_url}&sinceDate={quote_plus(since_date)}&toDate={quote_plus(to_date)}"
+            else:
+                target_url = base_url
+            
+            # 重試機制設定
+            max_retries = 2  # 減少重試次數以保護伺服器
+            retry_delay = 2  # 增加重試間隔
+            timeout_duration = 60  # 減少超時時間
+            
+            for attempt in range(max_retries):
+                try:
+                    logger.info(f"[Sequential] 查詢 AdUnit {adunit_name} 報表 (嘗試 {attempt + 1}/{max_retries}): {target_url}")
+                    
+                    # 發送請求到目標 API
+                    response = requests.get(target_url, headers=headers, timeout=timeout_duration)
+                    
+                    if response.status_code == 200:
+                        logger.info(f"[Sequential] AdUnit {adunit_name} 查詢成功")
+                        return {
+                            'uuid': adunit_uuid,
+                            'name': adunit_name,
+                            'adsetId': adset_id,
+                            'adsetName': adset_name,
+                            'img_main': adunit.get('img_main', ''),  # 添加 img_main
+                            'content': response.text,
+                            'success': True
+                        }
+                    else:
+                        logger.warning(f"[Sequential] AdUnit {adunit_name} 查詢失敗: HTTP {response.status_code} (嘗試 {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            time.sleep(retry_delay)
+                            continue
+                        else:
+                            return {
+                                'uuid': adunit_uuid,
+                                'name': adunit_name,
+                                'adsetId': adset_id,
+                                'adsetName': adset_name,
+                                'img_main': adunit.get('img_main', ''),  # 添加 img_main
+                                'content': None,
+                                'success': False,
+                                'error': f'HTTP {response.status_code} (經過 {max_retries} 次重試)'
+                            }
+                            
+                except requests.exceptions.Timeout as e:
+                    logger.warning(f"[Sequential] AdUnit {adunit_name} 查詢超時 (嘗試 {attempt + 1}/{max_retries}): {str(e)}")
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay * (attempt + 1))
+                        continue
+                    else:
+                        return {
+                            'uuid': adunit_uuid,
+                            'name': adunit_name,
+                            'adsetId': adset_id,
+                            'adsetName': adset_name,
+                            'img_main': adunit.get('img_main', ''),  # 添加 img_main
+                            'content': None,
+                            'success': False,
+                            'error': f'查詢超時 (經過 {max_retries} 次重試，每次 {timeout_duration} 秒)'
+                        }
+                        
+                except Exception as e:
+                    logger.error(f"[Sequential] 查詢 AdUnit {adunit_name} 時發生錯誤 (嘗試 {attempt + 1}/{max_retries}): {str(e)}")
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay)
+                        continue
+                    else:
+                        return {
+                            'uuid': adunit_uuid,
+                            'name': adunit_name,
+                            'adsetId': adset_id,
+                            'adsetName': adset_name,
+                            'img_main': adunit.get('img_main', ''),  # 添加 img_main
+                            'content': None,
+                            'success': False,
+                            'error': f'{str(e)} (經過 {max_retries} 次重試)'
+                        }
+        
+        # 使用逐一查詢所有 AdUnit 報表，保護線上服務
+        logger.info(f"開始逐一查詢 {len(adunits)} 個 AdUnit 報表，每個間隔 3 秒")
+        start_time = time.time()
+        
+        adunit_reports = {}
+        query_delay = 3  # 每個查詢間等待 3 秒
+        
+        for index, adunit in enumerate(adunits):
+            adunit_uuid = adunit.get('uuid')
+            adunit_name = adunit.get('title') or adunit.get('name') or adunit_uuid[:8]
+            
+            logger.info(f"[Sequential {index + 1}/{len(adunits)}] 查詢 AdUnit: {adunit_name}")
+            
+            # 查詢單個 AdUnit 報表
+            result = fetch_adunit_report(adunit)
+            adunit_reports[result['uuid']] = result
+            
+            # 在查詢間等待，避免對伺服器造成負擔
+            if index < len(adunits) - 1:  # 最後一個不需要等待
+                logger.info(f"[Sequential] 等待 {query_delay} 秒後查詢下一個 AdUnit...")
+                time.sleep(query_delay)
+        
+        end_time = time.time()
+        query_duration = round(end_time - start_time, 2)
+        
+        # 檢查是否有成功的報表
+        successful_reports = [report for report in adunit_reports.values() if report['success']]
+        
+        # 按 AdSet 分組整理結果
+        adunit_by_adset = {}
+        for adunit_uuid, report in adunit_reports.items():
+            adset_id = report['adsetId']
+            if adset_id not in adunit_by_adset:
+                adunit_by_adset[adset_id] = {
+                    'adsetName': report['adsetName'],
+                    'adunits': []
+                }
+            adunit_by_adset[adset_id]['adunits'].append(report)
+        
+        logger.info(f"逐一查詢 Campaign {campaign_id} 的 AdUnit 報表完成：{len(successful_reports)}/{len(adunits)} 成功，耗時 {query_duration} 秒")
+        
+        return jsonify({
+            'success': True,
+            'campaignId': campaign_id,
+            'adunit_reports': adunit_reports,  # 所有 AdUnit 的報表
+            'adunit_by_adset': adunit_by_adset,  # 按 AdSet 分組的結果
+            'summary': {
+                'total_adsets': len(adsets),  # 過濾後的 AdSet 數量
+                'total_adunits': len(adunits),  # 過濾後的 AdUnit 數量
+                'successful_reports': len(successful_reports),
+                'failed_reports': len(adunits) - len(successful_reports),
+                'query_duration': query_duration,
+                'query_delay': query_delay,
+                'processing_method': 'sequential_processing',
+                'filtered_adsets': len(filtered_out_adsets),  # 被過濾的 AdSet 數量
+                'original_adset_count': original_adset_count  # 原始 AdSet 總數
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"查詢 AdUnit 報表時發生錯誤: {str(e)}")
+        return jsonify({'error': f'查詢失敗: {str(e)}'}), 500

@@ -26,55 +26,71 @@
 
     <form action="{{ url_for('native_ad.create_native_ad') }}" method="post" id="ad-form">
     <div class="field-group">
-        <h3>廣告資訊</h3>
-        <table>
-            <tr>
-                <th width="30%">欄位名稱</th>
-                <th>內容</th>
-            </tr>
-            <tr>
-                <td><label for="adset_id">Adset ID <span class="required">*</span></label></td>
-                <td><input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required>
-                    <div class="help-text">廣告組ID，必填，例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="advertiser">廣告商 <span class="required">*</span></label></td>
-                <td><input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required>
-                    <div class="help-text">廣告主名稱，必填</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="main_title">主標題 <span class="required">*</span></label></td>
-                <td><input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required>
-                    <div class="help-text">廣告主標題，必填</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="subtitle">副標題</label></td>
-                <td><input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}">
-                    <div class="help-text">廣告副標題，可選</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="landing_page">到達頁面網址 <span class="required">*</span></label></td>
-                <td><input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" value="{{ landing_page or '' }}" required>
-                    <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="call_to_action">行動呼籲按鈕文字</label></td>
-                <td><input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '瞭解詳情' }}">
-                    <div class="help-text">CTA按鈕文字，預設為「瞭解詳情」</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="tracking_url">追蹤 URL</label></td>
-                <td><input type="url" id="tracking_url" name="tracking_url" placeholder="https://tracker.example.com?id=123" value="{{ tracking_url or '' }}">
-                    <div class="help-text">用於追蹤點擊的URL，可選</div>
-                </td>
-            </tr>
-        </table>
+        <h3>📋 基本廣告資訊</h3>
+        
+        <div class="form-grid-2">
+            <div class="form-row">
+                <label for="adset_id">Adset ID <span class="required">*</span></label>
+                <input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required
+                       placeholder="例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7">
+                <div class="help-text">廣告組ID，必填</div>
+            </div>
+            
+            <div class="form-row">
+                <label for="display_name">廣告單元顯示名稱</label>
+                <input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}"
+                       placeholder="僅供後台顯示使用">
+                <div class="help-text">僅顯示於後台，可選</div>
+            </div>
+        </div>
+        
+        <div class="form-grid-2">
+            <div class="form-row">
+                <label for="advertiser">廣告商 <span class="required">*</span></label>
+                <input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required
+                       placeholder="廣告主名稱">
+                <div class="help-text">廣告主名稱，必填</div>
+            </div>
+            
+            <div class="form-row">
+                <label for="main_title">主標題 <span class="required">*</span></label>
+                <input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required
+                       placeholder="廣告主標題">
+                <div class="help-text">廣告主標題，必填</div>
+            </div>
+        </div>
+        
+        <div class="form-grid-2">
+            <div class="form-row">
+                <label for="subtitle">文字敘述</label>
+                <input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}"
+                       placeholder="廣告副標題（可選）">
+                <div class="help-text">廣告副標題，可選</div>
+            </div>
+            
+            <div class="form-row">
+                <label for="call_to_action">行動呼籲按鈕文字</label>
+                <input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '瞭解詳情' }}"
+                       placeholder="瞭解詳情">
+                <div class="help-text">CTA按鈕文字，預設為「瞭解詳情」</div>
+            </div>
+        </div>
+        
+        <div class="form-grid-2">
+            <div class="form-row">
+                <label for="landing_page">到達頁面網址 <span class="required">*</span></label>
+                <input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" 
+                       value="{{ landing_page or '' }}" required>
+                <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+            </div>
+            
+            <div class="form-row">
+                <label for="tracking_url">追蹤 URL</label>
+                <input type="url" id="tracking_url" name="tracking_url" placeholder="https://tracker.example.com?id=123" 
+                       value="{{ tracking_url or '' }}">
+                <div class="help-text">用於追蹤點擊的URL，可選</div>
+            </div>
+        </div>
     </div>
 
     <div class="field-group">

@@ -18,148 +18,268 @@
     .clear-form-btn:hover {
         background-color: #d32f2f;
     }
+    .main-content-wrapper {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    .form-column {
+        flex: 1;
+        min-width: 0;
+    }
+    .preview-column {
+        width: 300px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 20px;
+    }
+    .ad-preview-container {
+        width: 300px;
+        height: 250px;
+        border: 2px solid #333;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        background-color: #000;
+        overflow: hidden;
+    }
+    .ad-preview-header {
+        padding: 2px 8px;
+        font-size: 12px;
+        color: #cd9601;
+        text-align: left;
+    }
+    .ad-preview-main {
+        flex-grow: 1;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        height: 157px;
+        background-color: #000;
+    }
+    #preview-background-img {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    #preview-background-placeholder {
+        color: #888;
+        font-size: 14px;
+        padding: 10px;
+    }
+    .ad-preview-title {
+        padding: 4px 8px;
+        font-weight: bold;
+        font-size: 14px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: white;
+    }
+    .ad-preview-subtitle {
+        padding: 4px 8px;
+        font-size: 12px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: gray;
+    }
+    .ad-preview-footer {
+        display: flex;
+        font-size: 12px;
+    }
+    .ad-preview-advertiser {
+        flex-grow: 1;
+        padding: 4px 8px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: gray;
+    }
+    .ad-preview-cta {
+        padding: 4px 12px;
+        font-weight: bold;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 5px;
+        margin: 4px;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<button type="button" id="clear-form-button" class="clear-form-btn">清除所有內容</button>
+<div class="main-content-wrapper">
+    <div class="form-column">
+        <button type="button" id="clear-form-button" class="clear-form-btn">清除所有內容</button>
 
-<form action="{{ url_for('main.gif_ad') }}" method="post" id="ad-form">
-    <div class="field-group">
-        <h3>基本廣告資訊</h3>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="adset_id">Adset ID <span class="required">*</span></label>
-                <input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required 
-                       placeholder="例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7">
-                <div class="help-text">廣告組ID，必填</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="display_name">廣告單元顯示名稱</label>
-                <input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}" 
-                       placeholder="僅供後台顯示使用">
-                <div class="help-text">僅顯示於後台，可選</div>
-            </div>
-        </div>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="advertiser">廣告商 <span class="required">*</span></label>
-                <input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required 
-                       placeholder="廣告主名稱">
-                <div class="help-text">廣告主名稱，必填</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="main_title">主標題 <span class="required">*</span></label>
-                <input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required 
-                       placeholder="廣告主標題">
-                <div class="help-text">廣告主標題，必填</div>
-            </div>
-        </div>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="subtitle">文字敘述</label>
-                <input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}" 
-                       placeholder="廣告副標題（可選）">
-                <div class="help-text">廣告副標題，可選</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="call_to_action">行動呼籲按鈕文字</label>
-                <input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '立即購買' }}" 
-                       placeholder="立即購買">
-                <div class="help-text">CTA按鈕文字，預設為「立即購買」</div>
-            </div>
-        </div>
-        
-        <div class="form-row">
-            <label for="landing_page">到達頁面網址 <span class="required">*</span></label>
-            <input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" 
-                   value="{{ landing_page or '' }}" required>
-            <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
-        </div>
-    </div>
-
-    <div class="field-group">
-        <h3>廣告素材</h3>
-        <p style="margin-bottom: 20px; color: #666; font-style: italic;">
-            所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。
-        </p>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="image_path_m">大尺寸圖片 1200x628 <span class="required">*</span></label>
-                <div class="file-upload-container">
-                    <input type="text" id="image_path_m" name="image_path_m" 
-                           placeholder="/path/to/your/image_1200x628.jpg" 
-                           value="{{ image_path_m or '' }}" required>
-                    <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
-                    <div class="preview-container">
-                        <label class="custom-file-upload">
-                            📁 上傳圖片
-                            <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
-                        </label>
-                        <img id="preview_m" class="upload-preview" style="display: none;" alt="預覽圖">
+        <form action="{{ url_for('main.gif_ad') }}" method="post" id="ad-form">
+            <div class="field-group">
+                <h3>📋 基本廣告資訊</h3>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="adset_id">Adset ID <span class="required">*</span></label>
+                        <input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required 
+                               placeholder="例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7">
+                        <div class="help-text">廣告組ID，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="display_name">廣告單元顯示名稱</label>
+                        <input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}" 
+                               placeholder="僅供後台顯示使用">
+                        <div class="help-text">僅顯示於後台，可選</div>
                     </div>
                 </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="advertiser">廣告商 <span class="required">*</span></label>
+                        <input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required 
+                               placeholder="廣告主名稱">
+                        <div class="help-text">廣告主名稱，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="main_title">主標題 <span class="required">*</span></label>
+                        <input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required 
+                               placeholder="廣告主標題">
+                        <div class="help-text">廣告主標題，必填</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="subtitle">文字敘述</label>
+                        <input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}" 
+                               placeholder="廣告副標題（可選）">
+                        <div class="help-text">廣告副標題，可選</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="call_to_action">行動呼籲按鈕文字</label>
+                        <input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '立即購買' }}" 
+                               placeholder="立即購買">
+                        <div class="help-text">CTA按鈕文字，預設為「立即購買」</div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <label for="landing_page">到達頁面網址 <span class="required">*</span></label>
+                    <input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" 
+                           value="{{ landing_page or '' }}" required>
+                    <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <h3>廣告素材</h3>
+                <p style="margin-bottom: 20px; color: #666; font-style: italic;">
+                    所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。
+                </p>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="image_path_m">大尺寸圖片 1200x628 <span class="required">*</span></label>
+                        <div class="file-upload-container">
+                            <input type="text" id="image_path_m" name="image_path_m" 
+                                   placeholder="/path/to/your/image_1200x628.jpg" 
+                                   value="{{ image_path_m or '' }}" required>
+                            <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                            <div class="preview-container">
+                                <label class="custom-file-upload">
+                                    📁 上傳圖片
+                                    <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
+                                </label>
+                                <img id="preview_m" class="upload-preview" style="display: none;" alt="預覽圖">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="image_path_s">小尺寸圖片 300x300 <span class="required">*</span></label>
+                        <div class="file-upload-container">
+                            <input type="text" id="image_path_s" name="image_path_s" 
+                                   placeholder="/path/to/your/image_300x300.jpg" 
+                                   value="{{ image_path_s or '' }}" required>
+                            <div class="help-text">方形圖片，尺寸300x300像素</div>
+                            <div class="preview-container">
+                                <label class="custom-file-upload">
+                                    📁 上傳圖片
+                                    <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
+                                </label>
+                                <img id="preview_s" class="upload-preview" style="display: none;" alt="預覽圖">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label for="background_image">互動廣告墊檔背景 <span class="required">*</span></label>
+                    <input type="text" id="background_image" name="background_image" 
+                           placeholder="請輸入背景圖片網址" value="{{ background_image or '' }}" required>
+                    <div class="help-text">互動廣告墊檔背景圖片網址</div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <h3>互動廣告設定</h3>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="background_url">背景圖片網址 <span class="required">*</span></label>
+                        <input type="url" id="background_url" name="background_url" 
+                               placeholder="https://example.com/background.webp" 
+                               value="{{ background_url or '' }}" required>
+                        <div class="help-text">背景圖片的網址，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="target_url">目標網址 <span class="required">*</span></label>
+                        <input type="url" id="target_url" name="target_url" 
+                               placeholder="https://example.com" 
+                               value="{{ target_url or '' }}" required>
+                        <div class="help-text">點擊後跳轉的目標網址，必填</div>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="payload_game_widget" name="payload_game_widget">
             </div>
             
-            <div class="form-row">
-                <label for="image_path_s">小尺寸圖片 300x300 <span class="required">*</span></label>
-                <div class="file-upload-container">
-                    <input type="text" id="image_path_s" name="image_path_s" 
-                           placeholder="/path/to/your/image_300x300.jpg" 
-                           value="{{ image_path_s or '' }}" required>
-                    <div class="help-text">方形圖片，尺寸300x300像素</div>
-                    <div class="preview-container">
-                        <label class="custom-file-upload">
-                            📁 上傳圖片
-                            <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
-                        </label>
-                        <img id="preview_s" class="upload-preview" style="display: none;" alt="預覽圖">
-                    </div>
+            <input type="submit" value="🚀 建立 GIF 廣告">
+        </form>
+    </div>
+
+    <div class="preview-column">
+        <div class="field-group">
+            <h3>🖼️ 廣告即時預覽</h3>
+            <div class="ad-preview-container">
+                <div class="ad-preview-header">廣告</div>
+                <div class="ad-preview-main">
+                    <img id="preview-background-img" src="" alt="背景預覽">
+                    <span id="preview-background-placeholder">互動廣告設定-背景圖片網址</span>
+                </div>
+                <div id="preview-main-title" class="ad-preview-title">主標題</div>
+                <div id="preview-subtitle" class="ad-preview-subtitle">文字敘述</div>
+                <div class="ad-preview-footer">
+                    <div id="preview-advertiser" class="ad-preview-advertiser">廣告商</div>
+                    <div id="preview-call-to-action" class="ad-preview-cta">行動呼籲按鈕文字</div>
                 </div>
             </div>
         </div>
-
-        <div class="form-row">
-            <label for="background_image">互動廣告墊檔背景 <span class="required">*</span></label>
-            <input type="text" id="background_image" name="background_image" 
-                   placeholder="請輸入背景圖片網址" value="{{ background_image or '' }}" required>
-            <div class="help-text">互動廣告墊檔背景圖片網址</div>
-        </div>
     </div>
-
-    <div class="field-group">
-        <h3>互動廣告設定</h3>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="background_url">背景圖片網址 <span class="required">*</span></label>
-                <input type="url" id="background_url" name="background_url" 
-                       placeholder="https://example.com/background.webp" 
-                       value="{{ background_url or '' }}" required>
-                <div class="help-text">背景圖片的網址，必填</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="target_url">目標網址 <span class="required">*</span></label>
-                <input type="url" id="target_url" name="target_url" 
-                       placeholder="https://example.com" 
-                       value="{{ target_url or '' }}" required>
-                <div class="help-text">點擊後跳轉的目標網址，必填</div>
-            </div>
-        </div>
-        
-        <input type="hidden" id="payload_game_widget" name="payload_game_widget">
-    </div>
-    
-    <input type="submit" value="🚀 建立 GIF 廣告">
-</form>
+</div>
 {% endblock %}
 
 {% block additional_scripts %}
@@ -178,6 +298,15 @@
             if(confirm('確定要清除所有填寫的內容嗎？')) {
                 clearFormInputs();
             }
+        });
+
+        // 初始化預覽
+        updateAdPreview();
+        
+        // 監聽表單輸入以更新預覽
+        const inputsToTrack = ['advertiser', 'main_title', 'subtitle', 'call_to_action', 'background_url'];
+        inputsToTrack.forEach(id => {
+            document.getElementById(id).addEventListener('input', updateAdPreview);
         });
     });
     
@@ -199,6 +328,9 @@
         
         // 重新設置預設值
         document.getElementById('call_to_action').value = '立即購買';
+
+        // 更新預覽
+        updateAdPreview();
     }
 
     function updateGameWidgetPayload() {
@@ -228,6 +360,35 @@
         };
 
         document.getElementById('payload_game_widget').value = JSON.stringify(payload);
+    }
+
+    // 更新廣告預覽
+    function updateAdPreview() {
+        // 從表單獲取值，如果為空則使用預設提示文字
+        const advertiser = document.getElementById('advertiser').value || '廣告商';
+        const mainTitle = document.getElementById('main_title').value || '主標題';
+        const subtitle = document.getElementById('subtitle').value || '文字敘述';
+        const callToAction = document.getElementById('call_to_action').value || '行動呼籲按鈕文字';
+        const backgroundUrl = document.getElementById('background_url').value;
+
+        // 更新預覽畫面的文字內容
+        document.getElementById('preview-advertiser').textContent = advertiser;
+        document.getElementById('preview-main-title').textContent = mainTitle;
+        document.getElementById('preview-subtitle').textContent = subtitle;
+        document.getElementById('preview-call-to-action').textContent = callToAction;
+
+        // 更新背景圖片
+        const bgImg = document.getElementById('preview-background-img');
+        const bgPlaceholder = document.getElementById('preview-background-placeholder');
+        if (backgroundUrl) {
+            bgImg.src = backgroundUrl;
+            bgImg.style.display = 'block';
+            bgPlaceholder.style.display = 'none';
+        } else {
+            bgImg.src = '';
+            bgImg.style.display = 'none';
+            bgPlaceholder.style.display = 'block';
+        }
     }
 
     // 快速資訊解析函數
@@ -264,6 +425,9 @@
             }
 
             alert('✅ 資訊解析完成！請檢查填入的內容是否正確。');
+            
+            // 解析後更新預覽
+            updateAdPreview();
         } catch (error) {
             console.error('解析錯誤:', error);
             alert('❌ 解析過程中發生錯誤，請檢查輸入格式。');

@@ -54,266 +54,416 @@
         color: #495057;
         font-size: 1.1rem;
     }
+    .main-content-wrapper {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    .form-column {
+        flex: 1;
+        min-width: 0;
+    }
+    .preview-column {
+        width: 320px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 20px;
+    }
+    .ad-preview-container {
+        width: 300px;
+        height: 250px;
+        border: 2px solid #333;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        background-color: #000;
+        overflow: hidden;
+    }
+    .ad-preview-header {
+        padding: 2px 8px;
+        font-size: 12px;
+        color: #cd9601;
+        text-align: left;
+    }
+    .ad-preview-main {
+        flex-grow: 1;
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        overflow: hidden;
+        background-size: cover;
+        background-position: center;
+        padding: 20px;
+        height: 157px;
+    }
+    .ad-preview-title {
+        padding: 4px 8px;
+        font-weight: bold;
+        font-size: 14px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: white;
+    }
+    .ad-preview-subtitle {
+        padding: 4px 8px;
+        font-size: 12px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: gray;
+    }
+    .ad-preview-footer {
+        display: flex;
+        font-size: 12px;
+    }
+    .ad-preview-advertiser {
+        flex-grow: 1;
+        padding: 4px 8px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: gray;
+    }
+    .ad-preview-cta {
+        padding: 4px 12px;
+        font-weight: bold;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 5px;
+        margin: 4px;
+    }
+    #preview-vote-popup {
+        width: 95%;
+        margin: auto;
+        position:absolute;
+        bottom: 10px;            /* 距離底部 10px */
+        left: 50%;               /* 水平置中 */
+        transform: translateX(-50%);
+        margin: 0;               /* 清掉原本的 margin:auto */        background-color: white;
+        height: 70px;
+        border-radius: 12px;
+        padding: 15px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        text-align: center;
+    }
+    #preview-vote-title {
+        font-size: 12px;
+        font-weight: 500;
+        margin-bottom: 6px;
+        color: #333;
+    }
+    #preview-vote-options {
+        display: flex;
+        justify-content: center;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .preview-vote-option {
+        flex: 1;
+        padding: 5px 2px;
+        font-size: 12px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .preview-vote-divider {
+        width: 1px;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<button type="button" id="clear-form-button" class="clear-form-btn">清除所有內容</button>
+<div class="main-content-wrapper">
+    <div class="form-column">
+        <button type="button" id="clear-form-button" class="clear-form-btn">清除所有內容</button>
 
-<form action="{{ url_for('main.create_vote_ad') }}" method="post" id="ad-form">
-    <div class="field-group">
-        <h3>📋 基本廣告資訊</h3>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="adset_id">Adset ID <span class="required">*</span></label>
-                <input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required
-                       placeholder="例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7">
-                <div class="help-text">廣告組ID，必填</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="display_name">廣告單元顯示名稱</label>
-                <input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}"
-                       placeholder="僅供後台顯示使用">
-                <div class="help-text">僅顯示於後台，可選</div>
-            </div>
-        </div>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="advertiser">廣告商 <span class="required">*</span></label>
-                <input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required
-                       placeholder="廣告主名稱">
-                <div class="help-text">廣告主名稱，必填</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="main_title">主標題 <span class="required">*</span></label>
-                <input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required
-                       placeholder="廣告主標題">
-                <div class="help-text">廣告主標題，必填</div>
-            </div>
-        </div>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="vote_title">投票標題 <span class="required">*</span></label>
-                <input type="text" id="vote_title" name="vote_title" value="{{ vote_title or '' }}" required
-                       placeholder="投票區塊的標題">
-                <div class="help-text">投票區塊的標題，必填</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="subtitle">文字敘述</label>
-                <input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}"
-                       placeholder="廣告副標題（可選）">
-                <div class="help-text">廣告副標題，可選</div>
-            </div>
-        </div>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="call_to_action">行動呼籲按鈕文字</label>
-                <input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '立即了解' }}"
-                       placeholder="立即了解">
-                <div class="help-text">CTA按鈕文字，預設為「立即了解」</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="vote_id">Vote ID <span class="required">*</span></label>
-                <input type="text" id="vote_id" name="vote_id" value="{{ vote_id or 'myVoteId' }}" required
-                       placeholder="myVoteId">
-                <div class="help-text">投票識別碼，必填</div>
-            </div>
-        </div>
-        
-        <div class="form-row">
-            <label for="landing_page">到達頁面網址 <span class="required">*</span></label>
-            <input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" 
-                   value="{{ landing_page or '' }}" required>
-            <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
-        </div>
-    </div>
-
-    <div class="field-group">
-        <h3>廣告素材</h3>
-        <p style="margin-bottom: 20px; color: #666; font-style: italic;">
-            所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。
-        </p>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="image_path_m">大尺寸圖片 1200x628 <span class="required">*</span></label>
-                <div class="file-upload-container">
-                    <input type="text" id="image_path_m" name="image_path_m" 
-                           placeholder="/path/to/your/image_1200x628.jpg" 
-                           value="{{ image_path_m or '' }}" required>
-                    <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
-                    <div class="preview-container">
-                        <label class="custom-file-upload">
-                            📁 上傳圖片
-                            <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
-                        </label>
-                        <img id="preview_m" class="upload-preview" style="display: none;" alt="預覽圖">
-                    </div>
-                </div>
-            </div>
-            
-            <div class="form-row">
-                <label for="image_path_s">小尺寸圖片 300x300 <span class="required">*</span></label>
-                <div class="file-upload-container">
-                    <input type="text" id="image_path_s" name="image_path_s" 
-                           placeholder="/path/to/your/image_300x300.jpg" 
-                           value="{{ image_path_s or '' }}" required>
-                    <div class="help-text">方形圖片，尺寸300x300像素</div>
-                    <div class="preview-container">
-                        <label class="custom-file-upload">
-                            📁 上傳圖片
-                            <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
-                        </label>
-                        <img id="preview_s" class="upload-preview" style="display: none;" alt="預覽圖">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="form-row">
-            <label for="vote_image">投票圖片網址 <span class="required">*</span></label>
-            <input type="url" id="vote_image" name="vote_image" placeholder="請輸入投票圖片網址" 
-                   value="{{ vote_image or '' }}" required>
-            <div class="help-text">投票區塊顯示的圖片URL</div>
-        </div>
-    </div>
-
-    <div class="field-group">
-        <h3>⚙️ 投票廣告設定</h3>
-        
-        <div class="form-grid-3">
-            <div class="form-row">
-                <label for="vote_width">投票區塊寬度</label>
-                <input type="text" id="vote_width" name="vote_width" value="{{ vote_width or '80%' }}"
-                       placeholder="80%">
-                <div class="help-text">投票區塊的寬度，例如: 80%</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="vote_position">投票位置</label>
-                <select id="vote_position" name="vote_position">
-                    <option value="top" {% if vote_position == 'top' %}selected{% endif %}>頂部</option>
-                    <option value="middle" {% if vote_position == 'middle' %}selected{% endif %}>中間</option>
-                    <option value="bottom" {% if vote_position == 'bottom' or vote_position is not defined %}selected{% endif %}>底部</option>
-                </select>
-                <div class="help-text">投票區塊在畫面中的位置</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="timeout">顯示超時 (毫秒)</label>
-                <input type="number" id="timeout" name="timeout" value="{{ timeout or 2000 }}" 
-                       placeholder="2000">
-                <div class="help-text">投票區塊顯示的超時時間，單位毫秒</div>
-            </div>
-        </div>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="min_position">最小位置 (%)</label>
-                <input type="number" id="min_position" name="min_position" value="{{ min_position or 50 }}" 
-                       min="0" max="100" placeholder="50">
-                <div class="help-text">投票區塊顯示的最小位置百分比</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="max_position">最大位置 (%)</label>
-                <input type="number" id="max_position" name="max_position" value="{{ max_position or 70 }}" 
-                       min="0" max="100" placeholder="70">
-                <div class="help-text">投票區塊顯示的最大位置百分比</div>
-            </div>
-        </div>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="divider_color">分隔線顏色</label>
-                <div class="color-input-group">
-                    <input type="color" id="divider_color" name="divider_color" value="{{ divider_color or '#ff0000' }}">
-                    <input type="text" value="{{ divider_color or '#ff0000' }}" readonly>
-                </div>
-                <div class="help-text">投票選項的分隔線顏色</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="bg_color">背景顏色</label>
-                <div class="color-input-group">
-                    <input type="color" id="bg_color" name="bg_color" value="{{ bg_color or '#ffffff' }}">
-                    <input type="text" value="{{ bg_color or '#ffffff' }}" readonly>
-                </div>
-                <div class="help-text">投票區塊的背景顏色</div>
-            </div>
-        </div>
-        
-        <div class="form-grid-2">
-            <div class="color-section">
-                <h4>🏆 使用者選擇的選項樣式</h4>
+        <form action="{{ url_for('main.create_vote_ad') }}" method="post" id="ad-form">
+            <div class="field-group">
+                <h3>📋 基本廣告資訊</h3>
+                
                 <div class="form-grid-2">
                     <div class="form-row">
-                        <label for="winner_bg_color">背景顏色</label>
-                        <div class="color-input-group">
-                            <input type="color" id="winner_bg_color" name="winner_bg_color" value="{{ winner_bg_color or '#26D07C' }}">
-                            <input type="text" value="{{ winner_bg_color or '#26D07C' }}" readonly>
+                        <label for="adset_id">Adset ID <span class="required">*</span></label>
+                        <input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required
+                               placeholder="例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7">
+                        <div class="help-text">廣告組ID，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="display_name">廣告單元顯示名稱</label>
+                        <input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}"
+                               placeholder="僅供後台顯示使用">
+                        <div class="help-text">僅顯示於後台，可選</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="advertiser">廣告商 <span class="required">*</span></label>
+                        <input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required
+                               placeholder="廣告主名稱">
+                        <div class="help-text">廣告主名稱，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="main_title">主標題 <span class="required">*</span></label>
+                        <input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required
+                               placeholder="廣告主標題">
+                        <div class="help-text">廣告主標題，必填</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="vote_title">投票標題 <span class="required">*</span></label>
+                        <input type="text" id="vote_title" name="vote_title" value="{{ vote_title or '' }}" required
+                               placeholder="投票區塊的標題">
+                        <div class="help-text">投票區塊的標題，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="subtitle">文字敘述</label>
+                        <input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}"
+                               placeholder="廣告副標題（可選）">
+                        <div class="help-text">廣告副標題，可選</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="call_to_action">行動呼籲按鈕文字</label>
+                        <input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '立即了解' }}"
+                               placeholder="立即了解">
+                        <div class="help-text">CTA按鈕文字，預設為「立即了解」</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="vote_id">Vote ID <span class="required">*</span></label>
+                        <input type="text" id="vote_id" name="vote_id" value="{{ vote_id or 'myVoteId' }}" required
+                               placeholder="myVoteId">
+                        <div class="help-text">投票識別碼，必填</div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <label for="landing_page">到達頁面網址 <span class="required">*</span></label>
+                    <input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" 
+                           value="{{ landing_page or '' }}" required>
+                    <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <h3>廣告素材</h3>
+                <p style="margin-bottom: 20px; color: #666; font-style: italic;">
+                    所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。
+                </p>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="image_path_m">大尺寸圖片 1200x628 <span class="required">*</span></label>
+                        <div class="file-upload-container">
+                            <input type="text" id="image_path_m" name="image_path_m" 
+                                   placeholder="/path/to/your/image_1200x628.jpg" 
+                                   value="{{ image_path_m or '' }}" required>
+                            <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                            <div class="preview-container">
+                                <label class="custom-file-upload">
+                                    📁 上傳圖片
+                                    <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
+                                </label>
+                                <img id="preview_m" class="upload-preview" style="display: none;" alt="預覽圖">
+                            </div>
                         </div>
                     </div>
                     
                     <div class="form-row">
-                        <label for="winner_text_color">文字顏色</label>
-                        <div class="color-input-group">
-                            <input type="color" id="winner_text_color" name="winner_text_color" value="{{ winner_text_color or '#ffffff' }}">
-                            <input type="text" value="{{ winner_text_color or '#ffffff' }}" readonly>
+                        <label for="image_path_s">小尺寸圖片 300x300 <span class="required">*</span></label>
+                        <div class="file-upload-container">
+                            <input type="text" id="image_path_s" name="image_path_s" 
+                                   placeholder="/path/to/your/image_300x300.jpg" 
+                                   value="{{ image_path_s or '' }}" required>
+                            <div class="help-text">方形圖片，尺寸300x300像素</div>
+                            <div class="preview-container">
+                                <label class="custom-file-upload">
+                                    📁 上傳圖片
+                                    <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
+                                </label>
+                                <img id="preview_s" class="upload-preview" style="display: none;" alt="預覽圖">
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                <div class="form-row">
+                    <label for="vote_image">投票圖片網址 <span class="required">*</span></label>
+                    <input type="url" id="vote_image" name="vote_image" placeholder="請輸入投票圖片網址" 
+                           value="{{ vote_image or '' }}" required>
+                    <div class="help-text">投票區塊顯示的圖片URL</div>
+                </div>
             </div>
-            
-            <div class="color-section">
-                <h4>💔 使用者沒有選擇的選項樣式</h4>
-                <div class="form-grid-2">
+
+            <div class="field-group">
+                <h3>⚙️ 投票廣告設定</h3>
+                
+                <div class="form-grid-3">
                     <div class="form-row">
-                        <label for="loser_bg_color">背景顏色</label>
-                        <div class="color-input-group">
-                            <input type="color" id="loser_bg_color" name="loser_bg_color" value="{{ loser_bg_color or '#000000' }}">
-                            <input type="text" value="{{ loser_bg_color or '#000000' }}" readonly>
-                        </div>
+                        <label for="vote_width">投票區塊寬度</label>
+                        <input type="text" id="vote_width" name="vote_width" value="{{ vote_width or '80%' }}"
+                               placeholder="80%">
+                        <div class="help-text">投票區塊的寬度，例如: 80%</div>
                     </div>
                     
                     <div class="form-row">
-                        <label for="loser_text_color">文字顏色</label>
+                        <label for="vote_position">投票位置</label>
+                        <select id="vote_position" name="vote_position">
+                            <option value="top" {% if vote_position == 'top' %}selected{% endif %}>頂部</option>
+                            <option value="middle" {% if vote_position == 'middle' %}selected{% endif %}>中間</option>
+                            <option value="bottom" {% if vote_position == 'bottom' or vote_position is not defined %}selected{% endif %}>底部</option>
+                        </select>
+                        <div class="help-text">投票區塊在畫面中的位置</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="timeout">顯示超時 (毫秒)</label>
+                        <input type="number" id="timeout" name="timeout" value="{{ timeout or 2000 }}" 
+                               placeholder="2000">
+                        <div class="help-text">投票區塊顯示的超時時間，單位毫秒</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="min_position">最小位置 (%)</label>
+                        <input type="number" id="min_position" name="min_position" value="{{ min_position or 50 }}" 
+                               min="0" max="100" placeholder="50">
+                        <div class="help-text">投票區塊顯示的最小位置百分比</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="max_position">最大位置 (%)</label>
+                        <input type="number" id="max_position" name="max_position" value="{{ max_position or 70 }}" 
+                               min="0" max="100" placeholder="70">
+                        <div class="help-text">投票區塊顯示的最大位置百分比</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="divider_color">分隔線顏色</label>
                         <div class="color-input-group">
-                            <input type="color" id="loser_text_color" name="loser_text_color" value="{{ loser_text_color or '#ffffff' }}">
-                            <input type="text" value="{{ loser_text_color or '#ffffff' }}" readonly>
+                            <input type="color" id="divider_color" name="divider_color" value="{{ divider_color or '#ff0000' }}">
+                            <input type="text" value="{{ divider_color or '#ff0000' }}" readonly>
+                        </div>
+                        <div class="help-text">投票選項的分隔線顏色</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="bg_color">背景顏色</label>
+                        <div class="color-input-group">
+                            <input type="color" id="bg_color" name="bg_color" value="{{ bg_color or '#ffffff' }}">
+                            <input type="text" value="{{ bg_color or '#ffffff' }}" readonly>
+                        </div>
+                        <div class="help-text">投票區塊的背景顏色</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="color-section">
+                        <h4>🏆 使用者選擇的選項樣式</h4>
+                        <div class="form-grid-2">
+                            <div class="form-row">
+                                <label for="winner_bg_color">背景顏色</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="winner_bg_color" name="winner_bg_color" value="{{ winner_bg_color or '#26D07C' }}">
+                                    <input type="text" value="{{ winner_bg_color or '#26D07C' }}" readonly>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <label for="winner_text_color">文字顏色</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="winner_text_color" name="winner_text_color" value="{{ winner_text_color or '#ffffff' }}">
+                                    <input type="text" value="{{ winner_text_color or '#ffffff' }}" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="color-section">
+                        <h4>💔 使用者沒有選擇的選項樣式</h4>
+                        <div class="form-grid-2">
+                            <div class="form-row">
+                                <label for="loser_bg_color">背景顏色</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="loser_bg_color" name="loser_bg_color" value="{{ loser_bg_color or '#000000' }}">
+                                    <input type="text" value="{{ loser_bg_color or '#000000' }}" readonly>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <label for="loser_text_color">文字顏色</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="loser_text_color" name="loser_text_color" value="{{ loser_text_color or '#ffffff' }}">
+                                    <input type="text" value="{{ loser_text_color or '#ffffff' }}" readonly>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <div class="field-group">
-        <h3>🗳️ 投票選項設定</h3>
-        <div class="dynamic-items-container">
-            <div id="vote-options-container" class="vote-options-container">
-                <!-- 投票選項將由 JavaScript 動態生成 -->
+            <div class="field-group">
+                <h3>🗳️ 投票選項設定</h3>
+                <div class="dynamic-items-container">
+                    <div id="vote-options-container" class="vote-options-container">
+                        <!-- 投票選項將由 JavaScript 動態生成 -->
+                    </div>
+                    
+                    <div class="vote-controls">
+                        <button type="button" id="add-vote-option" class="add-item-btn">➕ 新增投票選項</button>
+                        <button type="button" id="remove-vote-option" class="clear-form-btn">➖ 移除最後一個選項</button>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="payload_vote_widget" name="payload_vote_widget">
             </div>
             
-            <div class="vote-controls">
-                <button type="button" id="add-vote-option" class="add-item-btn">➕ 新增投票選項</button>
-                <button type="button" id="remove-vote-option" class="clear-form-btn">➖ 移除最後一個選項</button>
+            <input type="submit" value="🗳️ 建立投票廣告">
+        </form>
+    </div>
+    <div class="preview-column">
+        <div class="field-group">
+            <h3>🖼️ 廣告即時預覽</h3>
+            <div class="ad-preview-container">
+                <div class="ad-preview-header">廣告</div>
+                <div class="ad-preview-main">
+                    <div id="preview-vote-popup">
+                        <div id="preview-vote-title"></div>
+                        <div id="preview-vote-options">
+                            <!-- Options will be injected here -->
+                        </div>
+                    </div>
+                </div>
+                <div id="preview-main-title" class="ad-preview-title">主標題</div>
+                <div id="preview-subtitle" class="ad-preview-subtitle">文字敘述</div>
+                <div class="ad-preview-footer">
+                    <div id="preview-advertiser" class="ad-preview-advertiser">廣告商</div>
+                    <div id="preview-call-to-action" class="ad-preview-cta">行動呼籲按鈕文字</div>
+                </div>
             </div>
         </div>
-        
-        <input type="hidden" id="payload_vote_widget" name="payload_vote_widget">
     </div>
-    
-    <input type="submit" value="🗳️ 建立投票廣告">
-</form>
+</div>
 {% endblock %}
 
 {% block additional_scripts %}
@@ -328,9 +478,12 @@
         // 設置顏色選擇器同步
         setupColorSyncers();
         
-        // 為所有表單元素添加 change 事件監聽器，以便更新 payload
+        // 為所有表單元素添加 input 事件監聽器，以便更新 payload 和預覽
         document.querySelectorAll('input, select').forEach(input => {
-            input.addEventListener('change', () => updatePayload());
+            input.addEventListener('input', () => {
+                updatePayload();
+                updateVoteAdPreview();
+            });
         });
         
         // 添加清除表單按鈕的事件監聽器
@@ -354,8 +507,9 @@
             updatePayload();
         });
         
-        // 初始更新一次 payload
+        // 初始更新一次 payload 和預覽
         updatePayload();
+        updateVoteAdPreview();
     });
     
     // 設置顏色選擇器與文字框同步
@@ -372,6 +526,7 @@
             colorInput.addEventListener('input', function() {
                 textInput.value = this.value;
                 updatePayload();
+                updateVoteAdPreview();
             });
         });
     }
@@ -426,8 +581,9 @@
         document.getElementById('min_position').value = '50';
         document.getElementById('max_position').value = '70';
         
-        // 更新 payload
+        // 更新 payload 和預覽
         updatePayload();
+        updateVoteAdPreview();
     }
     
     function initializeVoteOptions() {
@@ -497,7 +653,10 @@
 
         // 為新添加的輸入欄位綁定事件
         newItem.querySelectorAll('input').forEach(input => {
-            input.addEventListener('change', () => updatePayload());
+            input.addEventListener('input', () => {
+                updatePayload();
+                updateVoteAdPreview();
+            });
         });
         
         // 設置顏色同步
@@ -507,10 +666,12 @@
             colorInput.addEventListener('input', function() {
                 textInput.value = this.value;
                 updatePayload();
+                updateVoteAdPreview();
             });
         });
         
         updatePayload();
+        updateVoteAdPreview();
     }
     
     function removeVoteOption() {
@@ -519,6 +680,7 @@
             container.removeChild(container.lastChild);
             voteOptionCount--;
             updatePayload();
+            updateVoteAdPreview();
         } else {
             alert('至少需要保留兩個投票選項！');
         }
@@ -533,6 +695,7 @@
                 // 重新編號其餘項目
                 renumberVoteOptions();
                 updatePayload();
+                updateVoteAdPreview();
             }
         } else {
             alert('至少需要保留兩個投票選項！');
@@ -579,6 +742,65 @@
         
         voteOptionCount = items.length;
     }
+
+    function updateVoteAdPreview() {
+        // 更新廣告商、主標題、副標題、CTA
+        const advertiser = document.getElementById('advertiser').value || '廣告商';
+        const mainTitle = document.getElementById('main_title').value || '主標題';
+        const subtitle = document.getElementById('subtitle').value || '文字敘述';
+        const callToAction = document.getElementById('call_to_action').value || '行動呼籲按鈕文字';
+
+        document.getElementById('preview-advertiser').textContent = advertiser;
+        document.getElementById('preview-main-title').textContent = mainTitle;
+        document.getElementById('preview-subtitle').textContent = subtitle;
+        document.getElementById('preview-call-to-action').textContent = callToAction;
+        
+        // 更新背景
+        const mainPreview = document.querySelector('.ad-preview-main');
+        const voteImage = document.getElementById('vote_image').value;
+        mainPreview.style.backgroundImage = voteImage ? `url(${voteImage})` : 'none';
+        mainPreview.style.backgroundColor = voteImage ? 'transparent' : '#f0f0f0';
+
+        // 更新投票彈窗
+        const popup = document.getElementById('preview-vote-popup');
+        popup.style.backgroundColor = document.getElementById('bg_color').value;
+
+        // 更新投票標題
+        const previewTitle = document.getElementById('preview-vote-title');
+        previewTitle.textContent = document.getElementById('vote_title').value || '投票標題';
+
+        // 更新投票選項
+        const optionsContainer = document.getElementById('preview-vote-options');
+        optionsContainer.innerHTML = ''; 
+
+        const formOptions = document.querySelectorAll('#vote-options-container .vote-option');
+        const dividerColor = document.getElementById('divider_color').value;
+
+        if (formOptions.length > 0) {
+            const firstOptionBgColor = formOptions[0].querySelector('.vote-option-bg-color').value;
+            optionsContainer.style.backgroundColor = firstOptionBgColor;
+        }
+
+
+        formOptions.forEach((formOption, index) => {
+            const title = formOption.querySelector('.vote-option-title').value;
+            const textColor = formOption.querySelector('.vote-option-text-color').value;
+
+            const optionDiv = document.createElement('div');
+            optionDiv.className = 'preview-vote-option';
+            optionDiv.textContent = title || `選項 ${index + 1}`;
+            optionDiv.style.color = textColor;
+            
+            optionsContainer.appendChild(optionDiv);
+
+            if (index < formOptions.length - 1) {
+                const divider = document.createElement('div');
+                divider.className = 'preview-vote-divider';
+                divider.style.backgroundColor = dividerColor;
+                optionsContainer.appendChild(divider);
+            }
+        });
+    }
     
     function updatePayload() {
         const titleInputs = document.querySelectorAll('.vote-option-title');
@@ -614,14 +836,15 @@
             options.push(option);
         }
         
+        const voteTitle = document.getElementById('vote_title').value;
         const voteImage = document.getElementById('vote_image').value;
         const dividerColor = document.getElementById('divider_color').value;
         const voteWidth = document.getElementById('vote_width').value;
         const bgColor = document.getElementById('bg_color').value;
         const votePosition = document.getElementById('vote_position').value;
-        const minPosition = parseInt(document.getElementById('min_position').value) || 50;
-        const maxPosition = parseInt(document.getElementById('max_position').value) || 70;
-        const timeout = parseInt(document.getElementById('timeout').value) || 2000;
+        const minPosition = parseInt(document.getElementById('min_position').value, 10) || 50;
+        const maxPosition = parseInt(document.getElementById('max_position').value, 10) || 70;
+        const timeout = parseInt(document.getElementById('timeout').value, 10) || 2000;
         const winnerBgColor = document.getElementById('winner_bg_color').value;
         const winnerTextColor = document.getElementById('winner_text_color').value;
         const loserBgColor = document.getElementById('loser_bg_color').value;
@@ -629,17 +852,22 @@
         const voteId = document.getElementById('vote_id').value;
         
         const payload = {
-            type: "VOTE",
-            data: {
-                id: voteId,
-                img: voteImage,
+            type: "PURE_VOTE",
+            assets: {
                 dividerColor: dividerColor,
+                voteId: voteId,
+                title: voteTitle,
+                image: voteImage,
                 width: voteWidth,
                 bgColor: bgColor,
-                position: votePosition,
-                minPosition: minPosition,
-                maxPosition: maxPosition,
-                timeout: timeout,
+                votePosition: votePosition,
+                display: {
+                    minPosition: minPosition,
+                    maxPosition: maxPosition,
+                    timeout: timeout
+                },
+                displayAnimation: ["fade", "slide"],
+                options: options,
                 winner: {
                     bgColor: winnerBgColor,
                     textColor: winnerTextColor
@@ -647,9 +875,7 @@
                 loser: {
                     bgColor: loserBgColor,
                     textColor: loserTextColor
-                },
-                displayAnimation: ["fade", "slide"],
-                options: options
+                }
             }
         };
         
@@ -690,6 +916,7 @@
             }
 
             updatePayload();
+            updateVoteAdPreview();
             alert('✅ 資訊解析完成！請檢查填入的內容是否正確。');
         } catch (error) {
             console.error('解析錯誤:', error);

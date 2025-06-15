@@ -36,135 +36,312 @@
         border-radius: 5px;
         background-color: #f9f9f9;
     }
+    .main-content-wrapper {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    .form-column {
+        flex: 1;
+        min-width: 0;
+    }
+    .preview-column {
+        width: 300px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 20px;
+    }
+    .ad-preview-container {
+        width: 300px;
+        height: 250px;
+        border: 2px solid #333;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        background-color: #000;
+        overflow: hidden;
+    }
+    .ad-preview-header {
+        padding: 2px 8px;
+        font-size: 12px;
+        color: #cd9601;
+        text-align: left;
+    }
+    .ad-preview-main {
+        flex-grow: 1;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        height: 157px;
+        background-color: #000;
+    }
+    .ad-preview-title {
+        padding: 4px 8px;
+        font-weight: bold;
+        font-size: 14px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: white;
+    }
+    .ad-preview-subtitle {
+        padding: 4px 8px;
+        font-size: 12px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: gray;
+    }
+    .ad-preview-footer {
+        display: flex;
+        font-size: 12px;
+    }
+    .ad-preview-advertiser {
+        flex-grow: 1;
+        padding: 4px 8px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: gray;
+    }
+    .ad-preview-cta {
+        padding: 4px 12px;
+        font-weight: bold;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 5px;
+        margin: 4px;
+    }
+    #preview-slide-wrapper {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+    .preview-slide {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+    }
+    .preview-slide.active {
+        opacity: 1;
+    }
+    .preview-slide img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    #preview-dots-container {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        z-index: 10;
+    }
+    .preview-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #888;
+        border-radius: 50%;
+        transition: background-color 0.3s;
+    }
+    .preview-dot.active {
+        background-color: #fff;
+    }
+    #preview-background-img {
+        position: absolute;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<form action="{{ url_for('main.clear_vertical_cube_slide_form') }}" method="post" style="display: inline;">
-    <button type="submit" class="clear-form-btn" onclick="return confirm('確定要清除所有填寫的內容嗎？')">清除所有內容</button>
-</form>
+<div class="main-content-wrapper">
+    <div class="form-column">
+        <form action="{{ url_for('main.clear_vertical_cube_slide_form') }}" method="post" style="display: inline;">
+            <button type="submit" class="clear-form-btn" onclick="return confirm('確定要清除所有填寫的內容嗎？')">清除所有內容</button>
+        </form>
 
-<form action="{{ url_for('main.create_vertical_cube_slide_ad') }}" method="post" id="ad-form">
-    <div class="field-group">
-        <h3>廣告資訊</h3>
-        <table>
-            <tr>
-                <th width="30%">欄位名稱</th>
-                <th>內容</th>
-            </tr>
-            <tr>
-                <td><label for="adset_id">Adset ID <span class="required">*</span></label></td>
-                <td><input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required>
-                    <div class="help-text">廣告組ID，必填，例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="display_name">廣告單元顯示名稱</label></td>
-                <td><input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}">
-                    <div class="help-text">僅顯示於後台，可選</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="advertiser">廣告商 <span class="required">*</span></label></td>
-                <td><input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required>
-                    <div class="help-text">廣告主名稱，必填</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="main_title">主標題 <span class="required">*</span></label></td>
-                <td><input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required>
-                    <div class="help-text">廣告主標題，必填</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="subtitle">文字敘述</label></td>
-                <td><input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}">
-                    <div class="help-text">廣告副標題，可選</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="landing_page">到達頁面網址 <span class="required">*</span></label></td>
-                <td><input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" value="{{ landing_page or '' }}" required>
+        <form action="{{ url_for('main.create_vertical_cube_slide_ad') }}" method="post" id="ad-form">
+            <div class="field-group">
+                <h3>📋 基本廣告資訊</h3>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="adset_id">Adset ID <span class="required">*</span></label>
+                        <input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required
+                               placeholder="例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7">
+                        <div class="help-text">廣告組ID，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="display_name">廣告單元顯示名稱</label>
+                        <input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}"
+                               placeholder="僅供後台顯示使用">
+                        <div class="help-text">僅顯示於後台，可選</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="advertiser">廣告商 <span class="required">*</span></label>
+                        <input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required
+                               placeholder="廣告主名稱">
+                        <div class="help-text">廣告主名稱，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="main_title">主標題 <span class="required">*</span></label>
+                        <input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required
+                               placeholder="廣告主標題">
+                        <div class="help-text">廣告主標題，必填</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="subtitle">文字敘述</label>
+                        <input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}"
+                               placeholder="廣告副標題（可選）">
+                        <div class="help-text">廣告副標題，可選</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="call_to_action">行動呼籲按鈕文字</label>
+                        <input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '立即了解' }}"
+                               placeholder="立即了解">
+                        <div class="help-text">CTA按鈕文字，預設為「立即了解」</div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <label for="landing_page">到達頁面網址 <span class="required">*</span></label>
+                    <input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" 
+                           value="{{ landing_page or '' }}" required>
                     <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
-                </td>
-            </tr>
-            <tr>
-                <td><label for="call_to_action">行動呼籲按鈕文字</label></td>
-                <td><input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '立即了解' }}">
-                    <div class="help-text">CTA按鈕文字，預設為「立即了解」</div>
-                </td>
-            </tr>
-        </table>
-    </div>
+                </div>
+            </div>
 
-    <div class="field-group">
-        <h3>廣告素材 <span class="required">*</span></h3>
-        <p>所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。</p>
-        
-        <div class="form-row">
-            <label for="image_path_m">圖片 1200x628 <span class="required">*</span></label>
-            <div class="file-upload-container">
-                <input type="text" id="image_path_m" name="image_path_m" placeholder="/path/to/your/image_1200x628.jpg" value="{{ image_path_m or '' }}" required>
-                <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
-                <div class="preview-container">
-                    <label class="custom-file-upload">
-                        上傳圖片
-                        <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
-                    </label>
-                    <img id="preview_m" class="upload-preview" style="display: none;">
+            <div class="field-group">
+                <h3>廣告素材 <span class="required">*</span></h3>
+                <p>所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。</p>
+                
+                <div class="form-row">
+                    <label for="image_path_m">圖片 1200x628 <span class="required">*</span></label>
+                    <div class="file-upload-container">
+                        <input type="text" id="image_path_m" name="image_path_m" placeholder="/path/to/your/image_1200x628.jpg" value="{{ image_path_m or '' }}" required>
+                        <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                        <div class="preview-container">
+                            <label class="custom-file-upload">
+                                上傳圖片
+                                <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
+                            </label>
+                            <img id="preview_m" class="upload-preview" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <label for="image_path_s">圖片 300x300 <span class="required">*</span></label>
+                    <div class="file-upload-container">
+                        <input type="text" id="image_path_s" name="image_path_s" placeholder="/path/to/your/image_300x300.jpg" value="{{ image_path_s or '' }}" required>
+                        <div class="help-text">方形圖片，尺寸300x300像素</div>
+                        <div class="preview-container">
+                            <label class="custom-file-upload">
+                                上傳圖片
+                                <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
+                            </label>
+                            <img id="preview_s" class="upload-preview" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label for="background_image">遊戲套件預設背景 <span class="required">*</span></label>
+                    <input type="text" id="background_image" name="background_image" placeholder="請輸入背景圖片網址" value="{{ background_image or '' }}" required>
+                    <div class="help-text">遊戲套件預設背景圖片網址</div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <h3>滑動廣告設定 <span class="required">*</span></h3>
+                <div id="vertical-cube-slide-items-container">
+                    <!-- 默認顯示一個滑動項目，將由 JavaScript 動態填充 -->
+                </div>
+                <div class="slide-controls">
+                    <button type="button" id="add-vertical-cube-slide-item" class="button nav-button">新增滑動項目</button>
+                    <button type="button" id="remove-vertical-cube-slide-item" class="button" style="background-color: #d9534f;">移除最後一個項目</button>
+                </div>
+                <input type="hidden" id="payload_game_widget" name="payload_game_widget">
+                
+                <!-- 隱藏的數據傳遞 -->
+                <input type="hidden" id="slide_items_data" value="{{ slide_items | tojson | e }}">
+            </div>
+            
+            <input type="submit" value="建立垂直 Cube Slide 廣告">
+        </form>
+    </div>
+    <div class="preview-column">
+        <div class="field-group">
+            <h3>🖼️ 廣告即時預覽</h3>
+            <div class="ad-preview-container">
+                <div class="ad-preview-header">廣告</div>
+                <div class="ad-preview-main">
+                    <div id="preview-slide-wrapper">
+                        <!-- Slides will be injected here -->
+                    </div>
+                    <div id="preview-dots-container">
+                        <!-- Dots will be injected here -->
+                    </div>
+                </div>
+                <div id="preview-main-title" class="ad-preview-title">主標題</div>
+                <div id="preview-subtitle" class="ad-preview-subtitle">文字敘述</div>
+                <div class="ad-preview-footer">
+                    <div id="preview-advertiser" class="ad-preview-advertiser">廣告商</div>
+                    <div id="preview-call-to-action" class="ad-preview-cta">行動呼籲按鈕文字</div>
                 </div>
             </div>
         </div>
-        
-        <div class="form-row">
-            <label for="image_path_s">圖片 300x300 <span class="required">*</span></label>
-            <div class="file-upload-container">
-                <input type="text" id="image_path_s" name="image_path_s" placeholder="/path/to/your/image_300x300.jpg" value="{{ image_path_s or '' }}" required>
-                <div class="help-text">方形圖片，尺寸300x300像素</div>
-                <div class="preview-container">
-                    <label class="custom-file-upload">
-                        上傳圖片
-                        <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
-                    </label>
-                    <img id="preview_s" class="upload-preview" style="display: none;">
-                </div>
-            </div>
-        </div>
-
-        <div class="form-row">
-            <label for="background_image">遊戲套件預設背景 <span class="required">*</span></label>
-            <input type="text" id="background_image" name="background_image" placeholder="請輸入背景圖片網址" value="{{ background_image or '' }}" required>
-            <div class="help-text">遊戲套件預設背景圖片網址</div>
-        </div>
     </div>
-
-    <div class="field-group">
-        <h3>滑動廣告設定 <span class="required">*</span></h3>
-        <div id="vertical-cube-slide-items-container">
-            <!-- 默認顯示一個滑動項目，將由 JavaScript 動態填充 -->
-        </div>
-        <div class="slide-controls">
-            <button type="button" id="add-vertical-cube-slide-item" class="button nav-button">新增滑動項目</button>
-            <button type="button" id="remove-vertical-cube-slide-item" class="button" style="background-color: #d9534f;">移除最後一個項目</button>
-        </div>
-        <input type="hidden" id="payload_game_widget" name="payload_game_widget">
-        
-        <!-- 隱藏的數據傳遞 -->
-        <input type="hidden" id="slide_items_data" value="{{ slide_items | tojson | e }}">
-    </div>
-    
-    <input type="submit" value="建立垂直 Cube Slide 廣告">
-</form>
+</div>
 {% endblock %}
 
 {% block additional_scripts %}
 <script>
     // 垂直 Cube Slide 廣告特有的 JavaScript
     let slideItemCount = 0;
+    let slidePreviewInterval;
+    let currentPreviewSlideIndex = 0;
     
     document.addEventListener('DOMContentLoaded', function() {
         // 初始化滑動項目
         initializeSlideItems();
+        
+        // 添加事件監聽器給按鈕
+        document.getElementById('add-vertical-cube-slide-item').addEventListener('click', addSlideItem);
+        document.getElementById('remove-vertical-cube-slide-item').addEventListener('click', removeSlideItem);
+
+        // 添加事件監聽器以更新預覽
+        const inputsToTrack = ['advertiser', 'main_title', 'subtitle', 'call_to_action'];
+        inputsToTrack.forEach(id => {
+            document.getElementById(id).addEventListener('input', updateVerticalCubeSlideAdPreview);
+        });
     });
     
     function initializeSlideItems() {
@@ -190,8 +367,9 @@
             addSlideItem();
         }
         
-        // 更新 payload
+        // 更新 payload 和預覽
         updatePayload();
+        updateVerticalCubeSlideAdPreview();
     }
     
     function addSlideItem() {
@@ -234,9 +412,13 @@
 
         // 為新添加的輸入欄位綁定 change 事件以更新 payload
         newItem.querySelectorAll('.vertical-cube-slide-image-url, .vertical-cube-slide-target-url').forEach(input => {
-            input.addEventListener('change', () => updatePayload());
+            input.addEventListener('input', () => {
+                updatePayload();
+                updateVerticalCubeSlideAdPreview();
+            });
         });
-        updatePayload(); // 添加新項目後更新 payload
+        updatePayload(); 
+        updateVerticalCubeSlideAdPreview();
     }
     
     function removeSlideItem() {
@@ -246,6 +428,7 @@
             container.removeChild(container.lastChild);
             slideItemCount--;
             updatePayload();
+            updateVerticalCubeSlideAdPreview();
         } else {
             alert('至少需要保留一個滑動項目！');
         }
@@ -260,6 +443,7 @@
                 // 重新編號其餘項目
                 renumberSlideItems();
                 updatePayload();
+                updateVerticalCubeSlideAdPreview();
             }
         } else {
             alert('至少需要保留一個滑動項目！');
@@ -350,12 +534,68 @@
         
         document.getElementById('payload_game_widget').value = JSON.stringify(payload, null, 2);
     }
-    
-    // 添加事件監聽器給按鈕
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('add-vertical-cube-slide-item').addEventListener('click', addSlideItem);
-        document.getElementById('remove-vertical-cube-slide-item').addEventListener('click', removeSlideItem);
-    });
+
+    function updateVerticalCubeSlideAdPreview() {
+        // 更新文字部分
+        document.getElementById('preview-main-title').textContent = document.getElementById('main_title').value || '主標題';
+        document.getElementById('preview-subtitle').textContent = document.getElementById('subtitle').value || '文字敘述';
+        document.getElementById('preview-advertiser').textContent = document.getElementById('advertiser').value || '廣告商';
+        document.getElementById('preview-call-to-action').textContent = document.getElementById('call_to_action').value || '行動呼籲按鈕文字';
+
+        // 更新幻燈片部分
+        const slideWrapper = document.getElementById('preview-slide-wrapper');
+        const dotsContainer = document.getElementById('preview-dots-container');
+        slideWrapper.innerHTML = '';
+        dotsContainer.innerHTML = '';
+
+        const slideItemForms = document.querySelectorAll('#vertical-cube-slide-items-container .vertical-cube-slide-item');
+        
+        if (slideItemForms.length === 0) {
+            slideWrapper.innerHTML = '<span style="color: #888; font-size: 14px; padding: 10px;">滑動廣告設定</span>';
+            return;
+        }
+        
+        let validSlides = [];
+        slideItemForms.forEach((item, index) => {
+            const imageUrlInput = item.querySelector('input[name^="image_url_"]');
+            if (imageUrlInput && imageUrlInput.value) {
+                validSlides.push(imageUrlInput.value);
+                
+                const slideDiv = document.createElement('div');
+                slideDiv.className = 'preview-slide';
+                slideDiv.innerHTML = `<img src="${imageUrlInput.value}" alt="Slide ${index + 1}">`;
+                slideWrapper.appendChild(slideDiv);
+
+                const dotSpan = document.createElement('span');
+                dotSpan.className = 'preview-dot';
+                dotsContainer.appendChild(dotSpan);
+            }
+        });
+
+        clearInterval(slidePreviewInterval);
+
+        if (validSlides.length > 0) {
+            const slides = slideWrapper.querySelectorAll('.preview-slide');
+            const dots = dotsContainer.querySelectorAll('.preview-dot');
+            currentPreviewSlideIndex = 0;
+            
+            function showSlide() {
+                slides.forEach((s, i) => s.classList.toggle('active', i === currentPreviewSlideIndex));
+                dots.forEach((d, i) => d.classList.toggle('active', i === currentPreviewSlideIndex));
+            }
+
+            showSlide();
+
+            if (slides.length > 1) {
+                slidePreviewInterval = setInterval(() => {
+                    currentPreviewSlideIndex = (currentPreviewSlideIndex + 1) % slides.length;
+                    showSlide();
+                }, 3000);
+            }
+        } else {
+             slideWrapper.innerHTML = '<span style="color: #888; font-size: 14px; padding: 10px;">請於滑動廣告設定中<br>輸入有效的圖片網址</span>';
+        }
+    }
     
     function parseInfoText(inputText) {
         // 解析廣告主
@@ -401,6 +641,7 @@
             
             updatePayload();
         }
+        updateVerticalCubeSlideAdPreview();
     }
 </script>
 {% endblock %} 

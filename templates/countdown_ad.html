@@ -2,7 +2,7 @@
 
 {% block title %}倒數廣告建立{% endblock %}
 
-{% block page_title %}⏰ 建立倒數廣告{% endblock %}
+{% block page_title %}建立倒數廣告{% endblock %}
 
 {% block additional_styles %}
 <style>
@@ -62,312 +62,527 @@
         border-radius: 4px;
         font-size: 14px;
     }
+    
+    .main-content-wrapper {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    .form-column {
+        flex: 1;
+        min-width: 0;
+    }
+    .preview-column {
+        width: 320px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 20px;
+    }
+    .ad-preview-container {
+        width: 300px;
+        height: 250px;
+        border: 2px solid #333;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        background-color: #000;
+        overflow: hidden;
+    }
+    .ad-preview-header {
+        padding: 2px 8px;
+        font-size: 12px;
+        color: #cd9601;
+        text-align: left;
+    }
+    .ad-preview-main {
+        flex-grow: 1;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        height: 157px; /* 1200:628 ratio for 300px width */
+        background-size: cover;
+        background-position: center;
+        padding: 20px;
+    }
+    .ad-preview-title {
+        padding: 4px 8px;
+        font-weight: bold;
+        font-size: 14px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: white;
+    }
+    .ad-preview-subtitle {
+        padding: 4px 8px;
+        font-size: 12px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: gray;
+    }
+    .ad-preview-footer {
+        display: flex;
+        font-size: 12px;
+    }
+    .ad-preview-advertiser {
+        flex-grow: 1;
+        padding: 4px 8px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: gray;
+    }
+    .ad-preview-cta {
+        padding: 4px 12px;
+        font-weight: bold;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 5px;
+        margin: 4px;
+    }
+    #preview-countdown-popup {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        border-radius: 8px;
+        padding: 10px;
+        color: white;
+        font-size: 10px;
+        text-align: center;
+        min-width: 80px;
+        display: flex;          /* 水平排列（row 是預設） */
+        justify-content: center;/* 整體水平置中，可視需求改成 space-between… */
+        gap: 6px;               /* 兩塊之間留一點間距 */
+    }
+    #preview-countdown-description {
+        margin-bottom: 5px;
+        font-size: 10px;
+    }
+    #preview-countdown-timer {
+        font-weight: bold;
+        font-size: 10px;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<form action="{{ url_for('main.clear_countdown_form') }}" method="post" style="display: inline;">
-    <button type="submit" class="clear-form-btn" onclick="return confirm('確定要清除所有填寫的內容嗎？')">🗑️ 清除所有內容</button>
-</form>
+<div class="main-content-wrapper">
+    <div class="form-column">
+        <form action="{{ url_for('main.clear_countdown_form') }}" method="post" style="display: inline;">
+            <button type="submit" class="clear-form-btn" onclick="return confirm('確定要清除所有填寫的內容嗎？')">🗑️ 清除所有內容</button>
+        </form>
 
-<form action="{{ url_for('main.create_countdown_ad') }}" method="post" id="ad-form">
-    <div class="field-group">
-        <h3>📋 基本廣告資訊</h3>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="adset_id">Adset ID <span class="required">*</span></label>
-                <input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required
-                       placeholder="例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7">
-                <div class="help-text">廣告組ID，必填</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="display_name">廣告單元顯示名稱</label>
-                <input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}"
-                       placeholder="僅供後台顯示使用">
-                <div class="help-text">僅顯示於後台，可選</div>
-            </div>
-        </div>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="advertiser">廣告商 <span class="required">*</span></label>
-                <input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required
-                       placeholder="廣告主名稱">
-                <div class="help-text">廣告主名稱，必填</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="main_title">主標題 <span class="required">*</span></label>
-                <input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required
-                       placeholder="廣告主標題">
-                <div class="help-text">廣告主標題，必填</div>
-            </div>
-        </div>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="subtitle">文字敘述</label>
-                <input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}"
-                       placeholder="廣告副標題（可選）">
-                <div class="help-text">廣告副標題，可選</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="call_to_action">行動呼籲按鈕文字</label>
-                <input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '立即購買' }}"
-                       placeholder="立即購買">
-                <div class="help-text">CTA按鈕文字，預設為「立即購買」</div>
-            </div>
-        </div>
-        
-        <div class="form-row">
-            <label for="landing_page">到達頁面網址 <span class="required">*</span></label>
-            <input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" 
-                   value="{{ landing_page or '' }}" required>
-            <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
-        </div>
-    </div>
-
-    <div class="field-group">
-        <h3>廣告素材</h3>
-        <p style="margin-bottom: 20px; color: #666; font-style: italic;">
-            所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。
-        </p>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="image_path_m">大尺寸圖片 1200x628 <span class="required">*</span></label>
-                <div class="file-upload-container">
-                    <input type="text" id="image_path_m" name="image_path_m" 
-                           placeholder="/path/to/your/image_1200x628.jpg" 
-                           value="{{ image_path_m or '' }}" required>
-                    <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
-                    <div class="preview-container">
-                        <label class="custom-file-upload">
-                            📁 上傳圖片
-                            <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
-                        </label>
-                        <img id="preview_m" class="upload-preview" style="display: none;" alt="預覽圖">
+        <form action="{{ url_for('main.create_countdown_ad') }}" method="post" id="ad-form">
+            <div class="field-group">
+                <h3>📋 基本廣告資訊</h3>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="adset_id">Adset ID <span class="required">*</span></label>
+                        <input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required
+                               placeholder="例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7">
+                        <div class="help-text">廣告組ID，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="display_name">廣告單元顯示名稱</label>
+                        <input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}"
+                               placeholder="僅供後台顯示使用">
+                        <div class="help-text">僅顯示於後台，可選</div>
                     </div>
                 </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="advertiser">廣告商 <span class="required">*</span></label>
+                        <input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required
+                               placeholder="廣告主名稱">
+                        <div class="help-text">廣告主名稱，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="main_title">主標題 <span class="required">*</span></label>
+                        <input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required
+                               placeholder="廣告主標題">
+                        <div class="help-text">廣告主標題，必填</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="subtitle">文字敘述</label>
+                        <input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}"
+                               placeholder="廣告副標題（可選）">
+                        <div class="help-text">廣告副標題，可選</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="call_to_action">行動呼籲按鈕文字</label>
+                        <input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '立即購買' }}"
+                               placeholder="立即購買">
+                        <div class="help-text">CTA按鈕文字，預設為「立即購買」</div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <label for="landing_page">到達頁面網址 <span class="required">*</span></label>
+                    <input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" 
+                           value="{{ landing_page or '' }}" required>
+                    <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <h3>廣告素材</h3>
+                <p style="margin-bottom: 20px; color: #666; font-style: italic;">
+                    所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。
+                </p>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="image_path_m">大尺寸圖片 1200x628 <span class="required">*</span></label>
+                        <div class="file-upload-container">
+                            <input type="text" id="image_path_m" name="image_path_m" 
+                                   placeholder="/path/to/your/image_1200x628.jpg" 
+                                   value="{{ image_path_m or '' }}" required>
+                            <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                            <div class="preview-container">
+                                <label class="custom-file-upload">
+                                    📁 上傳圖片
+                                    <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
+                                </label>
+                                <img id="preview_m" class="upload-preview" style="display: none;" alt="預覽圖">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="image_path_s">小尺寸圖片 300x300 <span class="required">*</span></label>
+                        <div class="file-upload-container">
+                            <input type="text" id="image_path_s" name="image_path_s" 
+                                   placeholder="/path/to/your/image_300x300.jpg" 
+                                   value="{{ image_path_s or '' }}" required>
+                            <div class="help-text">方形圖片，尺寸300x300像素</div>
+                            <div class="preview-container">
+                                <label class="custom-file-upload">
+                                    📁 上傳圖片
+                                    <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
+                                </label>
+                                <img id="preview_s" class="upload-preview" style="display: none;" alt="預覽圖">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label for="background_image">遊戲套件預設背景 <span class="required">*</span></label>
+                    <input type="text" id="background_image" name="background_image" 
+                           placeholder="請輸入背景圖片網址" value="{{ background_image or '' }}" required>
+                    <div class="help-text">遊戲套件預設背景圖片網址</div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <h3>⏰ 倒數廣告設定</h3>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="end_date">倒數結束時間 <span class="required">*</span></label>
+                        <input type="datetime-local" id="end_date" name="end_date" 
+                               value="{{ end_date or '' }}" required>
+                        <div class="help-text">倒數計時的目標結束時間，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="description_text">倒數描述文字</label>
+                        <input type="text" id="description_text" name="description_text" 
+                               placeholder="活動截止倒數" 
+                               value="{{ description_text or '活動截止倒數' }}">
+                        <div class="help-text">倒數計時的描述文字</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="background_url">背景圖片網址 <span class="required">*</span></label>
+                        <input type="url" id="background_url" name="background_url" 
+                               placeholder="https://example.com/countdown-bg.webp" 
+                               value="{{ background_url or '' }}" required>
+                        <div class="help-text">倒數背景圖片的網址，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="target_url">目標網址 <span class="required">*</span></label>
+                        <input type="url" id="target_url" name="target_url" 
+                               placeholder="https://example.com" 
+                               value="{{ target_url or '' }}" required>
+                        <div class="help-text">點擊後跳轉的目標網址，必填</div>
+                    </div>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="position">倒數位置</label>
+                        <select id="position" name="position">
+                            <option value="1" {{ 'selected' if position == '1' else '' }}>位置 1</option>
+                            <option value="2" {{ 'selected' if position == '2' else '' }}>位置 2</option>
+                            <option value="3" {{ 'selected' if position == '3' else '' }} selected>位置 3</option>
+                            <option value="4" {{ 'selected' if position == '4' else '' }}>位置 4</option>
+                        </select>
+                        <div class="help-text">倒數計時顯示位置，預設為位置 3</div>
+                    </div>
+                </div>
+
+                <h4 style="margin-top: 25px; margin-bottom: 15px; color: #333;">🎨 倒數樣式設定</h4>
+                
+                <div class="form-grid-3">
+                    <div class="form-row">
+                        <label for="date_number_color">數字顏色</label>
+                        <input type="color" id="date_number_color" name="date_number_color" 
+                               value="{{ date_number_color or '#FFFFFF' }}">
+                        <div class="help-text">倒數數字的顏色</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="description_color">描述文字顏色</label>
+                        <input type="color" id="description_color" name="description_color" 
+                               value="{{ description_color or '#FFFFFF' }}">
+                        <div class="help-text">描述文字的顏色</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="date_word_color">時間單位文字顏色</label>
+                        <input type="color" id="date_word_color" name="date_word_color" 
+                               value="{{ date_word_color or '#FFFFFF' }}">
+                        <div class="help-text">天/時/分/秒文字的顏色</div>
+                    </div>
+                </div>
+
+                <div class="form-grid-3">
+                    <div class="form-row">
+                        <label for="date_number_size">數字大小</label>
+                        <select id="date_number_size" name="date_number_size">
+                            <option value="1" {{ 'selected' if date_number_size == '1' else '' }}>極小</option>
+                            <option value="2" {{ 'selected' if date_number_size == '2' else '' }}>小</option>
+                            <option value="3" {{ 'selected' if date_number_size == '3' else '' }}>中</option>
+                            <option value="4" {{ 'selected' if date_number_size == '4' else '' }} selected>大</option>
+                            <option value="5" {{ 'selected' if date_number_size == '5' else '' }}>極大</option>
+                        </select>
+                        <div class="help-text">倒數數字的大小</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="description_size">描述文字大小</label>
+                        <select id="description_size" name="description_size">
+                            <option value="1" {{ 'selected' if description_size == '1' else '' }}>極小</option>
+                            <option value="2" {{ 'selected' if description_size == '2' else '' }}>小</option>
+                            <option value="3" {{ 'selected' if description_size == '3' else '' }}>中</option>
+                            <option value="4" {{ 'selected' if description_size == '4' else '' }} selected>大</option>
+                            <option value="5" {{ 'selected' if description_size == '5' else '' }}>極大</option>
+                        </select>
+                        <div class="help-text">描述文字的大小</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="date_word_size">時間單位文字大小</label>
+                        <select id="date_word_size" name="date_word_size">
+                            <option value="1" {{ 'selected' if date_word_size == '1' else '' }}>極小</option>
+                            <option value="2" {{ 'selected' if date_word_size == '2' else '' }}>小</option>
+                            <option value="3" {{ 'selected' if date_word_size == '3' else '' }}>中</option>
+                            <option value="4" {{ 'selected' if date_word_size == '4' else '' }} selected>大</option>
+                            <option value="5" {{ 'selected' if date_word_size == '5' else '' }}>極大</option>
+                        </select>
+                        <div class="help-text">天/時/分/秒文字的大小</div>
+                    </div>
+                </div>
+
+                <h4 style="margin-top: 25px; margin-bottom: 15px; color: #333;">⌚ 顯示設定</h4>
+                
+                <div class="form-grid-4">
+                    <div class="form-row">
+                        <label>
+                            <input type="checkbox" id="show_day" name="show_day" 
+                                   {{ 'checked' if show_day != 'false' else '' }} checked 
+                                   style="margin-right: 8px;">
+                            顯示「天」
+                        </label>
+                        <div class="help-text">是否顯示天數</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label>
+                            <input type="checkbox" id="show_hour" name="show_hour" 
+                                   {{ 'checked' if show_hour != 'false' else '' }} checked 
+                                   style="margin-right: 8px;">
+                            顯示「時」
+                        </label>
+                        <div class="help-text">是否顯示小時</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label>
+                            <input type="checkbox" id="show_min" name="show_min" 
+                                   {{ 'checked' if show_min != 'false' else '' }} checked 
+                                   style="margin-right: 8px;">
+                            顯示「分」
+                        </label>
+                        <div class="help-text">是否顯示分鐘</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label>
+                            <input type="checkbox" id="show_sec" name="show_sec" 
+                                   {{ 'checked' if show_sec != 'false' else '' }} checked 
+                                   style="margin-right: 8px;">
+                            顯示「秒」
+                        </label>
+                        <div class="help-text">是否顯示秒數</div>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="payload_game_widget" name="payload_game_widget">
             </div>
             
-            <div class="form-row">
-                <label for="image_path_s">小尺寸圖片 300x300 <span class="required">*</span></label>
-                <div class="file-upload-container">
-                    <input type="text" id="image_path_s" name="image_path_s" 
-                           placeholder="/path/to/your/image_300x300.jpg" 
-                           value="{{ image_path_s or '' }}" required>
-                    <div class="help-text">方形圖片，尺寸300x300像素</div>
-                    <div class="preview-container">
-                        <label class="custom-file-upload">
-                            📁 上傳圖片
-                            <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
-                        </label>
-                        <img id="preview_s" class="upload-preview" style="display: none;" alt="預覽圖">
+            <input type="submit" value="⏰ 建立倒數廣告">
+        </form>
+    </div>
+
+    <div class="preview-column">
+        <div class="field-group">
+            <h3>🖼️ 廣告即時預覽</h3>
+            <div class="ad-preview-container">
+                <div class="ad-preview-header">廣告</div>
+                <div class="ad-preview-main">
+                    <div id="preview-countdown-popup">
+                        <div id="preview-countdown-description">活動截止倒數</div>
+                        <div id="preview-countdown-timer">00天 00時 00分 00秒</div>
                     </div>
+                </div>
+                <div id="preview-main-title" class="ad-preview-title">主標題</div>
+                <div id="preview-subtitle" class="ad-preview-subtitle">文字敘述</div>
+                <div class="ad-preview-footer">
+                    <div id="preview-advertiser" class="ad-preview-advertiser">廣告商</div>
+                    <div id="preview-call-to-action" class="ad-preview-cta">行動呼籲按鈕文字</div>
                 </div>
             </div>
         </div>
-
-        <div class="form-row">
-            <label for="background_image">遊戲套件預設背景 <span class="required">*</span></label>
-            <input type="text" id="background_image" name="background_image" 
-                   placeholder="請輸入背景圖片網址" value="{{ background_image or '' }}" required>
-            <div class="help-text">遊戲套件預設背景圖片網址</div>
-        </div>
     </div>
-
-    <div class="field-group">
-        <h3>⏰ 倒數廣告設定</h3>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="end_date">倒數結束時間 <span class="required">*</span></label>
-                <input type="datetime-local" id="end_date" name="end_date" 
-                       value="{{ end_date or '' }}" required>
-                <div class="help-text">倒數計時的目標結束時間，必填</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="description_text">倒數描述文字</label>
-                <input type="text" id="description_text" name="description_text" 
-                       placeholder="活動截止倒數" 
-                       value="{{ description_text or '活動截止倒數' }}">
-                <div class="help-text">倒數計時的描述文字</div>
-            </div>
-        </div>
-        
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="background_url">背景圖片網址 <span class="required">*</span></label>
-                <input type="url" id="background_url" name="background_url" 
-                       placeholder="https://example.com/countdown-bg.webp" 
-                       value="{{ background_url or '' }}" required>
-                <div class="help-text">倒數背景圖片的網址，必填</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="target_url">目標網址 <span class="required">*</span></label>
-                <input type="url" id="target_url" name="target_url" 
-                       placeholder="https://example.com" 
-                       value="{{ target_url or '' }}" required>
-                <div class="help-text">點擊後跳轉的目標網址，必填</div>
-            </div>
-        </div>
-
-        <div class="form-grid-2">
-            <div class="form-row">
-                <label for="position">倒數位置</label>
-                <select id="position" name="position">
-                    <option value="1" {{ 'selected' if position == '1' else '' }}>位置 1</option>
-                    <option value="2" {{ 'selected' if position == '2' else '' }}>位置 2</option>
-                    <option value="3" {{ 'selected' if position == '3' else '' }} selected>位置 3</option>
-                    <option value="4" {{ 'selected' if position == '4' else '' }}>位置 4</option>
-                </select>
-                <div class="help-text">倒數計時顯示位置，預設為位置 3</div>
-            </div>
-        </div>
-
-        <h4 style="margin-top: 25px; margin-bottom: 15px; color: #333;">🎨 倒數樣式設定</h4>
-        
-        <div class="form-grid-3">
-            <div class="form-row">
-                <label for="date_number_color">數字顏色</label>
-                <input type="color" id="date_number_color" name="date_number_color" 
-                       value="{{ date_number_color or '#FFFFFF' }}">
-                <div class="help-text">倒數數字的顏色</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="description_color">描述文字顏色</label>
-                <input type="color" id="description_color" name="description_color" 
-                       value="{{ description_color or '#FFFFFF' }}">
-                <div class="help-text">描述文字的顏色</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="date_word_color">時間單位文字顏色</label>
-                <input type="color" id="date_word_color" name="date_word_color" 
-                       value="{{ date_word_color or '#FFFFFF' }}">
-                <div class="help-text">天/時/分/秒文字的顏色</div>
-            </div>
-        </div>
-
-        <div class="form-grid-3">
-            <div class="form-row">
-                <label for="date_number_size">數字大小</label>
-                <select id="date_number_size" name="date_number_size">
-                    <option value="1" {{ 'selected' if date_number_size == '1' else '' }}>極小</option>
-                    <option value="2" {{ 'selected' if date_number_size == '2' else '' }}>小</option>
-                    <option value="3" {{ 'selected' if date_number_size == '3' else '' }}>中</option>
-                    <option value="4" {{ 'selected' if date_number_size == '4' else '' }} selected>大</option>
-                    <option value="5" {{ 'selected' if date_number_size == '5' else '' }}>極大</option>
-                </select>
-                <div class="help-text">倒數數字的大小</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="description_size">描述文字大小</label>
-                <select id="description_size" name="description_size">
-                    <option value="1" {{ 'selected' if description_size == '1' else '' }}>極小</option>
-                    <option value="2" {{ 'selected' if description_size == '2' else '' }}>小</option>
-                    <option value="3" {{ 'selected' if description_size == '3' else '' }}>中</option>
-                    <option value="4" {{ 'selected' if description_size == '4' else '' }} selected>大</option>
-                    <option value="5" {{ 'selected' if description_size == '5' else '' }}>極大</option>
-                </select>
-                <div class="help-text">描述文字的大小</div>
-            </div>
-            
-            <div class="form-row">
-                <label for="date_word_size">時間單位文字大小</label>
-                <select id="date_word_size" name="date_word_size">
-                    <option value="1" {{ 'selected' if date_word_size == '1' else '' }}>極小</option>
-                    <option value="2" {{ 'selected' if date_word_size == '2' else '' }}>小</option>
-                    <option value="3" {{ 'selected' if date_word_size == '3' else '' }}>中</option>
-                    <option value="4" {{ 'selected' if date_word_size == '4' else '' }} selected>大</option>
-                    <option value="5" {{ 'selected' if date_word_size == '5' else '' }}>極大</option>
-                </select>
-                <div class="help-text">天/時/分/秒文字的大小</div>
-            </div>
-        </div>
-
-        <h4 style="margin-top: 25px; margin-bottom: 15px; color: #333;">⌚ 顯示設定</h4>
-        
-        <div class="form-grid-4">
-            <div class="form-row">
-                <label>
-                    <input type="checkbox" id="show_day" name="show_day" 
-                           {{ 'checked' if show_day != 'false' else '' }} checked 
-                           style="margin-right: 8px;">
-                    顯示「天」
-                </label>
-                <div class="help-text">是否顯示天數</div>
-            </div>
-            
-            <div class="form-row">
-                <label>
-                    <input type="checkbox" id="show_hour" name="show_hour" 
-                           {{ 'checked' if show_hour != 'false' else '' }} checked 
-                           style="margin-right: 8px;">
-                    顯示「時」
-                </label>
-                <div class="help-text">是否顯示小時</div>
-            </div>
-            
-            <div class="form-row">
-                <label>
-                    <input type="checkbox" id="show_min" name="show_min" 
-                           {{ 'checked' if show_min != 'false' else '' }} checked 
-                           style="margin-right: 8px;">
-                    顯示「分」
-                </label>
-                <div class="help-text">是否顯示分鐘</div>
-            </div>
-            
-            <div class="form-row">
-                <label>
-                    <input type="checkbox" id="show_sec" name="show_sec" 
-                           {{ 'checked' if show_sec != 'false' else '' }} checked 
-                           style="margin-right: 8px;">
-                    顯示「秒」
-                </label>
-                <div class="help-text">是否顯示秒數</div>
-            </div>
-        </div>
-        
-        <input type="hidden" id="payload_game_widget" name="payload_game_widget">
-    </div>
-    
-    <input type="submit" value="⏰ 建立倒數廣告">
-</form>
+</div>
 {% endblock %}
 
 {% block additional_scripts %}
 <script>
     // 倒數廣告特有的 JavaScript
     document.addEventListener('DOMContentLoaded', function() {
-        // 在頁面加載完成後更新 payload
+        // 在頁面加載完成後更新 payload 和預覽
         updateGameWidgetPayload();
+        updateCountdownAdPreview();
 
-        // 添加事件監聽器，當相關輸入改變時更新 payload
+        // 添加事件監聽器，當相關輸入改變時更新 payload 和預覽
         const inputIds = [
             'end_date', 'description_text', 'background_url', 'target_url', 'position',
             'date_number_color', 'description_color', 'date_word_color',
             'date_number_size', 'description_size', 'date_word_size',
-            'show_day', 'show_hour', 'show_min', 'show_sec'
+            'show_day', 'show_hour', 'show_min', 'show_sec',
+            'advertiser', 'main_title', 'subtitle', 'call_to_action'
         ];
         
         inputIds.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
-                element.addEventListener('input', updateGameWidgetPayload);
-                element.addEventListener('change', updateGameWidgetPayload);
+                element.addEventListener('input', () => {
+                    updateGameWidgetPayload();
+                    updateCountdownAdPreview();
+                });
+                element.addEventListener('change', () => {
+                    updateGameWidgetPayload();
+                    updateCountdownAdPreview();
+                });
             }
         });
     });
+
+    function updateCountdownAdPreview() {
+        // 更新廣告商、主標題、副標題、CTA
+        const advertiser = document.getElementById('advertiser').value || '廣告商';
+        const mainTitle = document.getElementById('main_title').value || '主標題';
+        const subtitle = document.getElementById('subtitle').value || '文字敘述';
+        const callToAction = document.getElementById('call_to_action').value || '行動呼籲按鈕文字';
+
+        document.getElementById('preview-advertiser').textContent = advertiser;
+        document.getElementById('preview-main-title').textContent = mainTitle;
+        document.getElementById('preview-subtitle').textContent = subtitle;
+        document.getElementById('preview-call-to-action').textContent = callToAction;
+
+        // 更新背景
+        const mainPreview = document.querySelector('.ad-preview-main');
+        const backgroundUrl = document.getElementById('background_url').value;
+        mainPreview.style.backgroundImage = backgroundUrl ? `url(${backgroundUrl})` : 'none';
+        mainPreview.style.backgroundColor = backgroundUrl ? 'transparent' : '#f0f0f0';
+
+        // 更新倒數計時彈窗
+        const popup = document.getElementById('preview-countdown-popup');
+        const descriptionText = document.getElementById('description_text').value || '活動截止倒數';
+        const descriptionColor = document.getElementById('description_color').value || '#FFFFFF';
+        const dateNumberColor = document.getElementById('date_number_color').value || '#FFFFFF';
+        const dateWordColor = document.getElementById('date_word_color').value || '#FFFFFF';
+
+        document.getElementById('preview-countdown-description').textContent = descriptionText;
+        document.getElementById('preview-countdown-description').style.color = descriptionColor;
+        document.getElementById('preview-countdown-timer').style.color = dateNumberColor;
+
+        // 更新倒數計時顯示
+        updateCountdownTimer();
+    }
+
+    function updateCountdownTimer() {
+        const endDate = document.getElementById('end_date').value;
+        const showDay = document.getElementById('show_day').checked;
+        const showHour = document.getElementById('show_hour').checked;
+        const showMin = document.getElementById('show_min').checked;
+        const showSec = document.getElementById('show_sec').checked;
+
+        if (!endDate) {
+            document.getElementById('preview-countdown-timer').textContent = '00天 00時 00分 00秒';
+            return;
+        }
+
+        const now = new Date();
+        const target = new Date(endDate);
+        const diff = target - now;
+
+        if (diff <= 0) {
+            document.getElementById('preview-countdown-timer').textContent = '已結束';
+            return;
+        }
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        let timerText = '';
+        if (showDay) timerText += `${days.toString().padStart(2, '0')}天 `;
+        if (showHour) timerText += `${hours.toString().padStart(2, '0')}時 `;
+        if (showMin) timerText += `${minutes.toString().padStart(2, '0')}分 `;
+        if (showSec) timerText += `${seconds.toString().padStart(2, '0')}秒`;
+
+        document.getElementById('preview-countdown-timer').textContent = timerText.trim();
+    }
+
+    // 每秒更新倒數計時
+    setInterval(updateCountdownTimer, 1000);
 
     function updateGameWidgetPayload() {
         const endDate = document.getElementById('end_date').value;

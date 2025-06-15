@@ -2,7 +2,7 @@
 
 {% block title %}投票廣告建立{% endblock %}
 
-{% block page_title %}🗳️ 建立投票廣告{% endblock %}
+{% block page_title %}建立投票廣告{% endblock %}
 
 {% block additional_styles %}
 <style>
@@ -90,7 +90,7 @@
         flex-grow: 1;
         position: relative;
         display: flex;
-        align-items: flex-end;
+        align-items: center;
         justify-content: center;
         overflow: hidden;
         background-size: cover;
@@ -143,7 +143,7 @@
         margin: 4px;
     }
     #preview-vote-popup {
-        width: 95%;
+        width: 100%;
         margin: auto;
         position:absolute;
         bottom: 10px;            /* 距離底部 10px */
@@ -159,7 +159,7 @@
     #preview-vote-title {
         font-size: 12px;
         font-weight: 500;
-        margin-bottom: 6px;
+        margin-bottom: 15px;
         color: #333;
     }
     #preview-vote-options {
@@ -170,8 +170,8 @@
     }
     .preview-vote-option {
         flex: 1;
-        padding: 5px 2px;
-        font-size: 12px;
+        padding: 3px 3px;
+        font-size: 10px;
         font-weight: bold;
         cursor: pointer;
     }

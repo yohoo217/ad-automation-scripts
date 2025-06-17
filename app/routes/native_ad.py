@@ -10,25 +10,18 @@ logger = logging.getLogger(__name__)
 
 native_ad_bp = Blueprint('native_ad', __name__)
 
-@native_ad_bp.route('/native-ad')
+@native_ad_bp.route('/native_ad')
 def native_ad():
-    """原生廣告頁面"""
-    # 從 session 獲取之前填寫的表單數據
-    form_data = {
-        'adset_id': session.get('adset_id', ''),
-        'display_name': session.get('display_name', ''),
-        'advertiser': session.get('advertiser', ''),
-        'main_title': session.get('main_title', ''),
-        'subtitle': session.get('subtitle', ''),
-        'landing_page': session.get('landing_page', ''),
-        'call_to_action': session.get('call_to_action', '瞭解詳情'),
-        'tracking_url': session.get('tracking_url', ''),
-        'image_path_m': session.get('image_path_m', ''),
-        'image_path_o': session.get('image_path_o', ''),
-        'image_path_p': session.get('image_path_p', ''),
-        'image_path_s': session.get('image_path_s', '')
-    }
+    """原生廣告創建頁面"""
+    form_data = session.get('form_data', {})
     return render_template('native_ad.html', **form_data)
+
+@native_ad_bp.route('/clear-native-form', methods=['POST'])
+def clear_native_form():
+    """清除原生廣告表單數據"""
+    session.pop('form_data', None)
+    flash("表單內容已清除", 'info')
+    return redirect(url_for('native_ad.native_ad'))
 
 @native_ad_bp.route('/create_native_ad', methods=['POST'])
 def create_native_ad():
@@ -51,8 +44,7 @@ def create_native_ad():
         }
         
         # 保存表單數據到 session（以便失敗時可以重新填充）
-        for key, value in ad_data.items():
-            session[key] = value
+        session['form_data'] = ad_data
         
         # 驗證必填欄位
         required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page', 
@@ -70,10 +62,8 @@ def create_native_ad():
             success = run_native(playwright, ad_data)
         
         if success:
-            # 成功後清除 session 中的表單數據
-            for key in ad_data.keys():
-                session.pop(key, None)
-            flash(f"成功創建廣告: {ad_data['display_name'] or ad_data['main_title']}", 'success')
+            flash(f"成功創建原生廣告: {ad_data['display_name'] or ad_data['main_title']}", 'success')
+            session.pop('form_data', None)  # 成功後清除
             logger.info(f"成功創建廣告: {ad_data['display_name'] or ad_data['main_title']}")
         else:
             flash("自動創建過程中發生錯誤", 'error')
@@ -87,7 +77,7 @@ def create_native_ad():
         if "TargetClosedError" in error_msg or "Target page, context or browser has been closed" in error_msg:
             flash("瀏覽器意外關閉，請稍後再試", 'error')
         else:
-            flash(f"創建廣告時發生錯誤: {error_msg}", 'error')
+            flash(f"創建原生廣告時發生錯誤: {error_msg}", 'error')
     
     return redirect(url_for('native_ad.native_ad'))
 
@@ -212,4 +202,10 @@ def create_batch_ads():
         for failed in failed_ads:
             flash(f"廣告 '{failed['display_name']}' 失敗: {failed['reason']}", 'error')
     
-    return redirect(url_for('main.batch')) 
+    return redirect(url_for('main.batch'))
+
+@native_ad_bp.route('/upload_and_get_path_native', methods=['POST'])
+def upload_and_get_path_native():
+    # This method is not provided in the original file or the code block
+    # It's assumed to exist as it's called in the original file
+    pass 

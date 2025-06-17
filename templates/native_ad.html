@@ -164,8 +164,74 @@
 
 {% block additional_scripts %}
 <script>
-    // 添加清除表單按鈕的事件監聽器
+    // Debounce 函數，防止事件過於頻繁觸發
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // 自動儲存表單狀態到後端 session
+    const autoSaveForm = debounce(() => {
+        const form = document.getElementById('ad-form');
+        const formData = new FormData(form);
+        
+        // 使用 fetch API 將表單數據發送到後端
+        fetch("{{ url_for('main.save_form_data') }}", {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                console.log('Form state auto-saved to session.');
+            } else {
+                console.error('Failed to auto-save form state:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error in auto-save request:', error);
+        });
+    }, 500); // 在用戶停止輸入 500 毫秒後觸發
+
     document.addEventListener('DOMContentLoaded', function() {
+        // 為表單添加輸入事件監聽器以觸發自動儲存
+        const adForm = document.getElementById('ad-form');
+        if (adForm) {
+            adForm.addEventListener('input', autoSaveForm);
+        }
+        
+        // 檔案上傳預覽
+        const fileInputs = document.querySelectorAll('.file-input');
+        fileInputs.forEach(input => {
+            const target = input.getAttribute('data-target');
+            const preview = document.getElementById(`preview_${target}`);
+            const uploadLabel = document.querySelector(`.custom-file-upload[for="${target}"]`);
+            
+            input.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                        preview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            uploadLabel.addEventListener('click', function() {
+                input.click();
+            });
+        });
+
+        // 添加清除表單按鈕的事件監聽器
         document.getElementById('clear-form-button').addEventListener('click', function() {
             if(confirm('確定要清除所有填寫的內容嗎？')) {
                 clearFormInputs();

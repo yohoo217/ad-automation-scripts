@@ -324,12 +324,49 @@
 
 {% block additional_scripts %}
 <script>
-    // 垂直 Cube Slide 廣告特有的 JavaScript
-    let slideItemCount = 0;
-    let slidePreviewInterval;
-    let currentPreviewSlideIndex = 0;
-    
+    // Debounce 函數，防止事件過於頻繁觸發
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // 自動儲存表單狀態到後端 session
+    const autoSaveForm = debounce(() => {
+        const form = document.getElementById('ad-form');
+        const formData = new FormData(form);
+        
+        // 使用 fetch API 將表單數據發送到後端
+        fetch("{{ url_for('main.save_form_data') }}", {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                console.log('Form state auto-saved to session.');
+            } else {
+                console.error('Failed to auto-save form state:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error in auto-save request:', error);
+        });
+    }, 500); // 在用戶停止輸入 500 毫秒後觸發
+
     document.addEventListener('DOMContentLoaded', function() {
+        // 為表單添加輸入事件監聽器以觸發自動儲存
+        const adForm = document.getElementById('ad-form');
+        if (adForm) {
+            adForm.addEventListener('input', autoSaveForm);
+        }
+
         // 初始化滑動項目
         initializeSlideItems();
         

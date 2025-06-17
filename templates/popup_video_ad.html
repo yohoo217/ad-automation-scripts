@@ -215,11 +215,11 @@
 {% block content %}
 <div class="main-content-wrapper">
     <div class="form-column">
-        <form action="{{ url_for('main.clear_native_video_form') }}" method="post" style="display: inline;">
+        <form action="{{ url_for('main.clear_popup_video_form') }}" method="post" style="display: inline;">
             <button type="submit" class="clear-form-btn" onclick="return confirm('確定要清除所有填寫的內容嗎？')">清除所有內容</button>
         </form>
 
-        <form action="{{ url_for('main.create_native_video_ad') }}" method="post" id="ad-form">
+        <form action="{{ url_for('main.create_popup_video_ad') }}" method="post" id="ad-form">
             <div class="field-group">
                 <h3>📋 基本廣告資訊</h3>
                 
@@ -424,11 +424,53 @@
 
 {% block additional_scripts %}
 <script>
+    // Debounce 函數，防止事件過於頻繁觸發
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // 自動儲存表單狀態到後端 session
+    const autoSaveForm = debounce(() => {
+        const form = document.getElementById('ad-form');
+        const formData = new FormData(form);
+        
+        // 使用 fetch API 將表單數據發送到後端
+        fetch("{{ url_for('main.save_form_data') }}", {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                console.log('Form state auto-saved to session.');
+            } else {
+                console.error('Failed to auto-save form state:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error in auto-save request:', error);
+        });
+    }, 500); // 在用戶停止輸入 500 毫秒後觸發
+
     // 原生彈跳影音廣告特有的 JavaScript
     let previewVideo;
     let isVideoPlaying = false;
     
     document.addEventListener('DOMContentLoaded', function() {
+        // 為表單添加輸入事件監聽器以觸發自動儲存
+        const adForm = document.getElementById('ad-form');
+        if (adForm) {
+            adForm.addEventListener('input', autoSaveForm);
+        }
+
         // 初始化影音預覽
         previewVideo = document.getElementById('preview-video');
         

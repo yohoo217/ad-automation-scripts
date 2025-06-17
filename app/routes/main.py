@@ -6,6 +6,7 @@ import requests
 from urllib.parse import quote_plus
 import concurrent.futures
 import time
+import json
 
 # 導入 MongoDB 連接
 from app.models.database import get_mongo_client, get_activity_name_by_adset_id
@@ -1152,6 +1153,105 @@ def clear_countdown_form():
         session.pop(key, None)
     flash("表單內容已清除", 'info')
     return redirect(url_for('main.countdown_ad'))
+
+def parse_popup_payloads(form_data):
+    """從表單數據中解析 payload_popup_json 和 payload_game_widget。"""
+    popup_payload = {}
+    payload_popup_json = form_data.get('payload_popup_json', '{}')
+    payload_game_widget = form_data.get('payload_game_widget', '{}')
+
+    try:
+        popup_data = json.loads(payload_popup_json)
+        if isinstance(popup_data, dict) and 'popupList' in popup_data and len(popup_data['popupList']) >= 3:
+            video_item = popup_data['popupList'][1]
+            image_item = popup_data['popupList'][2]
+            
+            popup_payload['video_url'] = video_item.get('url')
+            if video_item.get('actionList'):
+                popup_payload['video_landing_url'] = video_item['actionList'][0].get('payload', {}).get('browser', {}).get('url')
+            
+            popup_payload['image_source_url'] = image_item.get('imgUrl')
+            popup_payload['image_landing_url'] = image_item.get('url')
+
+    except (json.JSONDecodeError, IndexError, KeyError) as e:
+        logger.warning(f"解析 payload_popup_json 時出錯: {e}")
+
+    try:
+        game_widget_data = json.loads(payload_game_widget)
+        if isinstance(game_widget_data, dict):
+            popup_payload['img_background'] = game_widget_data.get('data', {}).get('img_background')
+            
+    except json.JSONDecodeError as e:
+        logger.warning(f"解析 payload_game_widget 時出錯: {e}")
+
+    return popup_payload
+
+@main_bp.route('/native-video-ad')
+def native_video_ad():
+    """原生彈跳影音廣告頁面"""
+    form_data = session.pop('form_data', {})
+    
+    # 解析 payload
+    popup_payload = parse_popup_payloads(form_data)
+    
+    # 將解析後的 payload 加入 form_data
+    form_data['popup_payload'] = popup_payload
+    
+    return render_template('native_video_ad.html', **form_data)
+
+@main_bp.route('/create-native-video-ad', methods=['POST'])
+def create_native_video_ad():
+    """處理原生彈跳影音廣告創建請求"""
+    form_data = request.form.to_dict()
+    session['form_data'] = form_data
+    logger.info(f"收到原生彈跳影音廣告創建請求: {form_data}")
+
+    required_fields = ['adset_id', 'advertiser', 'main_title', 'landing_page', 'image_path_m', 'image_path_s', 'background_image']
+    if not all(form_data.get(field) for field in required_fields):
+        flash('請填寫所有必填欄位。', 'error')
+        return redirect(url_for('main.native_video_ad'))
+
+    # 準備 ad_data
+    ad_data = {
+        'adset_id': form_data.get('adset_id'),
+        'display_name': form_data.get('display_name'),
+        'advertiser': form_data.get('advertiser'),
+        'main_title': form_data.get('main_title'),
+        'subtitle': form_data.get('subtitle'),
+        'call_to_action': form_data.get('call_to_action'),
+        'landing_page': form_data.get('landing_page'),
+        'image_path_m': form_data.get('image_path_m'),
+        'image_path_s': form_data.get('image_path_s'),
+        'background_url': form_data.get('background_image'), # 注意鍵名匹配
+        'payload_game_widget': form_data.get('payload_game_widget'),
+        'payload_popupJson': form_data.get('payload_popup_json') # 注意這裡的鍵名
+    }
+
+    try:
+        with sync_playwright() as p:
+            success = run_suprad(p, ad_data, ad_type='native_video')
+        
+        if success:
+            flash('原生彈T跳影音廣告創建成功！', 'success')
+            session.pop('form_data', None)
+            return redirect(url_for('main.native_video_ad'))
+        else:
+            flash('廣告創建過程中發生錯誤，請檢查後台日誌。', 'error')
+            return redirect(url_for('main.native_video_ad'))
+            
+    except Exception as e:
+        logger.error(f"創建原生彈跳影音廣告時發生未預期的錯誤: {str(e)}")
+        flash(f'創建失敗: {str(e)}', 'error')
+        return redirect(url_for('main.native_video_ad'))
+
+@main_bp.route('/clear-native-video-form', methods=['POST'])
+def clear_native_video_form():
+    """清除原生彈跳影音廣告表單數據"""
+    keys_to_remove = [key for key in session.keys() if key.startswith('native_video_')]
+    for key in keys_to_remove:
+        session.pop(key, None)
+    flash("表單內容已清除", 'info')
+    return redirect(url_for('main.native_video_ad'))
 
 @main_bp.route('/api/adunits')
 def get_adunits():

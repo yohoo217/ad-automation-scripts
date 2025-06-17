@@ -1,6 +1,7 @@
 import os
 import time
 import random  # 新增 random 模組
+import json  # 增加 json 模組
 from playwright.sync_api import Page, Playwright
 import logging
 import config # 增加導入 config
@@ -243,14 +244,33 @@ def run(playwright: Playwright, ad_data: dict, ad_type: str = 'gif') -> bool:
         slow_down(page)
         page.once("dialog", lambda dialog: dialog.dismiss())
         
-        # 多目標popup網址
-        page.locator("input[name=\"advertiserName\"]").fill(ad_data['advertiser'])
-        urlInteractivePopups = "https://tkcatrun.aotter.net/popup/"
-        page.get_by_placeholder("urlInteractivePopup: url to").fill(urlInteractivePopups)
+        # 跳出視窗網址
+        LandingPageurl = "https://tkcatrun.aotter.net/popup/"
+        page.get_by_placeholder("urlInteractivePopup: url to").fill(LandingPageurl)
         slow_down(page)
         
+        # urlInteractivePopups
+        log_message("填入 urlInteractivePopups...")
+        page.locator("textarea[name=\"urlInteractivePopups\"]").fill('[]')
+        slow_down(page)
+
+        # 跳出視窗寬與高，根據廣告類型設定
+        if ad_data.get('ad_type') == 'native_video':
+            log_message("偵測到 native_video 廣告類型，設定彈窗寬高")
+            page.locator("input[name=\"popupWidth\"]").fill("1200")
+            slow_down(page)
+            page.locator("input[name=\"popupHeight\"]").fill("2050")
+            slow_down(page)
+        else:
+            log_message("非 native_video 廣告類型，不設定彈窗寬高")
+
         # payload_gameWidget
         page.locator("textarea[name=\"payload_gameWidgetJson\"]").fill(ad_data['payload_game_widget'])
+
+        # payload_popupJson
+        log_message("填入 payload_popupJson...")
+        page.locator("textarea[name=\"payload_popupJson\"]").fill(ad_data.get('payload_popupJson') or '[]')
+
 
         slow_down(page)
         page.wait_for_timeout(2000)
@@ -293,6 +313,34 @@ def run(playwright: Playwright, ad_data: dict, ad_type: str = 'gif') -> bool:
         target_placeholder.fill(new_value)
         log_message("已填入更新後的 URL")
         slow_down(page)
+
+        # 更新 urlInteractivePopups
+        log_message("更新 urlInteractivePopups")
+        try:
+            url_interactive_popups_textarea = page.locator("textarea[name=\"urlInteractivePopups\"]")
+            
+            # 建立包含完整 URL 的 JSON 結構
+            popups_list = [
+                {
+                    "key": "a",
+                    "url": new_value
+                },
+                {
+                    "key": "a", 
+                    "url": new_value
+                }
+            ]
+            
+            updated_popups_json = json.dumps(popups_list, indent=2)
+            log_message(f"更新後的 urlInteractivePopups: {updated_popups_json}")
+            
+            url_interactive_popups_textarea.fill(updated_popups_json)
+            log_message("已填入更新後的 urlInteractivePopups")
+            slow_down(page)
+            
+        except Exception as e:
+            log_message(f"更新 urlInteractivePopups 時發生錯誤: {str(e)}")
+            # 根據需求看是否要返回 False 或繼續
 
         log_message("等待「修改」按鈕出現")
         page.get_by_role("button", name="修改").wait_for(state="visible", timeout=60000)

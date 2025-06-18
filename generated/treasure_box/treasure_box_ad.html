@@ -1,0 +1,362 @@
+{%- extends "base.html" -%}
+
+{%- block title -%}Treasure Box 廣告{%- endblock -%}
+
+{%- block extra_css -%}
+<style>
+    /* Treasure Box 廣告專用樣式 */
+    .treasure_box-preview {
+        min-height: 300px;
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f9f9f9;
+        margin-bottom: 20px;
+    }
+    
+    .treasure_box-preview.active {
+        border-color: #007bff;
+        background-color: #e3f2fd;
+    }
+    
+    .treasure_box-form-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+</style>
+{%- endblock -%}
+
+{%- block content -%}
+<div class="container-fluid">
+    <div class="row">
+        <!-- 左側：表單區域 -->
+        <div class="col-md-6">
+            <div class="treasure_box-form-section">
+                <h3 class="mb-4">
+                    <i class="fas fa-cog"></i> Treasure Box 廣告設定
+                </h3>
+                
+                <form id="treasure_boxForm" method="post">
+                    <!-- 基礎設定區塊 -->
+                    <div class="form-group-section">
+                        <h5 class="section-title">基礎設定</h5>
+                        
+                        <div class="form-group">
+                            <label for="adset_id">廣告組 ID *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="adset_id" 
+                                   name="adset_id" 
+                                   value="{{ form_data.get('adset_id', '') }}"
+                                   required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="advertiser">廣告商 *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="advertiser" 
+                                   name="advertiser" 
+                                   value="{{ form_data.get('advertiser', '') }}"
+                                   required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="main_title">主標題 *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="main_title" 
+                                   name="main_title" 
+                                   value="{{ form_data.get('main_title', '') }}"
+                                   required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="landing_page">著陸頁 URL *</label>
+                            <input type="url" 
+                                   class="form-control" 
+                                   id="landing_page" 
+                                   name="landing_page" 
+                                   value="{{ form_data.get('landing_page', '') }}"
+                                   required>
+                        </div>
+                    </div>
+                    
+                    <!-- Treasure Box 特定設定區塊 -->
+                    <div class="form-group-section">
+                        <h5 class="section-title">Treasure Box 特定設定</h5>
+                        <div class="form-group">
+                            <label for="img_logo">寶箱遊戲 Logo 圖片 URL *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="img_logo" 
+                                   name="img_logo" 
+                                   value="{{ form_data.get('img_logo', '') }}"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="img_background">寶箱遊戲背景圖片 URL *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="img_background" 
+                                   name="img_background" 
+                                   value="{{ form_data.get('img_background', '') }}"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="img_item_idle">寶箱閒置狀態圖片 URL *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="img_item_idle" 
+                                   name="img_item_idle" 
+                                   value="{{ form_data.get('img_item_idle', '') }}"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="img_item_opening">寶箱開啟中圖片 URL *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="img_item_opening" 
+                                   name="img_item_opening" 
+                                   value="{{ form_data.get('img_item_opening', '') }}"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="img_item_opened">寶箱已開啟圖片 URL *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="img_item_opened" 
+                                   name="img_item_opened" 
+                                   value="{{ form_data.get('img_item_opened', '') }}"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="img_item_a_active">獎品 A 激活狀態圖片 URL *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="img_item_a_active" 
+                                   name="img_item_a_active" 
+                                   value="{{ form_data.get('img_item_a_active', '') }}"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="img_item_a_idle">獎品 A 閒置狀態圖片 URL *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="img_item_a_idle" 
+                                   name="img_item_a_idle" 
+                                   value="{{ form_data.get('img_item_a_idle', '') }}"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="img_item_b_active">獎品 B 激活狀態圖片 URL *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="img_item_b_active" 
+                                   name="img_item_b_active" 
+                                   value="{{ form_data.get('img_item_b_active', '') }}"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="img_item_b_idle">獎品 B 閒置狀態圖片 URL *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="img_item_b_idle" 
+                                   name="img_item_b_idle" 
+                                   value="{{ form_data.get('img_item_b_idle', '') }}"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="img_item_c_active">獎品 C 激活狀態圖片 URL *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="img_item_c_active" 
+                                   name="img_item_c_active" 
+                                   value="{{ form_data.get('img_item_c_active', '') }}"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="img_item_c_idle">獎品 C 閒置狀態圖片 URL *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="img_item_c_idle" 
+                                   name="img_item_c_idle" 
+                                   value="{{ form_data.get('img_item_c_idle', '') }}"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="url_popup_a">獎品 A 互動彈窗 URL *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="url_popup_a" 
+                                   name="url_popup_a" 
+                                   value="{{ form_data.get('url_popup_a', '') }}"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="url_popup_b">獎品 B 互動彈窗 URL *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="url_popup_b" 
+                                   name="url_popup_b" 
+                                   value="{{ form_data.get('url_popup_b', '') }}"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="url_popup_c">獎品 C 互動彈窗 URL *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="url_popup_c" 
+                                   name="url_popup_c" 
+                                   value="{{ form_data.get('url_popup_c', '') }}"
+                                   required>
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按鈕 -->
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-play"></i> 創建 Treasure Box 廣告
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-lg" id="clearForm">
+                            <i class="fas fa-trash"></i> 清除表單
+                        </button>
+                        <button type="button" class="btn btn-info btn-lg" id="updatePreview">
+                            <i class="fas fa-eye"></i> 更新預覽
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 右側：預覽區域 -->
+        <div class="col-md-6">
+            <div class="treasure_box-form-section">
+                <h3 class="mb-4">
+                    <i class="fas fa-eye"></i> 即時預覽
+                </h3>
+                
+                <div id="treasure_boxPreview" class="treasure_box-preview">
+                    <div class="text-muted">
+                        <i class="fas fa-image fa-3x"></i>
+                        <p class="mt-2">填寫表單後，預覽將顯示在此處</p>
+                    </div>
+                </div>
+                
+                <!-- 預覽控制 -->
+                <div class="preview-controls">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="resetPreview">
+                        <i class="fas fa-redo"></i> 重置預覽
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-success" id="testInteraction">
+                        <i class="fas fa-mouse-pointer"></i> 測試互動
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{%- endblock -%}
+
+{%- block extra_js -%}
+<script>
+// Treasure Box 廣告專用 JavaScript
+$(document).ready(function() {
+    const form = $('#treasure_boxForm');
+    const preview = $('#treasure_boxPreview');
+    
+    // 表單提交處理
+    form.on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData.entries());
+        
+        $.ajax({
+            url: '/create-treasure_box-ad',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.success) {
+                    showAlert('success', response.message);
+                } else {
+                    showAlert('error', response.error);
+                }
+            },
+            error: function(xhr) {
+                const response = JSON.parse(xhr.responseText);
+                showAlert('error', response.error || '創建廣告時發生錯誤');
+            }
+        });
+    });
+    
+    // 清除表單
+    $('#clearForm').on('click', function() {
+        if (confirm('確定要清除所有表單資料嗎？')) {
+            $.ajax({
+                url: '/clear-treasure_box-form',
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        form[0].reset();
+                        updatePreview();
+                        showAlert('info', response.message);
+                    }
+                }
+            });
+        }
+    });
+    
+    // 更新預覽
+    $('#updatePreview').on('click', updatePreview);
+    
+    // 表單欄位變更時自動更新預覽
+    form.find('input, select, textarea').on('input change', debounce(updatePreview, 500));
+    
+    // 預覽相關功能
+    function updatePreview() {
+        const formData = new FormData(form[0]);
+        const data = Object.fromEntries(formData.entries());
+        
+        // 在此實現 Treasure Box 廣告的預覽邏輯
+        // 根據表單資料動態生成預覽內容
+        
+        if (data.main_title || data.advertiser) {
+            preview.addClass('active');
+            // 在此添加實際的預覽渲染邏輯
+            preview.html('<div class="text-center"><h4>' + data.main_title + '</h4><p>' + data.advertiser + '</p></div>');
+        } else {
+            preview.removeClass('active');
+        }
+    }
+    
+    // 防抖函數
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // 顯示提醒訊息
+    function showAlert(type, message) {
+        // 實現提醒訊息顯示
+        console.log(type + ': ' + message);
+    }
+    
+    // 初始預覽更新
+    updatePreview();
+});
+</script>
+{%- endblock -%}

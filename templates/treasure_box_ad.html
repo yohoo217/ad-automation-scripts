@@ -1,0 +1,498 @@
+{% extends "base.html" %}
+
+{% block title %}寶箱廣告建立{% endblock %}
+
+{% block page_title %}建立寶箱廣告{% endblock %}
+
+{% block additional_styles %}
+<style>
+    .treasure-box-controls {
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .treasure-item {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+    .clear-form-btn {
+        background-color: #f44336;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 15px;
+    }
+    .clear-form-btn:hover {
+        background-color: #d32f2f;
+    }
+    .main-content-wrapper {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    .form-column {
+        flex: 1;
+        min-width: 0;
+    }
+    .preview-column {
+        width: 300px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 20px;
+    }
+    .ad-preview-container {
+        width: 300px;
+        height: 250px;
+        border: 2px solid #333;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        background-color: #000;
+        overflow: hidden;
+    }
+    .ad-preview-header {
+        padding: 2px 8px;
+        font-size: 12px;
+        color: #cd9601;
+        text-align: left;
+    }
+    .ad-preview-main {
+        flex-grow: 1;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        height: 157px;
+        background-color: #000;
+    }
+    .ad-preview-title {
+        padding: 4px 8px;
+        font-weight: bold;
+        font-size: 14px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: white;
+    }
+    .ad-preview-subtitle {
+        padding: 4px 8px;
+        font-size: 12px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: gray;
+    }
+    .ad-preview-footer {
+        display: flex;
+        font-size: 12px;
+    }
+    .ad-preview-advertiser {
+        flex-grow: 1;
+        padding: 4px 8px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: gray;
+    }
+    .ad-preview-cta {
+        padding: 4px 12px;
+        font-weight: bold;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 5px;
+        margin: 4px;
+    }
+    #preview-treasure-box {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+        background-size: cover;
+        background-position: center;
+    }
+    .treasure-box-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .treasure-box-item {
+        width: 60px;
+        height: 60px;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+    .treasure-box-item:hover {
+        transform: scale(1.1);
+    }
+    .treasure-logo {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 40px;
+        height: 40px;
+    }
+    .form-group-section {
+        background: #f8f9fa;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+    }
+    .section-title {
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 15px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #dee2e6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-content-wrapper">
+    <div class="form-column">
+        <form action="{{ url_for('main.clear_treasure_box_form') }}" method="post" style="display: inline;">
+            <button type="submit" class="clear-form-btn" onclick="return confirm('確定要清除所有填寫的內容嗎？')">清除所有內容</button>
+        </form>
+
+        <form action="{{ url_for('main.create_treasure_box_ad') }}" method="post" id="ad-form">
+            <div class="field-group">
+                <h3>📋 基本廣告資訊</h3>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="adset_id">Adset ID <span class="required">*</span></label>
+                        <input type="text" id="adset_id" name="adset_id" value="{{ form_data.get('adset_id', '') }}" required
+                               placeholder="例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7">
+                        <div class="help-text">廣告組ID，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="display_name">廣告單元顯示名稱</label>
+                        <input type="text" id="display_name" name="display_name" value="{{ form_data.get('display_name', '') }}"
+                               placeholder="僅供後台顯示使用">
+                        <div class="help-text">僅顯示於後台，可選</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="advertiser">廣告商 <span class="required">*</span></label>
+                        <input type="text" id="advertiser" name="advertiser" value="{{ form_data.get('advertiser', '') }}" required
+                               placeholder="廣告主名稱">
+                        <div class="help-text">廣告主名稱，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="main_title">主標題 <span class="required">*</span></label>
+                        <input type="text" id="main_title" name="main_title" value="{{ form_data.get('main_title', '') }}" required
+                               placeholder="廣告主標題">
+                        <div class="help-text">廣告主標題，必填</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="subtitle">文字敘述</label>
+                        <input type="text" id="subtitle" name="subtitle" value="{{ form_data.get('subtitle', '') }}"
+                               placeholder="廣告副標題（可選）">
+                        <div class="help-text">廣告副標題，可選</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="call_to_action">行動呼籲按鈕文字</label>
+                        <input type="text" id="call_to_action" name="call_to_action" value="{{ form_data.get('call_to_action', '立即了解') }}"
+                               placeholder="立即了解">
+                        <div class="help-text">CTA按鈕文字，預設為「立即了解」</div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <label for="landing_page">到達頁面網址 <span class="required">*</span></label>
+                    <input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" 
+                           value="{{ form_data.get('landing_page', '') }}" required>
+                    <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <h3>廣告素材</h3>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="image_path_m">大尺寸圖片 1200x628 <span class="required">*</span></label>
+                        <input type="text" id="image_path_m" name="image_path_m" 
+                               placeholder="/path/to/your/image_1200x628.jpg" 
+                               value="{{ form_data.get('image_path_m', '') }}" required>
+                        <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="image_path_s">小尺寸圖片 300x300 <span class="required">*</span></label>
+                        <input type="text" id="image_path_s" name="image_path_s" 
+                               placeholder="/path/to/your/image_300x300.jpg" 
+                               value="{{ form_data.get('image_path_s', '') }}" required>
+                        <div class="help-text">方形圖片，尺寸300x300像素</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group-section">
+                <h5 class="section-title">🎁 寶箱遊戲設定</h5>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="img_logo">品牌 Logo 圖片 URL <span class="required">*</span></label>
+                        <input type="text" id="img_logo" name="img_logo" 
+                               value="{{ form_data.get('img_logo', '') }}" required
+                               placeholder="品牌 Logo 圖片網址">
+                        <div class="help-text">顯示在寶箱遊戲中的品牌Logo</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="img_background">背景圖片 URL <span class="required">*</span></label>
+                        <input type="text" id="img_background" name="img_background" 
+                               value="{{ form_data.get('img_background', '') }}" required
+                               placeholder="背景圖片網址">
+                        <div class="help-text">寶箱遊戲背景圖片</div>
+                    </div>
+                </div>
+                
+                <h6 style="margin-top: 20px; margin-bottom: 10px;">寶箱圖片設定</h6>
+                <div class="form-grid-3">
+                    <div class="form-row">
+                        <label for="img_item_idle">寶箱閒置狀態 <span class="required">*</span></label>
+                        <input type="text" id="img_item_idle" name="img_item_idle" 
+                               value="{{ form_data.get('img_item_idle', '') }}" required
+                               placeholder="寶箱閒置時的圖片網址">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="img_item_pressed">寶箱按下狀態 <span class="required">*</span></label>
+                        <input type="text" id="img_item_pressed" name="img_item_pressed" 
+                               value="{{ form_data.get('img_item_pressed', '') }}" required
+                               placeholder="寶箱被按下時的圖片網址">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="img_item_activated">寶箱激活狀態 <span class="required">*</span></label>
+                        <input type="text" id="img_item_activated" name="img_item_activated" 
+                               value="{{ form_data.get('img_item_activated', '') }}" required
+                               placeholder="寶箱激活時的圖片網址">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group-section">
+                <h5 class="section-title">🏆 獎品設定</h5>
+                
+                <h6>獎品 1</h6>
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="items_active_1">激活狀態圖片 <span class="required">*</span></label>
+                        <input type="text" id="items_active_1" name="items_active_1" 
+                               value="{{ form_data.get('items_active_1', '') }}" required
+                               placeholder="獎品1激活時的圖片網址">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="items_idle_1">閒置狀態圖片 <span class="required">*</span></label>
+                        <input type="text" id="items_idle_1" name="items_idle_1" 
+                               value="{{ form_data.get('items_idle_1', '') }}" required
+                               placeholder="獎品1閒置時的圖片網址">
+                    </div>
+                </div>
+                
+                <h6>獎品 2</h6>
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="items_active_2">激活狀態圖片 <span class="required">*</span></label>
+                        <input type="text" id="items_active_2" name="items_active_2" 
+                               value="{{ form_data.get('items_active_2', '') }}" required
+                               placeholder="獎品2激活時的圖片網址">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="items_idle_2">閒置狀態圖片 <span class="required">*</span></label>
+                        <input type="text" id="items_idle_2" name="items_idle_2" 
+                               value="{{ form_data.get('items_idle_2', '') }}" required
+                               placeholder="獎品2閒置時的圖片網址">
+                    </div>
+                </div>
+                
+                <h6>獎品 3</h6>
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="items_active_3">激活狀態圖片 <span class="required">*</span></label>
+                        <input type="text" id="items_active_3" name="items_active_3" 
+                               value="{{ form_data.get('items_active_3', '') }}" required
+                               placeholder="獎品3激活時的圖片網址">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="items_idle_3">閒置狀態圖片 <span class="required">*</span></label>
+                        <input type="text" id="items_idle_3" name="items_idle_3" 
+                               value="{{ form_data.get('items_idle_3', '') }}" required
+                               placeholder="獎品3閒置時的圖片網址">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group-section">
+                <h5 class="section-title">🔗 互動彈窗 URL 設定</h5>
+                
+                <div class="form-row">
+                    <label for="url_interactive_a">互動彈窗 A 的 URL <span class="required">*</span></label>
+                    <input type="url" id="url_interactive_a" name="url_interactive_a" 
+                           value="{{ form_data.get('url_interactive_a', '') }}" required
+                           placeholder="https://example.com/popup-a">
+                    <div class="help-text">獎品A對應的彈窗URL</div>
+                </div>
+                
+                <div class="form-row">
+                    <label for="url_interactive_b">互動彈窗 B 的 URL <span class="required">*</span></label>
+                    <input type="url" id="url_interactive_b" name="url_interactive_b" 
+                           value="{{ form_data.get('url_interactive_b', '') }}" required
+                           placeholder="https://example.com/popup-b">
+                    <div class="help-text">獎品B對應的彈窗URL</div>
+                </div>
+                
+                <div class="form-row">
+                    <label for="url_interactive_c">互動彈窗 C 的 URL <span class="required">*</span></label>
+                    <input type="url" id="url_interactive_c" name="url_interactive_c" 
+                           value="{{ form_data.get('url_interactive_c', '') }}" required
+                           placeholder="https://example.com/popup-c">
+                    <div class="help-text">獎品C對應的彈窗URL</div>
+                </div>
+            </div>
+            
+            <input type="submit" value="🎁 建立寶箱廣告">
+        </form>
+    </div>
+
+    <div class="preview-column">
+        <div class="preview-section">
+            <h3 style="color: #333; margin-bottom: 15px; font-size: 16px; font-weight: 600;">🎁 寶箱廣告即時預覽</h3>
+            <div class="ad-preview-container">
+                <div class="ad-preview-header">廣告</div>
+                <div class="ad-preview-main">
+                    <div id="preview-treasure-box">
+                        <div class="treasure-box-container">
+                            <img id="preview-treasure-logo" class="treasure-logo" src="" alt="品牌Logo" style="display: none;">
+                            <img id="preview-treasure-item" class="treasure-box-item" src="" alt="寶箱" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+                <div id="preview-main-title" class="ad-preview-title">主標題</div>
+                <div id="preview-subtitle" class="ad-preview-subtitle">文字敘述</div>
+                <div class="ad-preview-footer">
+                    <div id="preview-advertiser" class="ad-preview-advertiser">廣告商</div>
+                    <div id="preview-call-to-action" class="ad-preview-cta">行動呼籲按鈕文字</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('ad-form');
+        
+        // 即時預覽更新
+        function updatePreview() {
+            // 更新基本資訊
+            const mainTitle = document.getElementById('main_title').value || '主標題';
+            const subtitle = document.getElementById('subtitle').value || '文字敘述';
+            const advertiser = document.getElementById('advertiser').value || '廣告商';
+            const callToAction = document.getElementById('call_to_action').value || '立即了解';
+            
+            document.getElementById('preview-main-title').textContent = mainTitle;
+            document.getElementById('preview-subtitle').textContent = subtitle;
+            document.getElementById('preview-advertiser').textContent = advertiser;
+            document.getElementById('preview-call-to-action').textContent = callToAction;
+            
+            // 更新寶箱預覽
+            const backgroundUrl = document.getElementById('img_background').value;
+            const logoUrl = document.getElementById('img_logo').value;
+            const treasureBoxUrl = document.getElementById('img_item_idle').value;
+            
+            const previewContainer = document.getElementById('preview-treasure-box');
+            const logoImg = document.getElementById('preview-treasure-logo');
+            const treasureImg = document.getElementById('preview-treasure-item');
+            
+            if (backgroundUrl) {
+                previewContainer.style.backgroundImage = `url(${backgroundUrl})`;
+            }
+            
+            if (logoUrl) {
+                logoImg.src = logoUrl;
+                logoImg.style.display = 'block';
+            } else {
+                logoImg.style.display = 'none';
+            }
+            
+            if (treasureBoxUrl) {
+                treasureImg.src = treasureBoxUrl;
+                treasureImg.style.display = 'block';
+            } else {
+                treasureImg.style.display = 'none';
+            }
+        }
+        
+        // 為所有輸入欄位添加事件監聽
+        const inputs = form.querySelectorAll('input[type="text"], input[type="url"]');
+        inputs.forEach(input => {
+            input.addEventListener('input', updatePreview);
+        });
+        
+        // 初始預覽
+        updatePreview();
+        
+        // 表單驗證
+        form.addEventListener('submit', function(e) {
+            const requiredFields = [
+                'adset_id', 'advertiser', 'main_title', 'landing_page',
+                'image_path_m', 'image_path_s', 'img_logo', 'img_background',
+                'img_item_idle', 'img_item_pressed', 'img_item_activated',
+                'items_active_1', 'items_idle_1', 'items_active_2', 'items_idle_2',
+                'items_active_3', 'items_idle_3', 'url_interactive_a', 
+                'url_interactive_b', 'url_interactive_c'
+            ];
+            
+            let isValid = true;
+            requiredFields.forEach(fieldName => {
+                const field = document.getElementById(fieldName);
+                if (!field.value.trim()) {
+                    field.style.borderColor = 'red';
+                    isValid = false;
+                } else {
+                    field.style.borderColor = '';
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('請填寫所有必填欄位！');
+            }
+        });
+    });
+</script>
+{% endblock %} 

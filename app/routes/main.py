@@ -960,6 +960,111 @@ def create_gif_ad():
         flash(f"創建 GIF 廣告時發生錯誤: {str(e)}", 'error')
         return redirect(url_for('main.gif_ad'))
 
+@main_bp.route('/create-treasure-box-ad', methods=['POST'])
+def create_treasure_box_ad():
+    """處理寶箱廣告創建"""
+    try:
+        # 獲取基本表單數據（支援來自 index.html 的 treasure_ 前綴欄位）
+        ad_data = {
+            'adset_id': request.form.get('treasure_adset_id', request.form.get('adset_id', '')),
+            'display_name': request.form.get('treasure_display_name', request.form.get('display_name', '')),
+            'advertiser': request.form.get('treasure_advertiser', request.form.get('advertiser', '')),
+            'main_title': request.form.get('treasure_main_title', request.form.get('main_title', '')),
+            'subtitle': request.form.get('treasure_subtitle', request.form.get('subtitle', '')),
+            'landing_page': request.form.get('treasure_landing_page', request.form.get('landing_page', '')),
+            'call_to_action': request.form.get('treasure_call_to_action', request.form.get('call_to_action', '開啟寶箱')),
+            'image_path_m': request.form.get('image_path_m', ''),
+            'image_path_s': request.form.get('image_path_s', ''),
+            
+            # 寶箱廣告特定欄位（支援 treasure_ 前綴）
+            'img_logo': request.form.get('treasure_img_logo', request.form.get('img_logo', '')),
+            'img_background': request.form.get('treasure_img_background', request.form.get('img_background', '')),
+            'img_item_idle': request.form.get('treasure_img_item_idle', request.form.get('img_item_idle', '')),
+            'img_item_pressed': request.form.get('treasure_img_item_pressed', request.form.get('img_item_pressed', '')),
+            'img_item_activated': request.form.get('treasure_img_item_activated', request.form.get('img_item_activated', '')),
+            'items_active_1': request.form.get('treasure_items_active_1', request.form.get('items_active_1', '')),
+            'items_idle_1': request.form.get('treasure_items_idle_1', request.form.get('items_idle_1', '')),
+            'items_active_2': request.form.get('treasure_items_active_2', request.form.get('items_active_2', '')),
+            'items_idle_2': request.form.get('treasure_items_idle_2', request.form.get('items_idle_2', '')),
+            'items_active_3': request.form.get('treasure_items_active_3', request.form.get('items_active_3', '')),
+            'items_idle_3': request.form.get('treasure_items_idle_3', request.form.get('items_idle_3', '')),
+            'url_interactive_a': request.form.get('treasure_url_interactive_a', request.form.get('url_interactive_a', '')),
+            'url_interactive_b': request.form.get('treasure_url_interactive_b', request.form.get('url_interactive_b', '')),
+            'url_interactive_c': request.form.get('treasure_url_interactive_c', request.form.get('url_interactive_c', ''))
+        }
+        
+        # 保存表單數據到 session
+        session['treasure_box_form_data'] = ad_data
+        
+        # 建構寶箱專用的 payload_game_widget
+        treasure_box_payload = {
+            "type": "CHEST",
+            "data": {
+                "items": [
+                    {
+                        "active": ad_data.get('items_active_1', ''),
+                        "idle": ad_data.get('items_idle_1', '')
+                    },
+                    {
+                        "active": ad_data.get('items_active_2', ''),
+                        "idle": ad_data.get('items_idle_2', '')
+                    },
+                    {
+                        "active": ad_data.get('items_active_3', ''),
+                        "idle": ad_data.get('items_idle_3', '')
+                    }
+                ],
+                "img_logo": ad_data.get('img_logo', ''),
+                "img_background": ad_data.get('img_background', ''),
+                "img_item_idle": ad_data.get('img_item_idle', ''),
+                "img_item_pressed": ad_data.get('img_item_pressed', ''),
+                "img_item_activated": ad_data.get('img_item_activated', '')
+            }
+        }
+        
+        # 建構 urlInteractivePopups
+        url_interactive_popups = [
+            {
+                "key": "a",
+                "url": ad_data.get('url_interactive_a', '')
+            },
+            {
+                "key": "b", 
+                "url": ad_data.get('url_interactive_b', '')
+            },
+            {
+                "key": "c",
+                "url": ad_data.get('url_interactive_c', '')
+            }
+        ]
+        
+        # 將 payload 和 urlInteractivePopups 添加到 ad_data
+        ad_data['payload_game_widget'] = json.dumps(treasure_box_payload, ensure_ascii=False)
+        ad_data['urlInteractivePopups'] = json.dumps(url_interactive_popups, ensure_ascii=False)
+        
+        # 實際調用 suprad 腳本建立廣告
+        try:
+            # 調用 suprad 腳本
+            with sync_playwright() as playwright:
+                result = run_suprad(playwright, ad_data, 'treasure_box')
+            
+            if result:
+                flash("寶箱廣告創建成功！", 'success')
+                return redirect(url_for('main.treasure_box_ad'))
+            else:
+                flash("寶箱廣告創建失敗", 'error')
+                return redirect(url_for('main.treasure_box_ad'))
+                
+        except Exception as e:
+            logger.error(f"調用 suprad 腳本時發生錯誤: {str(e)}")
+            flash(f"調用 suprad 腳本時發生錯誤: {str(e)}", 'error')
+            return redirect(url_for('main.treasure_box_ad'))
+    
+    except Exception as e:
+        logger.error(f"創建寶箱廣告時發生錯誤: {str(e)}")
+        flash(f"創建寶箱廣告時發生錯誤: {str(e)}", 'error')
+        return redirect(url_for('main.treasure_box_ad'))
+
 def parse_popup_payloads(form_data):
     """從表單數據中解析 payload_popup_json 和 payload_game_widget。"""
     popup_payload = {}
@@ -1616,3 +1721,16 @@ def save_form_data():
     except Exception as e:
         logger.error(f"Error saving form data to session: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main_bp.route('/treasure-box-ad')
+def treasure_box_ad():
+    """寶箱廣告頁面"""
+    form_data = session.get('treasure_box_form_data', {})
+    return render_template('treasure_box_ad.html', form_data=form_data)
+
+@main_bp.route('/clear-treasure-box-form', methods=['POST'])
+def clear_treasure_box_form():
+    """清除寶箱廣告表單數據"""
+    session.pop('treasure_box_form_data', None)
+    flash("表單內容已清除", 'info')
+    return redirect(url_for('main.treasure_box_ad'))

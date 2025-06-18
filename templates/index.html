@@ -203,6 +203,7 @@ l   文案：
             <div class="tabs">
                 <div class="tab {% if active_tab == 'native-ad' %}active{% endif %}" data-tab="native-ad">原生廣告</div>
                 <div class="tab {% if active_tab == 'gif-ad' %}active{% endif %}" data-tab="gif-ad">GIF 廣告</div>
+                <div class="tab {% if active_tab == 'treasure-box-ad' %}active{% endif %}" data-tab="treasure-box-ad">寶箱廣告</div>
                 <div class="tab {% if active_tab == 'slide-ad' %}active{% endif %}" data-tab="slide-ad">水平 Slide 廣告</div>
                 <div class="tab {% if active_tab == 'vertical-slide-ad' %}active{% endif %}" data-tab="vertical-slide-ad">垂直 Slide 廣告</div>
                 <div class="tab {% if active_tab == 'vertical-cube-slide-ad' %}active{% endif %}" data-tab="vertical-cube-slide-ad">垂直 Cube Slide 廣告</div>
@@ -440,6 +441,165 @@ l   文案：
                         <div class="help-text">點擊後跳轉的目標網址，必填</div>
                     </div>
                     <input type="hidden" id="gif_payload_game_widget" name="gif_payload_game_widget">
+                </div>
+            </div>
+
+            <div id="treasure-box-ad" class="tab-content {% if active_tab == 'treasure-box-ad' %}active{% endif %}">
+                <div class="field-group">
+                    <h3>廣告資訊</h3>
+                    <table>
+                        <tr>
+                            <th width="30%">欄位名稱</th>
+                            <th>內容</th>
+                        </tr>
+                        <tr>
+                            <td><label for="treasure_adset_id">Adset ID <span class="required">*</span></label></td>
+                            <td><input type="text" id="treasure_adset_id" name="treasure_adset_id" value="{{ treasure_adset_id or '' }}" required>
+                                <div class="help-text">廣告組ID，必填，例如：00947c1b-f7cd-47c6-a23a-0639e9702cc7</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="treasure_display_name">廣告單元顯示名稱</label></td>
+                            <td><input type="text" id="treasure_display_name" name="treasure_display_name" value="{{ treasure_display_name or '' }}">
+                                <div class="help-text">僅顯示於後台，可選</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="treasure_advertiser">廣告商 <span class="required">*</span></label></td>
+                            <td><input type="text" id="treasure_advertiser" name="treasure_advertiser" value="{{ treasure_advertiser or '' }}" required>
+                                <div class="help-text">廣告主名稱，必填</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="treasure_main_title">主標題 <span class="required">*</span></label></td>
+                            <td><input type="text" id="treasure_main_title" name="treasure_main_title" value="{{ treasure_main_title or '' }}" required>
+                                <div class="help-text">廣告主標題，必填</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="treasure_subtitle">副標題</label></td>
+                            <td><input type="text" id="treasure_subtitle" name="treasure_subtitle" value="{{ treasure_subtitle or '' }}">
+                                <div class="help-text">廣告副標題，可選</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="treasure_landing_page">到達頁面網址 <span class="required">*</span></label></td>
+                            <td><input type="url" id="treasure_landing_page" name="treasure_landing_page" placeholder="https://example.com" value="{{ treasure_landing_page or '' }}" required>
+                                <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="treasure_call_to_action">行動呼籲按鈕文字</label></td>
+                            <td><input type="text" id="treasure_call_to_action" name="treasure_call_to_action" value="{{ treasure_call_to_action or '開啟寶箱' }}">
+                                <div class="help-text">CTA按鈕文字，預設為「開啟寶箱」</div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="field-group">
+                    <h3>寶箱遊戲設定 <span class="required">*</span></h3>
+                    <p>所有圖片都是必填。請提供完整的圖片網址。</p>
+                    
+                    <div class="form-row">
+                        <label for="treasure_img_logo">品牌 Logo 圖片 URL <span class="required">*</span></label>
+                        <input type="url" id="treasure_img_logo" name="treasure_img_logo" placeholder="https://example.com/logo.png" value="{{ treasure_img_logo or '' }}" required>
+                        <div class="help-text">品牌 Logo 圖片網址，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="treasure_img_background">背景圖片 URL <span class="required">*</span></label>
+                        <input type="url" id="treasure_img_background" name="treasure_img_background" placeholder="https://example.com/background.jpg" value="{{ treasure_img_background or '' }}" required>
+                        <div class="help-text">遊戲背景圖片網址，必填</div>
+                    </div>
+                    
+                    <h4>寶箱狀態圖片</h4>
+                    <div class="form-row">
+                        <label for="treasure_img_item_idle">寶箱閒置狀態圖片 URL <span class="required">*</span></label>
+                        <input type="url" id="treasure_img_item_idle" name="treasure_img_item_idle" placeholder="https://example.com/chest_idle.png" value="{{ treasure_img_item_idle or '' }}" required>
+                        <div class="help-text">寶箱閒置時的圖片網址，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="treasure_img_item_pressed">寶箱按下狀態圖片 URL <span class="required">*</span></label>
+                        <input type="url" id="treasure_img_item_pressed" name="treasure_img_item_pressed" placeholder="https://example.com/chest_pressed.png" value="{{ treasure_img_item_pressed or '' }}" required>
+                        <div class="help-text">寶箱被按下時的圖片網址，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="treasure_img_item_activated">寶箱激活狀態圖片 URL <span class="required">*</span></label>
+                        <input type="url" id="treasure_img_item_activated" name="treasure_img_item_activated" placeholder="https://example.com/chest_opened.png" value="{{ treasure_img_item_activated or '' }}" required>
+                        <div class="help-text">寶箱激活開啟時的圖片網址，必填</div>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <h3>獎品設定 <span class="required">*</span></h3>
+                    <p>設定三個獎品的激活和閒置狀態圖片。</p>
+                    
+                    <h4>獎品 1</h4>
+                    <div class="form-row">
+                        <label for="treasure_items_active_1">獎品1激活狀態圖片 URL <span class="required">*</span></label>
+                        <input type="url" id="treasure_items_active_1" name="treasure_items_active_1" placeholder="https://example.com/reward1_active.png" value="{{ treasure_items_active_1 or '' }}" required>
+                        <div class="help-text">獎品1激活時的圖片網址，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="treasure_items_idle_1">獎品1閒置狀態圖片 URL <span class="required">*</span></label>
+                        <input type="url" id="treasure_items_idle_1" name="treasure_items_idle_1" placeholder="https://example.com/reward1_idle.png" value="{{ treasure_items_idle_1 or '' }}" required>
+                        <div class="help-text">獎品1閒置時的圖片網址，必填</div>
+                    </div>
+                    
+                    <h4>獎品 2</h4>
+                    <div class="form-row">
+                        <label for="treasure_items_active_2">獎品2激活狀態圖片 URL <span class="required">*</span></label>
+                        <input type="url" id="treasure_items_active_2" name="treasure_items_active_2" placeholder="https://example.com/reward2_active.png" value="{{ treasure_items_active_2 or '' }}" required>
+                        <div class="help-text">獎品2激活時的圖片網址，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="treasure_items_idle_2">獎品2閒置狀態圖片 URL <span class="required">*</span></label>
+                        <input type="url" id="treasure_items_idle_2" name="treasure_items_idle_2" placeholder="https://example.com/reward2_idle.png" value="{{ treasure_items_idle_2 or '' }}" required>
+                        <div class="help-text">獎品2閒置時的圖片網址，必填</div>
+                    </div>
+                    
+                    <h4>獎品 3</h4>
+                    <div class="form-row">
+                        <label for="treasure_items_active_3">獎品3激活狀態圖片 URL <span class="required">*</span></label>
+                        <input type="url" id="treasure_items_active_3" name="treasure_items_active_3" placeholder="https://example.com/reward3_active.png" value="{{ treasure_items_active_3 or '' }}" required>
+                        <div class="help-text">獎品3激活時的圖片網址，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="treasure_items_idle_3">獎品3閒置狀態圖片 URL <span class="required">*</span></label>
+                        <input type="url" id="treasure_items_idle_3" name="treasure_items_idle_3" placeholder="https://example.com/reward3_idle.png" value="{{ treasure_items_idle_3 or '' }}" required>
+                        <div class="help-text">獎品3閒置時的圖片網址，必填</div>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <h3>互動彈窗設定 <span class="required">*</span></h3>
+                    <p>設定三個互動彈窗的 URL。</p>
+                    
+                    <div class="form-row">
+                        <label for="treasure_url_interactive_a">互動彈窗 A 的 URL <span class="required">*</span></label>
+                        <input type="url" id="treasure_url_interactive_a" name="treasure_url_interactive_a" placeholder="https://example.com/popup_a" value="{{ treasure_url_interactive_a or '' }}" required>
+                        <div class="help-text">互動彈窗 A 的 URL，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="treasure_url_interactive_b">互動彈窗 B 的 URL <span class="required">*</span></label>
+                        <input type="url" id="treasure_url_interactive_b" name="treasure_url_interactive_b" placeholder="https://example.com/popup_b" value="{{ treasure_url_interactive_b or '' }}" required>
+                        <div class="help-text">互動彈窗 B 的 URL，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="treasure_url_interactive_c">互動彈窗 C 的 URL <span class="required">*</span></label>
+                        <input type="url" id="treasure_url_interactive_c" name="treasure_url_interactive_c" placeholder="https://example.com/popup_c" value="{{ treasure_url_interactive_c or '' }}" required>
+                        <div class="help-text">互動彈窗 C 的 URL，必填</div>
+                    </div>
+                    
+                    <input type="hidden" id="treasure_payload_game_widget" name="treasure_payload_game_widget">
                 </div>
             </div>
 

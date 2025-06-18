@@ -47,12 +47,19 @@ def create_native_ad():
         session['form_data'] = ad_data
         
         # 驗證必填欄位
-        required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page', 
-                          'image_path_m', 'image_path_o', 'image_path_p', 'image_path_s']
+        required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page']
         missing_fields = [field for field in required_fields if not ad_data[field]]
+        
+        # 檢查圖片欄位，至少需要一個
+        image_fields = ['image_path_m', 'image_path_o', 'image_path_p', 'image_path_s']
+        has_image = any(ad_data[field] for field in image_fields)
         
         if missing_fields:
             flash(f"缺少必填欄位: {', '.join(missing_fields)}", 'error')
+            return redirect(url_for('native_ad.native_ad'))
+            
+        if not has_image:
+            flash("至少需要填寫一個圖片路徑", 'error')
             return redirect(url_for('native_ad.native_ad'))
         
         # 嘗試創建廣告
@@ -135,9 +142,12 @@ def create_batch_ads():
         }
         
         # 簡單的驗證
-        required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page', 
-                       'image_path_m', 'image_path_o', 'image_path_p', 'image_path_s']
+        required_fields = ['advertiser', 'main_title', 'adset_id', 'landing_page']
         missing_fields = [field for field in required_fields if not ad_data[field]]
+        
+        # 檢查圖片欄位，至少需要一個
+        image_fields = ['image_path_m', 'image_path_o', 'image_path_p', 'image_path_s']
+        has_image = any(ad_data[field] for field in image_fields)
         
         if missing_fields:
             has_validation_error = True
@@ -145,6 +155,15 @@ def create_batch_ads():
                 'index': i,
                 'display_name': ad_data['display_name'] or f'廣告 #{i}',
                 'reason': f"缺少必填欄位: {', '.join(missing_fields)}"
+            })
+            continue
+            
+        if not has_image:
+            has_validation_error = True
+            failed_ads.append({
+                'index': i,
+                'display_name': ad_data['display_name'] or f'廣告 #{i}',
+                'reason': "至少需要填寫一個圖片路徑"
             })
             continue
             

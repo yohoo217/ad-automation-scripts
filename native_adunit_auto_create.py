@@ -89,54 +89,75 @@ def run(playwright: Playwright, ad_data: dict) -> bool:
         page.get_by_role("textbox", name="自由輸入").fill(ad_data.get('call_to_action', '瞭解詳情')) # call to action, with default
 
         
-    # 新增可插入選項
-        for _ in range(4):
+        # 檢查有哪些圖片需要上傳
+        image_uploads = []
+        
+        if ad_data.get('image_path_m'):
+            image_uploads.append({
+                'path': ad_data['image_path_m'],
+                'name': '1200x628',
+                'selector_text': None,  # 第一個圖片不需要選擇器
+                'description': '第一張圖片 (1200x628)'
+            })
+            
+        if ad_data.get('image_path_p'):
+            image_uploads.append({
+                'path': ad_data['image_path_p'],
+                'name': '300x300',
+                'selector_text': '* 正方形圖片 (300 × 300)',
+                'description': '正方形圖片 (300x300)'
+            })
+            
+        if ad_data.get('image_path_o'):
+            image_uploads.append({
+                'path': ad_data['image_path_o'],
+                'name': '640x100',
+                'selector_text': '* 橫幅640x100 (640 × 100)',
+                'description': '橫幅圖片 (640x100)'
+            })
+            
+        if ad_data.get('image_path_s'):
+            image_uploads.append({
+                'path': ad_data['image_path_s'],
+                'name': '336x280',
+                'selector_text': '* 橫幅336 (336 × 280)',
+                'description': '橫幅圖片 (336x280)'
+            })
+
+        # 確保至少有一張圖片
+        if not image_uploads:
+            raise Exception("至少需要提供一張圖片")
+
+        log_message(f"準備上傳 {len(image_uploads)} 張圖片")
+
+        # 新增可插入選項（根據需要上傳的圖片數量）
+        for _ in range(len(image_uploads)):
             page.get_by_role("button", name="").first.click()
             page.wait_for_timeout(300)  # 等待300毫秒，避免點擊太快
 
-   # 插入圖片 - 第一次
-        # 在點擊之前添加等待
-        # 使用 JavaScript 找到並點擊包含特定文字的選項，不知道為什麼這會改到第一個圖片，所以第一個圖片會變成 336x280
-
-        log_message(f"設置第一張圖片: {ad_data['image_path_m']}")
-        page.locator('input[type="file"]').nth(0).set_input_files(ad_data['image_path_m'])
-        page.get_by_role("button", name="儲存").click()
-
-    # 插入圖片 - 第二次，因為 input 位置名稱都重複，位置順序又會因為新增插入選項而變動，所以順序現在看起來怪怪的，但可以 work
-        log_message("插入第二張圖片 - 300x300")
-        page.get_by_placeholder("請選擇").nth(1).click()
-        page.wait_for_timeout(500)
-        page.get_by_text("* 正方形圖片 (300 × 300)").nth(3).click()
-
-        log_message(f"設置第二張圖片: {ad_data['image_path_p']}")
-        page.locator('input[type="file"]').nth(1).set_input_files(ad_data['image_path_p'])
-        page.get_by_role("button", name="儲存").click()
-        page.wait_for_timeout(500)
-
-    # 插入圖片 - 第三次
-        log_message("插入第三張圖片 - 640x100")
-        page.get_by_placeholder("請選擇").nth(2).click()
-        page.get_by_text("* 橫幅640x100 (640 × 100)").nth(3).click()
-
-        log_message(f"設置第三張圖片: {ad_data['image_path_o']}")
-        page.locator('input[type="file"]').nth(2).set_input_files(ad_data['image_path_o'])
-        page.get_by_role("button", name="儲存").click()
-
-        # 插入圖片 - 第四次
-        log_message("插入第四張圖片 - 336x280")
-        page.get_by_placeholder("請選擇").nth(3).click()
-        page.get_by_text("* 橫幅336 (336 × 280)").nth(3).click()
-
-        log_message(f"設置第四張圖片: {ad_data['image_path_s']}")
-        page.locator('input[type="file"]').nth(3).set_input_files(ad_data['image_path_s'])
-        page.get_by_role("button", name="儲存").click()
+        # 動態處理圖片上傳
+        for i, upload_info in enumerate(image_uploads):
+            log_message(f"設置{upload_info['description']}: {upload_info['path']}")
+            
+            # 第一張圖片不需要選擇類型（預設已經選好）
+            if i > 0 and upload_info['selector_text']:
+                page.get_by_placeholder("請選擇").nth(i).click()
+                page.wait_for_timeout(500)
+                page.get_by_text(upload_info['selector_text']).nth(3).click()
+            
+            # 上傳圖片檔案
+            page.locator('input[type="file"]').nth(i).set_input_files(upload_info['path'])
+            page.get_by_role("button", name="儲存").click()
+            
+            if i < len(image_uploads) - 1:  # 不是最後一張圖片時才等待
+                page.wait_for_timeout(500)
 
         # Fill the tracking URL
         # 預設選 DCM
-        page.locator("button:has(i.fa-plus)").nth(1).click()  # 點擊第一個按鈕
-
-        page.wait_for_selector("input[placeholder='https://...']")  # 確保元素已加載
-        page.locator("input[placeholder='https://...']").nth(0).fill(ad_data['tracking_url'])
+        if ad_data.get('tracking_url'):
+            page.locator("button:has(i.fa-plus)").nth(1).click()  # 點擊第一個按鈕
+            page.wait_for_selector("input[placeholder='https://...']")  # 確保元素已加載
+            page.locator("input[placeholder='https://...']").nth(0).fill(ad_data['tracking_url'])
 
         page.get_by_role("button", name="新增廣告單元").click()
         page.get_by_role("button", name="確定").click()

@@ -197,7 +197,7 @@
                         <tr>
                             <th rowspan="2" style="width: 40px;">編號</th>
                             <th colspan="8" class="field-group">基本資料</th>
-                            <th colspan="4" class="field-group">圖片路徑</th>
+                            <th colspan="4" class="field-group">圖片路徑 (至少填寫一個)</th>
                             <th rowspan="2" style="width: 60px;">操作</th>
                         </tr>
                         <tr>
@@ -209,10 +209,10 @@
                             <th class="required-header" style="width: 160px;">到達頁面網址</th>
                             <th style="width: 120px;">按鈕文字</th>
                             <th style="width: 130px;">追蹤URL</th>
-                            <th class="required-header" style="width: 160px;">1200x628</th>
-                            <th class="required-header" style="width: 160px;">300x300</th>
-                            <th class="required-header" style="width: 160px;">640x100</th>
-                            <th class="required-header" style="width: 160px;">336x280</th>
+                            <th style="width: 160px;">1200x628</th>
+                            <th style="width: 160px;">300x300</th>
+                            <th style="width: 160px;">640x100</th>
+                            <th style="width: 160px;">336x280</th>
                         </tr>
                     </thead>
                     <tbody id="ad-table-body">
@@ -381,7 +381,7 @@
                     <td><input type="url" id="ad${rowCount}_tracking_url" name="ad${rowCount}_tracking_url"></td>
                     <td class="image-cell">
                         <div class="image-input-container">
-                            <input type="text" id="ad${rowCount}_image_path_m" name="ad${rowCount}_image_path_m" required>
+                            <input type="text" id="ad${rowCount}_image_path_m" name="ad${rowCount}_image_path_m">
                             <div class="preview-container">
                                 <label class="custom-file-upload">
                                     上傳圖片
@@ -393,7 +393,7 @@
                     </td>
                     <td class="image-cell">
                         <div class="image-input-container">
-                            <input type="text" id="ad${rowCount}_image_path_p" name="ad${rowCount}_image_path_p" required>
+                            <input type="text" id="ad${rowCount}_image_path_p" name="ad${rowCount}_image_path_p">
                             <div class="preview-container">
                                 <label class="custom-file-upload">
                                     上傳圖片
@@ -405,7 +405,7 @@
                     </td>
                     <td class="image-cell">
                         <div class="image-input-container">
-                            <input type="text" id="ad${rowCount}_image_path_o" name="ad${rowCount}_image_path_o" required>
+                            <input type="text" id="ad${rowCount}_image_path_o" name="ad${rowCount}_image_path_o">
                             <div class="preview-container">
                                 <label class="custom-file-upload">
                                     上傳圖片
@@ -417,7 +417,7 @@
                     </td>
                     <td class="image-cell">
                         <div class="image-input-container">
-                            <input type="text" id="ad${rowCount}_image_path_s" name="ad${rowCount}_image_path_s" required>
+                            <input type="text" id="ad${rowCount}_image_path_s" name="ad${rowCount}_image_path_s">
                             <div class="preview-container">
                                 <label class="custom-file-upload">
                                     上傳圖片
@@ -514,11 +514,12 @@
                     return;
                 }
                 
-                const requiredFields = ['adset_id', 'advertiser', 'main_title', 'landing_page', 
-                                        'image_path_m', 'image_path_p', 'image_path_o', 'image_path_s'];
+                const requiredFields = ['adset_id', 'advertiser', 'main_title', 'landing_page'];
+                const imageFields = ['image_path_m', 'image_path_p', 'image_path_o', 'image_path_s'];
                 let hasError = false;
                 
                 for (let i = 1; i <= rowCount; i++) {
+                    // 檢查基本必填欄位
                     for (const field of requiredFields) {
                         const inputId = `ad${i}_${field}`;
                         const input = document.getElementById(inputId);
@@ -530,11 +531,33 @@
                             input.style.borderColor = '';
                         }
                     }
+                    
+                    // 檢查圖片欄位，至少要有一個有值
+                    let hasImage = false;
+                    for (const field of imageFields) {
+                        const inputId = `ad${i}_${field}`;
+                        const input = document.getElementById(inputId);
+                        
+                        if (input && input.value.trim()) {
+                            hasImage = true;
+                            input.style.borderColor = '';
+                        }
+                    }
+                    
+                    if (!hasImage) {
+                        // 如果沒有任何圖片，將所有圖片欄位標紅
+                        for (const field of imageFields) {
+                            const inputId = `ad${i}_${field}`;
+                            const input = document.getElementById(inputId);
+                            if (input) input.style.borderColor = 'red';
+                        }
+                        hasError = true;
+                    }
                 }
                 
                 if (hasError) {
                     e.preventDefault();
-                    alert('請檢查並填寫所有必填欄位');
+                    alert('請檢查並填寫所有必填欄位，每列至少需要填寫一個圖片路徑');
                     
                     // 滾動到第一個錯誤
                     const firstErrorInput = document.querySelector('input[style*="border-color: red"]');

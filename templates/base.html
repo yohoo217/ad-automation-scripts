@@ -24,7 +24,14 @@
             border-radius: 8px; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.08); 
             max-width: 1400px; 
-            margin: 80px auto 0; 
+            margin: 90px auto 0; 
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 100px auto 0;
+                padding: 20px;
+            }
         }
         
         h1 { 
@@ -151,29 +158,103 @@
         }
         
         .nav-buttons {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             background-color: #fff;
-            padding: 15px 25px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            padding: 8px 15px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
             z-index: 1000;
+            border-bottom: 1px solid #e0e6ed;
+            min-height: 50px;
+        }
+        
+        .nav-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .nav-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            align-items: center;
         }
         
         .nav-button {
             background-color: #3498db;
-            margin: 0 3px;
-            font-size: 13px;
-            padding: 8px 16px;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.2s ease;
+            white-space: nowrap;
+            margin: 1px;
         }
         
         .nav-button:hover { 
             background-color: #2980b9;
+        }
+        
+        .nav-button.primary {
+            background-color: #e74c3c;
+            font-weight: 600;
+        }
+        
+        .nav-button.primary:hover {
+            background-color: #c0392b;
+        }
+        
+        .nav-button.secondary {
+            background-color: #27ae60;
+        }
+        
+        .nav-button.secondary:hover {
+            background-color: #229954;
+        }
+        
+        .nav-divider {
+            width: 1px;
+            height: 20px;
+            background-color: #ddd;
+            margin: 0 8px;
+        }
+        
+        @media (max-width: 1024px) {
+            .nav-buttons {
+                padding: 8px 10px;
+            }
+            
+            .nav-button {
+                font-size: 10px;
+                padding: 5px 8px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .nav-container {
+                justify-content: flex-start;
+            }
+            
+            .nav-button {
+                font-size: 9px;
+                padding: 4px 6px;
+            }
+            
+            .nav-divider {
+                display: none;
+            }
         }
         
         /* 新增的 Grid 布局樣式 */
@@ -440,20 +521,47 @@
 <body>
     <div class="container">
         <div class="nav-buttons">
-            <a href="{{ url_for('main.batch') }}" class="button nav-button">批量廣告創建</a>
-            <div>
-                <a href="{{ url_for('main.report') }}" class="button nav-button">報表</a>
-                <a href="{{ url_for('native_ad.native_ad') }}" class="button nav-button">原生廣告</a>
-                <a href="{{ url_for('main.popup_video_ad') }}" class="button nav-button">原生彈跳影音廣告</a>
-                <a href="{{ url_for('main.popup_video_slide_ad') }}" class="button nav-button">原生彈跳影音 slide 廣告</a>
-                <a href="{{ url_for('main.gif_ad') }}" class="button nav-button">GIF 廣告</a>
-                <a href="{{ url_for('main.slide_ad') }}" class="button nav-button">水平 Slide 廣告</a>
-                <a href="{{ url_for('main.vertical_slide_ad') }}" class="button nav-button">垂直 Slide 廣告</a>
-                <a href="{{ url_for('main.vertical_cube_slide_ad') }}" class="button nav-button">垂直 Cube Slide 廣告</a>
-                <a href="{{ url_for('main.vote_ad') }}" class="button nav-button">投票廣告</a>
-                <a href="{{ url_for('main.countdown_ad') }}" class="button nav-button">倒數廣告</a>
-                <a href="{{ url_for('screenshot.auto_screenshot') }}" class="button nav-button">SuprAd 自動截圖</a>
-                <a href="{{ url_for('screenshot.native_ad_screenshot') }}" class="button nav-button">Native 廣告截圖</a>
+            <div class="nav-container">
+                <!-- 主要功能 -->
+                <div class="nav-group">
+                    <a href="{{ url_for('main.batch') }}" class="nav-button secondary">批量廣告創建</a>
+                    <a href="{{ url_for('main.report') }}" class="nav-button secondary">報表</a>
+                </div>
+                
+                <div class="nav-divider"></div>
+                
+                <!-- 原生廣告 -->
+                <div class="nav-group">
+                    <a href="{{ url_for('native_ad.native_ad') }}" class="nav-button">原生廣告</a>
+                </div>
+                
+                <div class="nav-divider"></div>
+                
+                <!-- 彈跳影音類 -->
+                <div class="nav-group">
+                    <a href="{{ url_for('main.popup_video_ad') }}" class="nav-button">彈跳影音</a>
+                    <a href="{{ url_for('main.popup_video_slide_ad') }}" class="nav-button">彈跳影音slide</a>
+                </div>
+                
+                <div class="nav-divider"></div>
+                
+                <!-- 動態與互動廣告類 -->
+                <div class="nav-group">
+                    <a href="{{ url_for('main.gif_ad') }}" class="nav-button">GIF廣告</a>
+                    <a href="{{ url_for('main.slide_ad') }}" class="nav-button">水平Slide</a>
+                    <a href="{{ url_for('main.vertical_slide_ad') }}" class="nav-button">垂直Slide</a>
+                    <a href="{{ url_for('main.vertical_cube_slide_ad') }}" class="nav-button">垂直Cube</a>
+                    <a href="{{ url_for('main.vote_ad') }}" class="nav-button">投票廣告</a>
+                    <a href="{{ url_for('main.countdown_ad') }}" class="nav-button">倒數廣告</a>
+                </div>
+                
+                <div class="nav-divider"></div>
+                
+                <!-- 工具類 -->
+                <div class="nav-group">
+                    <a href="{{ url_for('screenshot.auto_screenshot') }}" class="nav-button secondary">SuprAd截圖</a>
+                    <a href="{{ url_for('screenshot.native_ad_screenshot') }}" class="nav-button secondary">Native截圖</a>
+                </div>
             </div>
         </div>
         

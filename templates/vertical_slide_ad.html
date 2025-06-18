@@ -46,7 +46,7 @@
     }
     .ad-preview-container {
         width: 300px;
-        height: 600px;
+        height: 250px;
         border: 2px solid #333;
         margin: 0;
         display: flex;
@@ -157,6 +157,17 @@
     }
     .preview-dot.active {
         background-color: #fff;
+    }
+    .preview-section {
+        background: transparent;
+        border: none;
+        padding: 0;
+        margin: 0;
+    }
+    .preview-section h3 {
+        background: transparent;
+        border: none;
+        padding: 0;
     }
 </style>
 {% endblock %}
@@ -288,8 +299,8 @@
         </form>
     </div>
     <div class="preview-column">
-        <div class="field-group">
-            <h3>🖼️ 廣告即時預覽</h3>
+        <div class="preview-section">
+            <h3 style="color: #333; margin-bottom: 15px; font-size: 16px; font-weight: 600;">🖼️ 廣告即時預覽</h3>
             <div class="ad-preview-container">
                 <div class="ad-preview-header">廣告</div>
                 <div class="ad-preview-main">

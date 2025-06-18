@@ -470,6 +470,8 @@ def clear_slide_form():
 def vertical_slide_ad():
     """垂直 Slide 廣告頁面"""
     form_data = session.get('form_data', {})
+    if 'slide_items' not in form_data:
+        form_data['slide_items'] = []
     return render_template('vertical_slide_ad.html', **form_data)
 
 @main_bp.route('/clear-vertical-slide-form', methods=['POST'])
@@ -483,6 +485,8 @@ def clear_vertical_slide_form():
 def vertical_cube_slide_ad():
     """垂直 Cube Slide 廣告頁面"""
     form_data = session.get('form_data', {})
+    if 'slide_items' not in form_data:
+        form_data['slide_items'] = []
     return render_template('vertical_cube_slide_ad.html', **form_data)
 
 @main_bp.route('/clear-vertical-cube-slide-form', methods=['POST'])
@@ -1531,13 +1535,81 @@ def clear_popup_video_form():
     flash("表單內容已清除", 'info')
     return redirect(url_for('main.popup_video_ad'))
 
+@main_bp.route('/popup-video-slide-ad')
+def popup_video_slide_ad():
+    """原生彈跳影音滑動廣告頁面"""
+    form_data = session.get('form_data_slide', {})
+    
+    # 解析 payload
+    popup_payload = parse_popup_payloads(form_data)
+    
+    # 將解析後的 payload 加入 form_data
+    form_data['popup_payload'] = popup_payload
+    
+    return render_template('popup_video_slide.html', **form_data)
+
+@main_bp.route('/create-popup-video-slide-ad', methods=['POST'])
+def create_popup_video_slide_ad():
+    """處理原生彈跳影音滑動廣告創建請求"""
+    form_data = request.form.to_dict()
+    session['form_data_slide'] = form_data
+    logger.info(f"收到原生彈跳影音滑動廣告創建請求: {form_data}")
+
+    required_fields = ['adset_id', 'advertiser', 'main_title', 'landing_page', 'image_path_m', 'image_path_s', 'background_image']
+    if not all(form_data.get(field) for field in required_fields):
+        flash('請填寫所有必填欄位。', 'error')
+        return redirect(url_for('main.popup_video_slide_ad'))
+
+    # 準備 ad_data
+    ad_data = {
+        'adset_id': form_data.get('adset_id'),
+        'display_name': form_data.get('display_name'),
+        'advertiser': form_data.get('advertiser'),
+        'main_title': form_data.get('main_title'),
+        'subtitle': form_data.get('subtitle'),
+        'call_to_action': form_data.get('call_to_action'),
+        'landing_page': form_data.get('landing_page'),
+        'image_path_m': form_data.get('image_path_m'),
+        'image_path_s': form_data.get('image_path_s'),
+        'background_url': form_data.get('background_image'), # 注意鍵名匹配
+        'payload_game_widget': form_data.get('payload_game_widget'),
+        'payload_popupJson': form_data.get('payload_popup_json') # 注意這裡的鍵名
+    }
+
+    try:
+        with sync_playwright() as p:
+            success = run_suprad(p, ad_data, ad_type='native_video')
+        
+        if success:
+            session.pop('form_data_slide', None)
+            return redirect(url_for('main.popup_video_slide_ad'))
+        else:
+            flash('廣告創建過程中發生錯誤，請檢查後台日誌。', 'error')
+            return redirect(url_for('main.popup_video_slide_ad'))
+            
+    except Exception as e:
+        logger.error(f"創建原生彈跳影音滑動廣告時發生未預期的錯誤: {str(e)}")
+        flash(f'創建失敗: {str(e)}', 'error')
+        return redirect(url_for('main.popup_video_slide_ad'))
+
+@main_bp.route('/clear-popup-video-slide-form', methods=['POST'])
+def clear_popup_video_slide_form():
+    """清除原生彈跳影音滑動廣告表單數據"""
+    session.pop('form_data_slide', None)
+    flash("表單內容已清除", 'info')
+    return redirect(url_for('main.popup_video_slide_ad'))
+
 @main_bp.route('/api/save-form-data', methods=['POST'])
 def save_form_data():
     """非同步儲存表單資料到 session"""
     try:
         data = request.form.to_dict()
         if data:
-            session['form_data'] = data
+            # 檢查是否為滑動版本的表單
+            if 'popup_video_url' in data or 'slide_autoplay_delay' in data:
+                session['form_data_slide'] = data
+            else:
+                session['form_data'] = data
             session.modified = True
             return jsonify({'status': 'success', 'message': 'Form data saved.'})
         return jsonify({'status': 'nodata', 'message': 'No data received.'})

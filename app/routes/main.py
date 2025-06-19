@@ -1241,8 +1241,25 @@ def get_cut_data():
         
         logger.info(f"[Cut Data] 正在查詢 tkrecorder: {tkrecorder_url}")
         
-        # 增加超時時間並加強錯誤處理
-        response = requests.get(tkrecorder_url, timeout=90)
+        # 增加超時時間至 3 分鐘，並加強錯誤處理
+        # 使用更長的超時時間，因為 tkrecorder API 可能需要處理大量數據
+        timeout_duration = 240  # 4 分鐘
+        max_retries = 2
+        retry_delay = 5  # 5 秒重試間隔
+        
+        for attempt in range(max_retries):
+            try:
+                logger.info(f"[Cut Data] 嘗試查詢 tkrecorder (第 {attempt + 1}/{max_retries} 次): {tkrecorder_url}")
+                response = requests.get(tkrecorder_url, timeout=timeout_duration)
+                break  # 成功時跳出重試循環
+            except requests.Timeout:
+                if attempt < max_retries - 1:
+                    logger.warning(f"[Cut Data] tkrecorder API 請求超時 (第 {attempt + 1}/{max_retries} 次)，{retry_delay} 秒後重試...")
+                    import time
+                    time.sleep(retry_delay)
+                    continue
+                else:
+                    raise  # 最後一次嘗試失敗時拋出異常
         
         if response.status_code != 200:
             logger.warning(f"[Cut Data] tkrecorder API 請求失敗: HTTP {response.status_code}")

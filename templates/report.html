@@ -408,6 +408,123 @@
         padding: 20px 10px;
     }
 
+    /* 新增：垂直排列 AdUnit 報表樣式 */
+    .vertical-adunit-section {
+        margin: 10px 0 20px 20px;
+        padding: 15px;
+        border: 1px solid #007bff;
+        border-radius: 8px;
+        background: #f8f9ff;
+    }
+    
+    .vertical-adunit-section h6 {
+        color: #007bff;
+        margin-bottom: 15px;
+        font-size: 14px;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 8px;
+    }
+    
+    .vertical-adunit-item {
+        margin-bottom: 25px;
+        padding: 15px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .vertical-adunit-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .vertical-adunit-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .vertical-adunit-name {
+        font-size: 16px;
+        font-weight: bold;
+        color: #495057;
+        flex: 1;
+    }
+    
+    .vertical-adunit-uuid {
+        font-size: 12px;
+        color: #6c757d;
+        font-family: monospace;
+        background: #f8f9fa;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+    
+    .vertical-adunit-image {
+        text-align: center;
+        margin-bottom: 15px;
+    }
+    
+    .vertical-adunit-image img {
+        max-width: 200px;
+        max-height: 150px;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+    
+    .vertical-adunit-image img:hover {
+        transform: scale(1.05);
+    }
+    
+    .vertical-adunit-image .no-image {
+        color: #999;
+        font-size: 12px;
+        padding: 30px 20px;
+        border: 1px dashed #ccc;
+        border-radius: 8px;
+        background: #f9f9f9;
+        display: inline-block;
+    }
+    
+    .vertical-adunit-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        margin-top: 10px;
+    }
+    
+    .vertical-adunit-table th {
+        background-color: #007bff;
+        color: white;
+        padding: 8px 6px;
+        text-align: center;
+        border: 1px solid #0056b3;
+        font-weight: bold;
+        font-size: 11px;
+    }
+    
+    .vertical-adunit-table td {
+        padding: 6px 4px;
+        text-align: center;
+        border: 1px solid #ddd;
+        font-size: 11px;
+    }
+    
+    .vertical-adunit-table .total-row {
+        background-color: #e7f3ff;
+        font-weight: bold;
+    }
+    
+    .vertical-adunit-table .total-row td {
+        border-top: 2px solid #007bff;
+    }
+
     /* 響應式設計 */
     @media (max-width: 1200px) {
         .merged-adunit-table {
@@ -550,6 +667,26 @@
             <button type="button" id="deselectAllAdunits" class="button" style="background: #dc3545;">取消全選 AdUnit</button>
             <button type="button" id="updateReport" class="button" style="background: #ffc107; color: #000;">🔄 更新報表顯示</button>
         </div>
+        
+        <!-- 新增：AdUnit 報表佈局切換選項 -->
+        <div class="layout-controls" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0;">
+            <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">📊 AdUnit 報表顯示方式</label>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="radio" name="adunitLayout" value="horizontal" id="layoutHorizontal" checked style="margin-right: 6px;">
+                    <span style="color: #28a745;">🔗 並排顯示</span>
+                    <small style="color: #6c757d; margin-left: 8px;">(合併在同一表格)</small>
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="radio" name="adunitLayout" value="vertical" id="layoutVertical" style="margin-right: 6px;">
+                    <span style="color: #007bff;">📋 垂直排列</span>
+                    <small style="color: #6c757d; margin-left: 8px;">(每個 AdUnit 獨立表格)</small>
+                </label>
+            </div>
+            <div style="font-size: 12px; color: #6c757d; margin-top: 8px;">
+                💡 提示：並排顯示適合比較 AdUnit 數據，垂直排列適合詳細查看個別 AdUnit
+            </div>
+        </div>
         <div id="selectionSummary" class="selection-summary"></div>
     </div>
     
@@ -664,6 +801,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.getElementById('updateReport').addEventListener('click', function() {
         updateReportDisplay();
+    });
+    
+    // 新增：佈局切換事件監聽器
+    document.querySelectorAll('input[name="adunitLayout"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (currentReportData) {
+                console.log('🔄 切換 AdUnit 顯示方式為:', this.value);
+                updateReportDisplay();
+            }
+        });
     });
     
     // 新增：自訂時間切換事件
@@ -1051,6 +1198,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 
+                // 顯示選擇區域（緩存時也需要顯示）
+                const selectionSection = document.getElementById('selectionSection');
+                if (selectionSection) {
+                    selectionSection.style.display = 'block';
+                }
+                
                 return; // 使用緩存，直接返回
             }
             
@@ -1143,12 +1296,40 @@ document.addEventListener('DOMContentLoaded', function() {
                     // 逐一查詢每個 AdUnit 的 cut 數據，避免對線上服務造成壓力
                     console.log(`🎬 開始逐一查詢 ${adunitResult.adunits.length} 個 AdUnit 的 cut 數據`);
                     
+                    // 顯示專門的 Cut 數據查詢提示
+                    loadingElement.innerHTML = `
+                        <p>📊 正在載入報表資料...</p>
+                        <p style="color: #f39c12; font-weight: bold;">🎬 正在查詢 Cut 數據，這可能需要較長時間...</p>
+                        <p style="font-size: 14px; color: #666;">
+                            查詢 cut 需要較長時間，通常會大於 3 分鐘，請耐心等待<br>
+                            📝 正在查詢 ${adunitResult.adunits.length} 個 AdUnit 的詳細數據<br>
+                            ⚡ 為確保系統穩定，每個查詢間會有 2 秒間隔
+                        </p>
+                        <div style="margin-top: 15px;">
+                            <div style="background: #f8f9fa; border-radius: 8px; padding: 10px; border-left: 4px solid #f39c12;">
+                                <div id="cutDataProgress" style="font-weight: bold; color: #2c3e50;">準備開始...</div>
+                                <div style="background: #e9ecef; height: 8px; border-radius: 4px; margin-top: 8px;">
+                                    <div id="cutDataProgressBar" style="background: #f39c12; height: 100%; border-radius: 4px; width: 0%; transition: width 0.3s ease;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
                     for (let i = 0; i < adunitResult.adunits.length; i++) {
                         const adunit = adunitResult.adunits[i];
                         const adunitName = adunit.title || adunit.name || 'Untitled';
                         
                         try {
                             console.log(`⏳ 查詢 AdUnit ${i + 1}/${adunitResult.adunits.length}: ${adunitName}`);
+                            
+                            // 更新進度顯示
+                            const progressElement = document.getElementById('cutDataProgress');
+                            const progressBarElement = document.getElementById('cutDataProgressBar');
+                            if (progressElement && progressBarElement) {
+                                progressElement.textContent = `正在查詢第 ${i + 1}/${adunitResult.adunits.length} 個 AdUnit: ${adunitName}`;
+                                const progressPercent = Math.round(((i + 1) / adunitResult.adunits.length) * 100);
+                                progressBarElement.style.width = `${progressPercent}%`;
+                            }
                             
                             const response = await fetch(`/api/cut-data?uuid=${encodeURIComponent(adunit.uuid)}`, {
                             method: 'GET',
@@ -1181,6 +1362,17 @@ document.addEventListener('DOMContentLoaded', function() {
                                 }
                             } else {
                                 console.log(`❌ AdUnit ${adunitName}: API 請求失敗 (${response.status})`);
+                                
+                                // 如果是超時錯誤，給予特別提示
+                                if (response.status === 500) {
+                                    const progressElement = document.getElementById('cutDataProgress');
+                                    if (progressElement) {
+                                        progressElement.innerHTML = `
+                                            <span style="color: #e74c3c;">⚠️ AdUnit ${adunitName} 查詢超時</span><br>
+                                            <span style="font-size: 12px; color: #666;">繼續查詢下一個...</span>
+                                        `;
+                                    }
+                                }
                             }
                             
                             // 在查詢之間加入延遲，保護線上服務
@@ -1195,6 +1387,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     
                     console.log(`🎉 完成所有 cut 數據查詢，成功取得 ${Object.keys(cutData).length} 個 AdUnit 的數據`);
+                    
+                    // 更新進度為完成狀態
+                    const progressElement = document.getElementById('cutDataProgress');
+                    const progressBarElement = document.getElementById('cutDataProgressBar');
+                    if (progressElement && progressBarElement) {
+                        progressElement.innerHTML = `
+                            <span style="color: #27ae60;">✅ Cut 數據查詢完成！</span><br>
+                            <span style="font-size: 12px; color: #666;">成功取得 ${Object.keys(cutData).length} 個 AdUnit 的數據</span>
+                        `;
+                        progressBarElement.style.width = '100%';
+                        progressBarElement.style.background = '#27ae60';
+                    }
+                    
+                    // 2 秒後恢復正常載入狀態
+                    setTimeout(() => {
+                        loadingElement.innerHTML = '<p>📊 正在處理報表資料...</p>';
+                    }, 2000);
                 }
             }
             
@@ -1233,7 +1442,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 displayMergedDailyReport(htmlContent, jsonResponse.summary);
                 
                 // 顯示選擇區域
-                // selectionSection.style.display = 'block';
+                selectionSection.style.display = 'block';
             } else {
                 throw new Error(jsonResponse.error || '代理請求失敗');
             }
@@ -1530,6 +1739,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 let finalTable = mergedTable;
                 if (isSlideAd && Object.keys(currentCutData).length > 0) {
                     finalTable = buildSlideReportTable(mergedTable, currentCutData);
+                } else {
+                    // 對於非 slide 廣告，確保有 TOTAL 行
+                    finalTable = ensureTableHasTotal(finalTable);
                 }
                 
                 // 處理表格內容，根據走期設定調整顯示
@@ -2071,7 +2283,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             </button>
                         </div>
                         <div id="adset-content-${adsetId}" style="${displayStyle}">
-                            ${ensureAdsetTableHasTotal(table).outerHTML}
+                            ${ensureAdsetTableHasTotal(table, adsetId).outerHTML}
                         </div>
                     </div>
                 `;
@@ -2088,17 +2300,24 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div id="adunit-section-${adsetId}" style="margin: 10px 0 20px 20px; padding: 15px; border: 1px solid #28a745; border-radius: 8px; background: #f8fff9; ${displayStyle}">
                         `;
                         
-                        // 添加 AdUnit 圖片展示
-                        content += generateAdunitImagesSection(filteredAdunits);
+                        // 根據選擇的佈局方式顯示 AdUnit 報表
+                        const layoutMode = document.querySelector('input[name="adunitLayout"]:checked')?.value || 'horizontal';
                         
-                        content += `<h6 style="color: #28a745; margin-bottom: 15px;">🎯 AdUnit 報表 (${filteredAdunits.length} 個並排顯示)</h6>`;
-                        
-                        // 生成並排的 AdUnit 報表
-                        const mergedAdunitTable = mergeAdunitReportsForAdset(filteredAdunits);
-                        if (mergedAdunitTable) {
-                            content += `<div style="overflow-x: auto;">${mergedAdunitTable.outerHTML}</div>`;
+                        if (layoutMode === 'horizontal') {
+                            // 原來的並排顯示
+                            content += generateAdunitImagesSection(filteredAdunits);
+                            content += `<h6 style="color: #28a745; margin-bottom: 15px;">🎯 AdUnit 報表 (${filteredAdunits.length} 個並排顯示)</h6>`;
+                            
+                            const mergedAdunitTable = mergeAdunitReportsForAdset(filteredAdunits);
+                            if (mergedAdunitTable) {
+                                content += `<div style="overflow-x: auto;">${mergedAdunitTable.outerHTML}</div>`;
+                            } else {
+                                content += `<p style="color: #dc3545;">無法生成並排的 AdUnit 報表</p>`;
+                            }
                         } else {
-                            content += `<p style="color: #dc3545;">無法生成並排的 AdUnit 報表</p>`;
+                            // 新的垂直排列顯示
+                            content += `<h6 style="color: #007bff; margin-bottom: 15px;">🎯 AdUnit 報表 (${filteredAdunits.length} 個垂直排列)</h6>`;
+                            content += generateVerticalAdunitReports(filteredAdunits);
                         }
                         
                         content += `</div>`;
@@ -2155,8 +2374,93 @@ document.addEventListener('DOMContentLoaded', function() {
         return imagesHTML;
     }
 
-    // 新增：確保 AdSet 表格有 TOTAL 行
-    function ensureAdsetTableHasTotal(originalTable) {
+    // 新增：生成垂直排列的 AdUnit 報表
+    function generateVerticalAdunitReports(adunitReports) {
+        if (!adunitReports || adunitReports.length === 0) return '';
+        
+        let verticalHTML = '';
+        
+        adunitReports.forEach((adunitReport, index) => {
+            const adunitName = adunitReport.name || adunitReport.uuid?.substring(0, 8) || 'Unknown';
+            const adunitUuid = adunitReport.uuid || '';
+            const imgMain = adunitReport.img_main || '';
+            
+            verticalHTML += `
+                <div class="vertical-adunit-item">
+                    <div class="vertical-adunit-header">
+                        <div class="vertical-adunit-name">📱 ${adunitName}</div>
+                        <div class="vertical-adunit-uuid">${adunitUuid.substring(0, 8)}...</div>
+                    </div>
+            `;
+            
+            // 添加圖片（如果有的話）
+            if (imgMain) {
+                verticalHTML += `
+                    <div class="vertical-adunit-image">
+                        <img src="${imgMain}" 
+                             alt="${adunitName}" 
+                             title="點擊查看大圖 - ${adunitName}"
+                             onclick="window.open('${imgMain}', '_blank')"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div class="no-image" style="display: none;">圖片載入失敗</div>
+                    </div>
+                `;
+            } else {
+                verticalHTML += `
+                    <div class="vertical-adunit-image">
+                        <div class="no-image">無圖片</div>
+                    </div>
+                `;
+            }
+            
+            // 生成該 AdUnit 的報表表格
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(adunitReport.content, 'text/html');
+            const table = findDailyReportTable(doc);
+            
+            if (table) {
+                // 複製表格並應用垂直樣式
+                let verticalTable = table.cloneNode(true);
+                verticalTable.className = 'vertical-adunit-table';
+                
+                // 如果是 slide 廣告且有 cut 數據，為這個單獨的 AdUnit 建構包含 cut 數據的表格
+                if (isSlideAd && Object.keys(currentCutData).length > 0 && currentCutData[adunitUuid]) {
+                    console.log(`🎬 為垂直排列的 AdUnit ${adunitName} 添加 cut 數據`);
+                    
+                    // 為單個 AdUnit 建構 cut 數據表格（已包含 TOTAL 行）
+                    const singleAdunitCutData = {};
+                    singleAdunitCutData[adunitUuid] = currentCutData[adunitUuid];
+                    
+                    verticalTable = buildSlideReportTableForSingleAdunit(verticalTable, singleAdunitCutData, adunitUuid);
+                    
+                    // 添加 cut 數據說明
+                    verticalHTML += `
+                        <div style="background: #e8f4fd; padding: 8px; border-radius: 6px; margin-bottom: 10px; font-size: 12px; color: #0066cc;">
+                            🎬 <strong>包含 Cut 分析數據</strong> - 顯示各 cut 區塊的點擊數據分佈
+                        </div>
+                    `;
+                } else {
+                    // 確保有 TOTAL 行
+                    verticalTable = ensureAdunitTableHasTotal(verticalTable, adunitName);
+                }
+                
+                verticalHTML += `<div style="overflow-x: auto;">${verticalTable.outerHTML}</div>`;
+            } else {
+                verticalHTML += `
+                    <p style="color: #dc3545; text-align: center; padding: 20px;">
+                        ❌ 無法解析 ${adunitName} 的報表數據
+                    </p>
+                `;
+            }
+            
+            verticalHTML += `</div>`;
+        });
+        
+        return verticalHTML;
+    }
+
+    // 新增：通用的確保表格有 TOTAL 行的函數（可處理任何表格，包括有 cut 數據的表格）
+    function ensureTableHasTotal(originalTable) {
         if (!originalTable) return originalTable;
         
         const table = originalTable.cloneNode(true);
@@ -2177,6 +2481,518 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const headerRow = rows[0];
         const headers = Array.from(headerRow.querySelectorAll('th, td')).map(h => h.textContent.trim());
+        
+        // 計算總數 - 支援任何類型的表格
+        const totals = {};
+        const dataRows = Array.from(rows).slice(1); // 跳過表頭
+        
+        // 初始化總計對象
+        for (let j = 0; j < headers.length; j++) {
+            totals[j] = {
+                sum: 0,
+                impressions: 0,
+                clicks: 0,
+                isNumeric: false,
+                isPercentage: false
+            };
+        }
+        
+        // 計算每欄的總和
+        dataRows.forEach(row => {
+            const cells = row.querySelectorAll('td, th');
+            for (let j = 0; j < cells.length && j < headers.length; j++) {
+                const cellText = cells[j].textContent.trim();
+                
+                if (cellText.includes('%')) {
+                    totals[j].isPercentage = true;
+                } else {
+                    const cellValue = parseFloat(cellText.replace(/[,]/g, ''));
+                    if (!isNaN(cellValue) && cellValue > 0) {
+                        totals[j].isNumeric = true;
+                        totals[j].sum += cellValue;
+                        
+                        // 特別處理曝光數和點擊數
+                        if (headers[j] && (headers[j].includes('曝光數') || headers[j].includes('播放數'))) {
+                            totals[j].impressions += cellValue;
+                        } else if (headers[j] && (headers[j].includes('點擊數') || headers[j].includes('clicks'))) {
+                            totals[j].clicks += cellValue;
+                        }
+                        // 處理 cut 數據欄位
+                        else if (headers[j] && (headers[j].includes('cut') || headers[j].includes('文案'))) {
+                            totals[j].clicks += cellValue;
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 創建 TOTAL 行
+        const totalRow = document.createElement('tr');
+        totalRow.className = 'total-row';
+        
+        for (let j = 0; j < headers.length; j++) {
+            const cell = document.createElement('td');
+            cell.style.fontWeight = 'bold';
+            
+            if (j === 0) {
+                // 第一欄顯示 TOTAL
+                cell.textContent = 'TOTAL';
+            } else if (totals[j].isPercentage) {
+                // 計算百分比 - 需要找到對應的曝光數和點擊數
+                let totalImpressions = 0;
+                let totalClicks = 0;
+                
+                // 在所有欄位中尋找曝光數和點擊數
+                for (let k = 0; k < headers.length; k++) {
+                    if (headers[k] && (headers[k].includes('曝光數') || headers[k].includes('播放數'))) {
+                        totalImpressions = totals[k].sum;
+                    } else if (headers[k] && headers[k].includes('點擊數') && !headers[k].includes('cut') && !headers[k].includes('文案')) {
+                        // 這是總點擊數欄位，不是 cut 相關的
+                        totalClicks = totals[k].sum;
+                    }
+                }
+                
+                // 如果沒找到總點擊數，計算所有 cut 和文案的總和
+                if (totalClicks === 0) {
+                    for (let k = 0; k < headers.length; k++) {
+                        if (headers[k] && (headers[k].includes('cut') || headers[k].includes('文案'))) {
+                            totalClicks += totals[k].sum;
+                        }
+                    }
+                }
+                
+                if (totalImpressions > 0) {
+                    cell.textContent = ((totalClicks / totalImpressions) * 100).toFixed(2) + '%';
+                    cell.style.color = '#dc3545';
+                } else {
+                    cell.textContent = '0.00%';
+                }
+            } else if (totals[j].isNumeric && totals[j].sum > 0) {
+                // 顯示數值總和
+                if (headers[j] && (headers[j].includes('曝光數') || headers[j].includes('播放數'))) {
+                    cell.textContent = totals[j].sum.toLocaleString();
+                } else {
+                    cell.textContent = totals[j].sum.toString();
+                }
+                
+                // 為 cut 相關欄位添加背景色
+                if (headers[j] && headers[j].includes('cut')) {
+                    cell.style.backgroundColor = '#fff3cd';
+                } else if (headers[j] && headers[j].includes('文案')) {
+                    cell.style.backgroundColor = '#d1ecf1';
+                }
+            } else {
+                cell.textContent = ''; // 其他欄位留空
+            }
+            
+            totalRow.appendChild(cell);
+        }
+        
+        table.appendChild(totalRow);
+        return table;
+    }
+
+    // 新增：確保 AdUnit 表格有 TOTAL 行（針對單個 AdUnit）
+    function ensureAdunitTableHasTotal(originalTable, adunitName = '') {
+        if (!originalTable) return originalTable;
+        
+        const table = originalTable.cloneNode(true);
+        const rows = table.querySelectorAll('tr');
+        
+        // 檢查是否已經有 TOTAL 行
+        const hasTotalRow = Array.from(rows).some(row => {
+            const cells = row.querySelectorAll('td, th');
+            return cells.length > 0 && cells[0].textContent.trim() === 'TOTAL';
+        });
+        
+        if (hasTotalRow) {
+            return table; // 已經有 TOTAL 行，直接返回
+        }
+        
+        // 如果沒有 TOTAL 行，計算並添加
+        if (rows.length < 2) return table; // 沒有數據行
+        
+        const headerRow = rows[0];
+        const headers = Array.from(headerRow.querySelectorAll('th, td')).map(h => h.textContent.trim());
+        
+        // 計算總數
+        let totalImp = 0, totalClk = 0;
+        const dataRows = Array.from(rows).slice(1); // 跳過表頭
+        
+        dataRows.forEach(row => {
+            const cells = row.querySelectorAll('td, th');
+            for (let j = 0; j < cells.length && j < headers.length; j++) {
+                const cellText = cells[j].textContent.trim();
+                const cellValue = parseFloat(cellText.replace(/[,]/g, ''));
+                
+                if (!isNaN(cellValue) && cellValue > 0) {
+                    if (headers[j] && (headers[j].includes('曝光數') || headers[j].includes('播放數'))) {
+                        totalImp += cellValue;
+                    } else if (headers[j] && headers[j].includes('點擊數')) {
+                        totalClk += cellValue;
+                    }
+                }
+            }
+        });
+        
+        // 創建 TOTAL 行
+        const totalRow = document.createElement('tr');
+        totalRow.className = 'total-row';
+        
+        // 第一欄顯示 TOTAL
+        const totalLabelCell = document.createElement('td');
+        totalLabelCell.textContent = 'TOTAL';
+        totalLabelCell.style.fontWeight = 'bold';
+        totalRow.appendChild(totalLabelCell);
+        
+        // 其他欄位
+        for (let j = 1; j < headers.length; j++) {
+            const cell = document.createElement('td');
+            cell.style.fontWeight = 'bold';
+            
+            if (headers[j] && (headers[j].includes('曝光數') || headers[j].includes('播放數'))) {
+                cell.textContent = totalImp > 0 ? totalImp.toLocaleString() : '';
+            } else if (headers[j] && headers[j].includes('點擊數')) {
+                cell.textContent = totalClk > 0 ? totalClk.toString() : '';
+            } else if (headers[j] && (headers[j].includes('點擊率') || headers[j].includes('觀看率'))) {
+                if (totalImp > 0) {
+                    cell.textContent = ((totalClk / totalImp) * 100).toFixed(2) + '%';
+                    cell.style.color = '#dc3545';
+                } else {
+                    cell.textContent = '0.00%';
+                }
+            } else {
+                cell.textContent = ''; // 其他欄位留空
+            }
+            
+            totalRow.appendChild(cell);
+        }
+        
+        table.appendChild(totalRow);
+        return table;
+    }
+
+    // 新增：計算廣告集下所有 AdUnit 的 cut 數據總和
+    function calculateAdsetCutDataSummary(adsetId) {
+        if (!isSlideAd || !currentCutData || Object.keys(currentCutData).length === 0) {
+            return null;
+        }
+
+        if (!adunitByAdset[adsetId] || !adunitByAdset[adsetId].adunits) {
+            return null;
+        }
+
+        // 收集該廣告集下所有 AdUnit 的 cut 數據
+        const adsetCutSummary = {};
+        let hasAnyCutData = false;
+
+        adunitByAdset[adsetId].adunits.forEach(adunit => {
+            const adunitUuid = adunit.uuid;
+            if (currentCutData[adunitUuid] && currentCutData[adunitUuid].data && currentCutData[adunitUuid].data.success) {
+                hasAnyCutData = true;
+                const cutData = currentCutData[adunitUuid].data.success;
+                
+                // 遍歷每個 cut 區塊
+                Object.keys(cutData).forEach(cutKey => {
+                    if (!isNaN(cutKey)) { // 確保是數字 key
+                        if (!adsetCutSummary[cutKey]) {
+                            adsetCutSummary[cutKey] = {};
+                        }
+
+                        // 遍歷每個日期的數據
+                        cutData[cutKey].forEach(dayData => {
+                            const date = dayData._id;
+                            if (!adsetCutSummary[cutKey][date]) {
+                                adsetCutSummary[cutKey][date] = 0;
+                            }
+                            adsetCutSummary[cutKey][date] += dayData.totalCount;
+                        });
+                    }
+                });
+            }
+        });
+
+        return hasAnyCutData ? adsetCutSummary : null;
+    }
+
+    // 新增：建立包含 cut 數據的廣告集表格
+    function buildAdsetTableWithCutData(originalTable, cutDataSummary, adsetId) {
+        if (!originalTable) return originalTable;
+
+        const rows = originalTable.querySelectorAll('tr');
+        if (rows.length < 2) return originalTable;
+
+        // 解析原始表頭
+        const originalHeaders = Array.from(rows[0].querySelectorAll('th, td')).map(h => h.textContent.trim());
+        
+        // 找出各欄位的索引位置
+        let dateIndex = -1, impIndex = -1, clkIndex = -1, ctrIndex = -1;
+        originalHeaders.forEach((header, index) => {
+            if (header.includes('日期')) dateIndex = index;
+            else if (header.includes('曝光數') || header.includes('播放數')) impIndex = index;
+            else if (header.includes('點擊數')) clkIndex = index;
+            else if (header.includes('點擊率') || header.includes('觀看率')) ctrIndex = index;
+        });
+
+        // 收集所有 cut keys
+        const allCutKeys = new Set();
+        Object.keys(cutDataSummary).forEach(cutKey => {
+            if (!isNaN(cutKey)) {
+                allCutKeys.add(cutKey);
+            }
+        });
+        const sortedCutKeys = Array.from(allCutKeys).sort((a, b) => parseInt(a) - parseInt(b));
+
+        // 建構新的表頭
+        const newHeaders = ['日期', '星期', '曝光數', '點擊數', '點擊率'];
+        sortedCutKeys.forEach(cutKey => {
+            newHeaders.push(`cut${cutKey}`);
+        });
+        newHeaders.push('文案');
+
+        // 建構新表格
+        const newTable = document.createElement('table');
+        newTable.className = originalTable.className;
+
+        // 添加表頭
+        const headerRow = document.createElement('tr');
+        for (let header of newHeaders) {
+            const th = document.createElement('th');
+            th.textContent = header;
+            if (header.startsWith('cut') || header === '文案') {
+                th.style.backgroundColor = '#f39c12';
+                th.style.color = 'white';
+                th.title = `廣告集下所有 AdUnit 的 ${header} 總和`;
+            }
+            headerRow.appendChild(th);
+        }
+        newTable.appendChild(headerRow);
+
+        // 累計總數變數
+        let totalImp = 0, totalClk = 0;
+        const totalCutValues = {};
+        sortedCutKeys.forEach(cutKey => totalCutValues[cutKey] = 0);
+        let totalTextClicks = 0;
+
+        // 處理數據行
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const cells = row.querySelectorAll('td, th');
+            
+            if (cells.length === 0) continue;
+
+            const dateText = dateIndex >= 0 ? cells[dateIndex].textContent.trim() : cells[0].textContent.trim();
+            
+            // 跳過 TOTAL 行（稍後處理）
+            if (dateText === 'TOTAL') continue;
+
+            // 解析日期
+            let rowDate = null;
+            let formattedDate = null;
+            
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateText)) {
+                rowDate = new Date(dateText);
+                formattedDate = dateText;
+            } else if (/^\d{2}\/\d{2}$/.test(dateText)) {
+                const [month, day] = dateText.split('/');
+                rowDate = new Date(new Date().getFullYear(), parseInt(month) - 1, parseInt(day));
+                formattedDate = `${new Date().getFullYear()}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            } else if (/^\d{2}-\d{2}$/.test(dateText)) {
+                const [month, day] = dateText.split('-');
+                rowDate = new Date(new Date().getFullYear(), parseInt(month) - 1, parseInt(day));
+                formattedDate = `${new Date().getFullYear()}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
+
+            // 取得原始數據
+            const imp = impIndex >= 0 ? +(cells[impIndex].textContent.replace(/[,—]/g,'')) || 0 : 0;
+            const clk = clkIndex >= 0 ? +(cells[clkIndex].textContent.replace(/[,—]/g,'')) || 0 : 0;
+            const ctr = ctrIndex >= 0 ? cells[ctrIndex].textContent.trim() : '';
+
+            // 累計到總數
+            totalImp += imp;
+            totalClk += clk;
+
+            // 計算當天的 cut 數據總和
+            const cutValues = {};
+            sortedCutKeys.forEach(cutKey => {
+                let cutValue = 0;
+                if (formattedDate && cutDataSummary[cutKey] && cutDataSummary[cutKey][formattedDate]) {
+                    cutValue = cutDataSummary[cutKey][formattedDate];
+                }
+                cutValues[cutKey] = cutValue;
+                totalCutValues[cutKey] += cutValue;
+            });
+
+            // 計算文案數量：總點擊數 - 所有 cut 的總和
+            const dayCutTotal = Object.values(cutValues).reduce((sum, cut) => sum + cut, 0);
+            const textClicks = Math.max(0, clk - dayCutTotal);
+            totalTextClicks += textClicks;
+
+            // 建構新的數據行
+            const newRow = document.createElement('tr');
+            
+            // 日期
+            const dateCell = document.createElement('td');
+            dateCell.textContent = dateText;
+            newRow.appendChild(dateCell);
+
+            // 星期
+            const weekCell = document.createElement('td');
+            weekCell.textContent = rowDate ? getWeekdayInChinese(rowDate) : '';
+            newRow.appendChild(weekCell);
+
+            // 曝光數
+            const impCell = document.createElement('td');
+            impCell.textContent = imp > 0 ? imp.toLocaleString() : '';
+            newRow.appendChild(impCell);
+
+            // 點擊數
+            const clkCell = document.createElement('td');
+            clkCell.textContent = clk > 0 ? clk : '';
+            newRow.appendChild(clkCell);
+
+            // 點擊率
+            const ctrCell = document.createElement('td');
+            ctrCell.textContent = ctr;
+            newRow.appendChild(ctrCell);
+
+            // Cut 數據
+            sortedCutKeys.forEach(cutKey => {
+                const cutCell = document.createElement('td');
+                const cutValue = cutValues[cutKey];
+                cutCell.textContent = cutValue > 0 ? cutValue : '';
+                cutCell.style.backgroundColor = cutValue > 0 ? '#fff3cd' : '';
+                cutCell.title = `廣告集下所有 AdUnit 的 cut${cutKey} 總和`;
+                newRow.appendChild(cutCell);
+            });
+
+            // 文案
+            const textCell = document.createElement('td');
+            textCell.textContent = textClicks > 0 ? textClicks : '';
+            textCell.style.backgroundColor = textClicks > 0 ? '#d1ecf1' : '';
+            textCell.title = '廣告集下所有 AdUnit 的文案點擊總和';
+            newRow.appendChild(textCell);
+
+            newTable.appendChild(newRow);
+        }
+
+        // 添加 TOTAL 行
+        const newTotalRow = document.createElement('tr');
+        newTotalRow.className = 'total-row';
+
+        // TOTAL 標籤
+        const totalLabelCell = document.createElement('td');
+        totalLabelCell.textContent = 'TOTAL';
+        totalLabelCell.style.fontWeight = 'bold';
+        newTotalRow.appendChild(totalLabelCell);
+
+        // 星期欄位（空白）
+        const weekTotalCell = document.createElement('td');
+        weekTotalCell.style.fontWeight = 'bold';
+        newTotalRow.appendChild(weekTotalCell);
+
+        // 總曝光數
+        const impTotalCell = document.createElement('td');
+        impTotalCell.textContent = totalImp > 0 ? totalImp.toLocaleString() : '';
+        impTotalCell.style.fontWeight = 'bold';
+        newTotalRow.appendChild(impTotalCell);
+
+        // 總點擊數
+        const clkTotalCell = document.createElement('td');
+        clkTotalCell.textContent = totalClk > 0 ? totalClk : '';
+        clkTotalCell.style.fontWeight = 'bold';
+        newTotalRow.appendChild(clkTotalCell);
+
+        // 總點擊率
+        const ctrTotalCell = document.createElement('td');
+        if (totalImp > 0) {
+            ctrTotalCell.textContent = ((totalClk / totalImp) * 100).toFixed(2) + '%';
+            ctrTotalCell.style.color = '#dc3545';
+        } else {
+            ctrTotalCell.textContent = '0.00%';
+        }
+        ctrTotalCell.style.fontWeight = 'bold';
+        newTotalRow.appendChild(ctrTotalCell);
+
+        // Cut 總數
+        sortedCutKeys.forEach(cutKey => {
+            const cutTotalCell = document.createElement('td');
+            const cutTotal = totalCutValues[cutKey];
+            cutTotalCell.textContent = cutTotal > 0 ? cutTotal : '';
+            cutTotalCell.style.backgroundColor = cutTotal > 0 ? '#fff3cd' : '';
+            cutTotalCell.style.fontWeight = 'bold';
+            newTotalRow.appendChild(cutTotalCell);
+        });
+
+        // 文案總數
+        const textTotalCell = document.createElement('td');
+        textTotalCell.textContent = totalTextClicks > 0 ? totalTextClicks : '';
+        textTotalCell.style.backgroundColor = totalTextClicks > 0 ? '#d1ecf1' : '';
+        textTotalCell.style.fontWeight = 'bold';
+        newTotalRow.appendChild(textTotalCell);
+
+        newTable.appendChild(newTotalRow);
+
+        return newTable;
+    }
+
+    // 新增：格式化日期為 cut 數據使用的格式
+    function formatDateForCutData(date) {
+        if (!date) return null;
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // 新增：取得中文星期
+    function getWeekdayInChinese(date) {
+        if (!date) return '';
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+        return weekdays[date.getDay()];
+    }
+
+    // 新增：確保 AdSet 表格有 TOTAL 行，並添加 cut 數據欄位
+    function ensureAdsetTableHasTotal(originalTable, adsetId) {
+        if (!originalTable) return originalTable;
+        
+        // 取得 cut 數據總和
+        const cutDataSummary = calculateAdsetCutDataSummary(adsetId);
+        
+        const table = originalTable.cloneNode(true);
+        const rows = table.querySelectorAll('tr');
+        
+        // 檢查是否已經有 cut 欄位
+        const headerRow = rows[0];
+        const originalHeaders = Array.from(headerRow.querySelectorAll('th, td')).map(h => h.textContent.trim());
+        const hasCutColumns = originalHeaders.some(header => header.startsWith('cut') || header === '文案');
+        
+        // 如果已經有 cut 欄位，直接返回
+        if (hasCutColumns) {
+            return table;
+        }
+        
+        // 如果有 cut 數據且是 slide 廣告，需要重建表格以包含 cut 欄位
+        if (cutDataSummary && isSlideAd) {
+            console.log(`🎬 為廣告集 ${adsetId} 添加 cut 數據欄位`);
+            return buildAdsetTableWithCutData(originalTable, cutDataSummary, adsetId);
+        }
+        
+        // 否則只處理常規的 TOTAL 行
+        // 檢查是否已經有 TOTAL 行
+        const hasTotalRow = Array.from(rows).some(row => {
+            const cells = row.querySelectorAll('td, th');
+            return cells.length > 0 && cells[0].textContent.trim() === 'TOTAL';
+        });
+        
+        if (hasTotalRow) {
+            return table; // 已經有 TOTAL 行，直接返回
+        }
+        
+        // 如果沒有 TOTAL 行，計算並添加
+        if (rows.length < 2) return table; // 沒有數據行
+        
+        const headers = originalHeaders;
         
         // 計算總數
         let totalImp = 0, totalClk = 0;
@@ -3464,7 +4280,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(report.content, 'text/html');
                 const originalTable = findDailyReportTable(doc);
-                const table = ensureAdsetTableHasTotal(originalTable);
+                const table = ensureAdsetTableHasTotal(originalTable, adsetId);
                 
                 if (table) {
                     const rows = table.querySelectorAll('tr');
@@ -3541,8 +4357,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         adsetForAdunitTitleCell.font = { name: 'Helvetica', bold: true, size: 12, color: { argb: 'FF2E7D32' } };
                         adsetForAdunitTitleCell.alignment = { vertical: 'middle', horizontal: 'center' };
                         
-                        // 使用同一個 currentRow 來插入 AdUnit 圖片和報表，讓標題和圖片在同一列
-                        currentRow = await addMergedAdunitReportToExcel(worksheet, styles, currentRow, applyStyle, selectedAdunitReports);
+                        // 根據選擇的佈局方式插入 AdUnit 報表
+                        const layoutMode = document.querySelector('input[name="adunitLayout"]:checked')?.value || 'horizontal';
+                        
+                        if (layoutMode === 'horizontal') {
+                            // 使用原來的並排方式
+                            currentRow = await addMergedAdunitReportToExcel(worksheet, styles, currentRow, applyStyle, selectedAdunitReports);
+                        } else {
+                            // 使用新的垂直排列方式
+                            currentRow = await addVerticalAdunitReportsToExcel(worksheet, styles, currentRow, applyStyle, selectedAdunitReports);
+                        }
                     }
                 }
             } else {
@@ -3675,7 +4499,239 @@ document.addEventListener('DOMContentLoaded', function() {
                 return 'jpeg'; // 預設為 jpeg
         }
     }
-    
+
+    // 新增：添加垂直排列的 AdUnit 報表到 Excel
+    async function addVerticalAdunitReportsToExcel(worksheet, styles, startRow, applyStyle, adunitReports) {
+        let currentRow = startRow;
+        
+        if (!adunitReports || adunitReports.length === 0) {
+            return currentRow;
+        }
+        
+        // 為每個 AdUnit 單獨生成報表
+        for (let i = 0; i < adunitReports.length; i++) {
+            const adunitReport = adunitReports[i];
+            const adunitName = adunitReport.name || adunitReport.uuid?.substring(0, 8) || 'Unknown';
+            const adunitUuid = adunitReport.uuid || '';
+            
+            // 添加 AdUnit 標題行
+            currentRow += 1;
+            worksheet.mergeCells(currentRow, 2, currentRow, 6);
+            const adunitTitleCell = worksheet.getCell(currentRow, 2);
+            adunitTitleCell.value = `📱 ${adunitName} (${adunitUuid.substring(0, 8)}...)`;
+            adunitTitleCell.font = { name: 'Helvetica', bold: true, size: 11, color: { argb: 'FF007BFF' } };
+            adunitTitleCell.alignment = { vertical: 'middle', horizontal: 'left' };
+            adunitTitleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FF' } };
+            
+            // 添加邊框
+            const adunitTitleBorder = {
+                top: { style: 'thin', color: { argb: 'FF007BFF' } },
+                left: { style: 'thin', color: { argb: 'FF007BFF' } },
+                bottom: { style: 'thin', color: { argb: 'FF007BFF' } },
+                right: { style: 'thin', color: { argb: 'FF007BFF' } }
+            };
+            
+            for (let col = 2; col <= 6; col++) {
+                worksheet.getCell(currentRow, col).border = adunitTitleBorder;
+            }
+            
+            currentRow += 1;
+            
+            // 添加 AdUnit 圖片（如果有的話）
+            const imgMain = adunitReport.img_main;
+            if (imgMain) {
+                try {
+                    console.log(`正在為垂直佈局下載圖片: ${adunitName} - ${imgMain}`);
+                    
+                    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imgMain)}`;
+                    const imageResponse = await fetch(proxyUrl);
+                    
+                    if (imageResponse.ok) {
+                        const imageBlob = await imageResponse.blob();
+                        const arrayBuffer = await imageBlob.arrayBuffer();
+                        const extension = getImageExtension(imgMain);
+                        
+                        const imageId = worksheet.workbook.addImage({
+                            buffer: arrayBuffer,
+                            extension: extension
+                        });
+                        
+                        // 設置圖片行高度
+                        worksheet.getRow(currentRow).height = 120;
+                        
+                        // 合併圖片區域
+                        worksheet.mergeCells(currentRow, 2, currentRow, 4);
+                        
+                        // 添加圖片
+                        worksheet.addImage(imageId, {
+                            tl: { col: 1.8, row: currentRow - 0.8 },
+                            ext: { width: 200, height: 120 }
+                        });
+                        
+                        console.log(`成功添加垂直佈局圖片: ${adunitName}`);
+                        currentRow += 1;
+                    } else {
+                        // 添加無圖片提示
+                        worksheet.mergeCells(currentRow, 2, currentRow, 4);
+                        const noImageCell = worksheet.getCell(currentRow, 2);
+                        noImageCell.value = '圖片載入失敗';
+                        noImageCell.font = { name: 'Helvetica', size: 10, italic: true, color: { argb: 'FF999999' } };
+                        noImageCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                        currentRow += 1;
+                    }
+                } catch (error) {
+                    console.error(`垂直佈局下載圖片時發生錯誤: ${adunitName}`, error);
+                    // 添加錯誤提示
+                    worksheet.mergeCells(currentRow, 2, currentRow, 4);
+                    const errorCell = worksheet.getCell(currentRow, 2);
+                    errorCell.value = '圖片處理錯誤';
+                    errorCell.font = { name: 'Helvetica', size: 10, italic: true, color: { argb: 'FFCC0000' } };
+                    errorCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                    currentRow += 1;
+                }
+            } else {
+                // 添加無圖片提示
+                worksheet.mergeCells(currentRow, 2, currentRow, 4);
+                const noImageCell = worksheet.getCell(currentRow, 2);
+                noImageCell.value = '無圖片';
+                noImageCell.font = { name: 'Helvetica', size: 10, italic: true, color: { argb: 'FF999999' } };
+                noImageCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                currentRow += 1;
+            }
+            
+            // 解析並添加 AdUnit 的報表數據
+            if (adunitReport.success) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(adunitReport.content, 'text/html');
+                const table = findDailyReportTable(doc);
+                
+                if (table) {
+                    const rows = table.querySelectorAll('tr');
+                    if (rows.length > 0) {
+                        // 添加表頭
+                        const headerRow = rows[0];
+                        const headers = Array.from(headerRow.querySelectorAll('th, td')).map(h => h.textContent.trim());
+                        
+                        // 確定需要的欄位數量
+                        const colCount = Math.min(headers.length, 6); // 限制最多6欄
+                        
+                        // 添加表頭
+                        for (let j = 0; j < colCount; j++) {
+                            const headerCell = worksheet.getCell(currentRow, j + 2); // 從第2欄開始
+                            headerCell.value = headers[j] || '';
+                            headerCell.font = { name: 'Helvetica', bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+                            headerCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF007BFF' } };
+                            headerCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                            headerCell.border = {
+                                top: { style: 'thin', color: { argb: 'FF0056B3' } },
+                                left: { style: 'thin', color: { argb: 'FF0056B3' } },
+                                bottom: { style: 'thin', color: { argb: 'FF0056B3' } },
+                                right: { style: 'thin', color: { argb: 'FF0056B3' } }
+                            };
+                        }
+                        currentRow += 1;
+                        
+                        // 添加數據行
+                        let totalImp = 0, totalClk = 0;
+                        
+                        for (let i = 1; i < rows.length; i++) {
+                            const dataRow = rows[i];
+                            const cells = dataRow.querySelectorAll('td, th');
+                            
+                            if (cells.length === 0) continue;
+                            
+                            const dateText = cells[0].textContent.trim();
+                            if (dateText === 'TOTAL') continue; // 跳過現有的 TOTAL 行，我們稍後會自己計算
+                            
+                            // 添加數據到 Excel
+                            for (let j = 0; j < Math.min(cells.length, colCount); j++) {
+                                const cellValue = cells[j].textContent.trim();
+                                const excelCell = worksheet.getCell(currentRow, j + 2);
+                                
+                                excelCell.value = cellValue;
+                                excelCell.font = { name: 'Helvetica', size: 9 };
+                                excelCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                                excelCell.border = {
+                                    top: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+                                    left: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+                                    bottom: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+                                    right: { style: 'thin', color: { argb: 'FFDDDDDD' } }
+                                };
+                                
+                                // 收集數據用於計算總數
+                                if (j > 0) { // 跳過日期欄
+                                    const numValue = parseFloat(cellValue.replace(/[,]/g, ''));
+                                    if (!isNaN(numValue) && numValue > 0) {
+                                        if (headers[j] && (headers[j].includes('曝光數') || headers[j].includes('播放數'))) {
+                                            totalImp += numValue;
+                                        } else if (headers[j] && headers[j].includes('點擊數')) {
+                                            totalClk += numValue;
+                                        }
+                                    }
+                                }
+                            }
+                            currentRow += 1;
+                        }
+                        
+                        // 添加 TOTAL 行
+                        for (let j = 0; j < colCount; j++) {
+                            const totalCell = worksheet.getCell(currentRow, j + 2);
+                            
+                            if (j === 0) {
+                                totalCell.value = 'TOTAL';
+                            } else if (headers[j] && (headers[j].includes('曝光數') || headers[j].includes('播放數'))) {
+                                totalCell.value = totalImp > 0 ? totalImp.toLocaleString() : '';
+                            } else if (headers[j] && headers[j].includes('點擊數')) {
+                                totalCell.value = totalClk > 0 ? totalClk.toString() : '';
+                            } else if (headers[j] && (headers[j].includes('點擊率') || headers[j].includes('觀看率'))) {
+                                if (totalImp > 0) {
+                                    totalCell.value = ((totalClk / totalImp) * 100).toFixed(2) + '%';
+                                } else {
+                                    totalCell.value = '0.00%';
+                                }
+                            } else {
+                                totalCell.value = '';
+                            }
+                            
+                            totalCell.font = { name: 'Helvetica', bold: true, size: 9, color: { argb: 'FF2C3E50' } };
+                            totalCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7F3FF' } };
+                            totalCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                            totalCell.border = {
+                                top: { style: 'thick', color: { argb: 'FF007BFF' } },
+                                left: { style: 'thin', color: { argb: 'FF007BFF' } },
+                                bottom: { style: 'thin', color: { argb: 'FF007BFF' } },
+                                right: { style: 'thin', color: { argb: 'FF007BFF' } }
+                            };
+                        }
+                        currentRow += 1;
+                    }
+                } else {
+                    // 無法解析報表數據
+                    worksheet.mergeCells(currentRow, 2, currentRow, 6);
+                    const errorCell = worksheet.getCell(currentRow, 2);
+                    errorCell.value = `❌ 無法解析 ${adunitName} 的報表數據`;
+                    errorCell.font = { name: 'Helvetica', size: 10, color: { argb: 'FFDC3545' } };
+                    errorCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                    currentRow += 1;
+                }
+            } else {
+                // AdUnit 查詢失敗
+                worksheet.mergeCells(currentRow, 2, currentRow, 6);
+                const failCell = worksheet.getCell(currentRow, 2);
+                failCell.value = `❌ ${adunitName} 查詢失敗: ${adunitReport.error || '未知錯誤'}`;
+                failCell.font = { name: 'Helvetica', size: 10, color: { argb: 'FFDC3545' } };
+                failCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                currentRow += 1;
+            }
+            
+            // 在每個 AdUnit 之間添加空行
+            if (i < adunitReports.length - 1) {
+                currentRow += 1;
+            }
+        }
+        
+        return currentRow;
+    }
 
 
     // 新增：添加並排的 AdUnit 報表到 Excel
@@ -3949,6 +5005,264 @@ document.addEventListener('DOMContentLoaded', function() {
         return count;
     }
 
+    // 建構單個 AdUnit 的 slide 廣告報表表格（包含 cut 數據）
+    function buildSlideReportTableForSingleAdunit(originalTable, cutData, adunitUuid) {
+        // 這個函數專門處理單個 AdUnit 的 cut 數據，用於垂直排列
+        if (!cutData[adunitUuid] || !cutData[adunitUuid].data || !cutData[adunitUuid].data.success) {
+            console.log(`⚠️ AdUnit ${adunitUuid} 沒有有效的 cut 數據`);
+            return originalTable;
+        }
+
+        const data = cutData[adunitUuid].data;
+        const cutKeys = Object.keys(data.success).filter(key => !isNaN(key));
+        
+        if (cutKeys.length === 0) {
+            console.log(`⚠️ AdUnit ${adunitUuid} 沒有 cut 數據`);
+            return originalTable;
+        }
+
+        // 解析原始表格
+        const rows = originalTable.querySelectorAll('tr');
+        if (rows.length < 2) return originalTable;
+
+        // 解析表頭
+        const originalHeaders = Array.from(rows[0].querySelectorAll('th, td')).map(h => h.textContent.trim());
+        
+        // 找出各欄位的索引位置
+        let dateIndex = -1, impIndex = -1, clkIndex = -1, ctrIndex = -1;
+        originalHeaders.forEach((header, index) => {
+            if (header.includes('日期')) dateIndex = index;
+            else if (header.includes('曝光數') || header.includes('播放數')) impIndex = index;
+            else if (header.includes('點擊數')) clkIndex = index;
+            else if (header.includes('點擊率') || header.includes('觀看率')) ctrIndex = index;
+        });
+
+        // 建構新的表頭
+        const newHeaders = ['日期', '星期', '曝光數', '點擊數', '點擊率'];
+        cutKeys.forEach(cutKey => {
+            newHeaders.push(`cut${cutKey}`);
+        });
+        newHeaders.push('文案');
+
+        // 建構新表格
+        const newTable = document.createElement('table');
+        newTable.className = originalTable.className;
+
+        // 添加表頭
+        const headerRow = document.createElement('tr');
+        for (let header of newHeaders) {
+            const th = document.createElement('th');
+            th.textContent = header;
+            if (header.startsWith('cut') || header === '文案') {
+                th.style.backgroundColor = '#f39c12';
+                th.style.color = 'white';
+            }
+            headerRow.appendChild(th);
+        }
+        newTable.appendChild(headerRow);
+
+        // 處理數據行
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const cells = row.querySelectorAll('td, th');
+            
+            if (cells.length === 0) continue;
+
+            const dateText = dateIndex >= 0 ? cells[dateIndex].textContent.trim() : cells[0].textContent.trim();
+            
+            // 跳過 TOTAL 行（稍後處理）
+            if (dateText === 'TOTAL') continue;
+
+            // 解析日期
+            let rowDate = null;
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateText)) {
+                rowDate = new Date(dateText);
+            } else if (/^\d{2}\/\d{2}$/.test(dateText)) {
+                const [month, day] = dateText.split('/');
+                rowDate = new Date(new Date().getFullYear(), parseInt(month) - 1, parseInt(day));
+            } else if (/^\d{2}-\d{2}$/.test(dateText)) {
+                const [month, day] = dateText.split('-');
+                rowDate = new Date(new Date().getFullYear(), parseInt(month) - 1, parseInt(day));
+            }
+
+            // 取得原始數據
+            const imp = impIndex >= 0 ? +(cells[impIndex].textContent.replace(/[,—]/g,'')) || 0 : 0;
+            const clk = clkIndex >= 0 ? +(cells[clkIndex].textContent.replace(/[,—]/g,'')) || 0 : 0;
+            const ctr = ctrIndex >= 0 ? cells[ctrIndex].textContent.trim() : '';
+
+            // 計算當天的 cut 數據
+            const cutValues = [];
+            const formattedDate = rowDate ? formatDateForCutData(rowDate) : null;
+
+            cutKeys.forEach(cutKey => {
+                let cutValue = 0;
+                if (formattedDate && data.success[cutKey]) {
+                    const dayData = data.success[cutKey].find(d => d._id === formattedDate);
+                    if (dayData) {
+                        cutValue = dayData.totalCount;
+                    }
+                }
+                cutValues.push(cutValue);
+            });
+
+            // 計算文案數量：總點擊數 - 所有 cut 的總和
+            const totalCutClicks = cutValues.reduce((sum, cut) => sum + cut, 0);
+            const textClicks = Math.max(0, clk - totalCutClicks);
+
+            // 建構新的數據行
+            const newRow = document.createElement('tr');
+            
+            // 日期
+            const dateCell = document.createElement('td');
+            dateCell.textContent = dateText;
+            newRow.appendChild(dateCell);
+
+            // 星期
+            const weekCell = document.createElement('td');
+            weekCell.textContent = rowDate ? getWeekdayInChinese(rowDate) : '';
+            newRow.appendChild(weekCell);
+
+            // 曝光數
+            const impCell = document.createElement('td');
+            impCell.textContent = imp > 0 ? imp.toLocaleString() : '';
+            newRow.appendChild(impCell);
+
+            // 點擊數
+            const clkCell = document.createElement('td');
+            clkCell.textContent = clk > 0 ? clk : '';
+            newRow.appendChild(clkCell);
+
+            // 點擊率
+            const ctrCell = document.createElement('td');
+            ctrCell.textContent = ctr;
+            newRow.appendChild(ctrCell);
+
+            // Cut 數據
+            cutValues.forEach(cutValue => {
+                const cutCell = document.createElement('td');
+                cutCell.textContent = cutValue > 0 ? cutValue : '';
+                cutCell.style.backgroundColor = cutValue > 0 ? '#fff3cd' : '';
+                newRow.appendChild(cutCell);
+            });
+
+            // 文案
+            const textCell = document.createElement('td');
+            textCell.textContent = textClicks > 0 ? textClicks : '';
+            textCell.style.backgroundColor = textClicks > 0 ? '#d1ecf1' : '';
+            newRow.appendChild(textCell);
+
+            newTable.appendChild(newRow);
+        }
+
+        // 處理 TOTAL 行 - 無論原表格是否有 TOTAL 行都要重新計算並添加
+        const totalRow = Array.from(rows).find(row => {
+            const cells = row.querySelectorAll('td, th');
+            return cells.length > 0 && cells[0].textContent.trim() === 'TOTAL';
+        });
+
+        // 計算總數（從原始 TOTAL 行或從數據行重新計算）
+        let totalImp = 0, totalClk = 0;
+        let totalCtr = '';
+        
+        if (totalRow) {
+            // 如果有原始 TOTAL 行，使用其數據
+            const cells = totalRow.querySelectorAll('td, th');
+            totalImp = impIndex >= 0 ? +(cells[impIndex].textContent.replace(/[,—]/g,'')) || 0 : 0;
+            totalClk = clkIndex >= 0 ? +(cells[clkIndex].textContent.replace(/[,—]/g,'')) || 0 : 0;
+            totalCtr = ctrIndex >= 0 ? cells[ctrIndex].textContent.trim() : '';
+        } else {
+            // 如果沒有原始 TOTAL 行，從數據行計算
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const cells = row.querySelectorAll('td, th');
+                if (cells.length === 0) continue;
+                
+                const dateText = dateIndex >= 0 ? cells[dateIndex].textContent.trim() : cells[0].textContent.trim();
+                if (dateText === 'TOTAL') continue; // 跳過可能的 TOTAL 行
+                
+                const imp = impIndex >= 0 ? +(cells[impIndex].textContent.replace(/[,—]/g,'')) || 0 : 0;
+                const clk = clkIndex >= 0 ? +(cells[clkIndex].textContent.replace(/[,—]/g,'')) || 0 : 0;
+                
+                totalImp += imp;
+                totalClk += clk;
+            }
+            
+            // 計算總點擊率
+            if (totalImp > 0) {
+                totalCtr = ((totalClk / totalImp) * 100).toFixed(2) + '%';
+            } else {
+                totalCtr = '0.00%';
+            }
+        }
+
+        // 計算總計 cut 數據
+        const totalCutValues = [];
+        cutKeys.forEach(cutKey => {
+            let cutTotal = 0;
+            if (data.success[cutKey]) {
+                cutTotal = data.success[cutKey].reduce((sum, d) => sum + d.totalCount, 0);
+            }
+            totalCutValues.push(cutTotal);
+        });
+
+        const totalCutClicks = totalCutValues.reduce((sum, cut) => sum + cut, 0);
+        const totalTextClicks = Math.max(0, totalClk - totalCutClicks);
+
+        const newTotalRow = document.createElement('tr');
+        newTotalRow.className = 'total-row';
+        newTotalRow.style.fontWeight = 'bold';
+        
+        // TOTAL 標籤
+        const totalLabelCell = document.createElement('td');
+        totalLabelCell.textContent = 'TOTAL';
+        totalLabelCell.style.fontWeight = 'bold';
+        newTotalRow.appendChild(totalLabelCell);
+
+        // 空白星期欄
+        const emptyWeekCell = document.createElement('td');
+        emptyWeekCell.textContent = '';
+        newTotalRow.appendChild(emptyWeekCell);
+
+        // 總曝光數
+        const totalImpCell = document.createElement('td');
+        totalImpCell.textContent = totalImp > 0 ? totalImp.toLocaleString() : '';
+        totalImpCell.style.fontWeight = 'bold';
+        newTotalRow.appendChild(totalImpCell);
+
+        // 總點擊數
+        const totalClkCell = document.createElement('td');
+        totalClkCell.textContent = totalClk > 0 ? totalClk : '';
+        totalClkCell.style.fontWeight = 'bold';
+        newTotalRow.appendChild(totalClkCell);
+
+        // 總點擊率
+        const totalCtrCell = document.createElement('td');
+        totalCtrCell.textContent = totalCtr;
+        totalCtrCell.style.fontWeight = 'bold';
+        totalCtrCell.style.color = '#dc3545';
+        newTotalRow.appendChild(totalCtrCell);
+
+        // 總 Cut 數據
+        totalCutValues.forEach(cutTotal => {
+            const cutCell = document.createElement('td');
+            cutCell.textContent = cutTotal > 0 ? cutTotal : '';
+            cutCell.style.fontWeight = 'bold';
+            cutCell.style.backgroundColor = cutTotal > 0 ? '#fff3cd' : '';
+            newTotalRow.appendChild(cutCell);
+        });
+
+        // 總文案
+        const totalTextCell = document.createElement('td');
+        totalTextCell.textContent = totalTextClicks > 0 ? totalTextClicks : '';
+        totalTextCell.style.fontWeight = 'bold';
+        totalTextCell.style.backgroundColor = totalTextClicks > 0 ? '#d1ecf1' : '';
+        newTotalRow.appendChild(totalTextCell);
+
+        newTable.appendChild(newTotalRow);
+
+        return newTable;
+    }
+
     // 建構 slide 廣告報表表格（包含 cut 數據）
     function buildSlideReportTable(originalTable, cutData) {
         // 解析原始表格
@@ -4094,77 +5408,116 @@ document.addEventListener('DOMContentLoaded', function() {
             newTable.appendChild(newRow);
         }
 
-        // 處理 TOTAL 行
+        // 處理 TOTAL 行 - 無論原表格是否有 TOTAL 行都要重新計算並添加
         const totalRow = Array.from(rows).find(row => {
             const cells = row.querySelectorAll('td, th');
             return cells.length > 0 && cells[0].textContent.trim() === 'TOTAL';
         });
 
+        // 計算總數（從原始 TOTAL 行或從數據行重新計算）
+        let totalImp = 0, totalClk = 0;
+        let totalCtr = '';
+        
         if (totalRow) {
+            // 如果有原始 TOTAL 行，使用其數據
             const cells = totalRow.querySelectorAll('td, th');
-            const totalImp = impIndex >= 0 ? +(cells[impIndex].textContent.replace(/[,—]/g,'')) || 0 : 0;
-            const totalClk = clkIndex >= 0 ? +(cells[clkIndex].textContent.replace(/[,—]/g,'')) || 0 : 0;
-            const totalCtr = ctrIndex >= 0 ? cells[ctrIndex].textContent.trim() : '';
+            totalImp = impIndex >= 0 ? +(cells[impIndex].textContent.replace(/[,—]/g,'')) || 0 : 0;
+            totalClk = clkIndex >= 0 ? +(cells[clkIndex].textContent.replace(/[,—]/g,'')) || 0 : 0;
+            totalCtr = ctrIndex >= 0 ? cells[ctrIndex].textContent.trim() : '';
+        } else {
+            // 如果沒有原始 TOTAL 行，從數據行計算
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const cells = row.querySelectorAll('td, th');
+                if (cells.length === 0) continue;
+                
+                const dateText = dateIndex >= 0 ? cells[dateIndex].textContent.trim() : cells[0].textContent.trim();
+                if (dateText === 'TOTAL') continue; // 跳過可能的 TOTAL 行
+                
+                const imp = impIndex >= 0 ? +(cells[impIndex].textContent.replace(/[,—]/g,'')) || 0 : 0;
+                const clk = clkIndex >= 0 ? +(cells[clkIndex].textContent.replace(/[,—]/g,'')) || 0 : 0;
+                
+                totalImp += imp;
+                totalClk += clk;
+            }
+            
+            // 計算總點擊率
+            if (totalImp > 0) {
+                totalCtr = ((totalClk / totalImp) * 100).toFixed(2) + '%';
+            } else {
+                totalCtr = '0.00%';
+            }
+        }
 
-            // 計算總計 cut 數據
-            const totalCutTotals = new Array(maxCuts).fill(0);
-            for (const uuid in cutData) {
-                const data = cutData[uuid].data;
-                if (data.success) {
-                    for (let cutNum = 1; cutNum <= maxCuts; cutNum++) {
-                        const cutKey = cutNum.toString();
-                        if (data.success[cutKey]) {
-                            const cutTotal = data.success[cutKey].reduce((sum, d) => sum + d.totalCount, 0);
-                            totalCutTotals[cutNum - 1] += cutTotal;
-                        }
+        // 計算總計 cut 數據
+        const totalCutTotals = new Array(maxCuts).fill(0);
+        for (const uuid in cutData) {
+            const data = cutData[uuid].data;
+            if (data.success) {
+                for (let cutNum = 1; cutNum <= maxCuts; cutNum++) {
+                    const cutKey = cutNum.toString();
+                    if (data.success[cutKey]) {
+                        const cutTotal = data.success[cutKey].reduce((sum, d) => sum + d.totalCount, 0);
+                        totalCutTotals[cutNum - 1] += cutTotal;
                     }
                 }
             }
-
-            const totalCutClicks = totalCutTotals.reduce((sum, cut) => sum + cut, 0);
-            const totalTextClicks = Math.max(0, totalClk - totalCutClicks);
-
-            const newTotalRow = document.createElement('tr');
-            
-            // TOTAL 標籤
-            const totalLabelCell = document.createElement('td');
-            totalLabelCell.textContent = 'TOTAL';
-            newTotalRow.appendChild(totalLabelCell);
-
-            // 空白星期欄
-            const emptyWeekCell = document.createElement('td');
-            emptyWeekCell.textContent = '';
-            newTotalRow.appendChild(emptyWeekCell);
-
-            // 總曝光數
-            const totalImpCell = document.createElement('td');
-            totalImpCell.textContent = totalImp > 0 ? totalImp.toLocaleString() : '';
-            newTotalRow.appendChild(totalImpCell);
-
-            // 總點擊數
-            const totalClkCell = document.createElement('td');
-            totalClkCell.textContent = totalClk > 0 ? totalClk : '';
-            newTotalRow.appendChild(totalClkCell);
-
-            // 總點擊率
-            const totalCtrCell = document.createElement('td');
-            totalCtrCell.textContent = totalCtr;
-            newTotalRow.appendChild(totalCtrCell);
-
-            // 總 Cut 數據
-            for (let i = 0; i < maxCuts; i++) {
-                const totalCutCell = document.createElement('td');
-                totalCutCell.textContent = totalCutTotals[i] > 0 ? totalCutTotals[i] : '';
-                newTotalRow.appendChild(totalCutCell);
-            }
-
-            // 總文案
-            const totalTextCell = document.createElement('td');
-            totalTextCell.textContent = totalTextClicks > 0 ? totalTextClicks : '';
-            newTotalRow.appendChild(totalTextCell);
-
-            newTable.appendChild(newTotalRow);
         }
+
+        const totalCutClicks = totalCutTotals.reduce((sum, cut) => sum + cut, 0);
+        const totalTextClicks = Math.max(0, totalClk - totalCutClicks);
+
+        const newTotalRow = document.createElement('tr');
+        newTotalRow.className = 'total-row';
+        newTotalRow.style.fontWeight = 'bold';
+        
+        // TOTAL 標籤
+        const totalLabelCell = document.createElement('td');
+        totalLabelCell.textContent = 'TOTAL';
+        totalLabelCell.style.fontWeight = 'bold';
+        newTotalRow.appendChild(totalLabelCell);
+
+        // 空白星期欄
+        const emptyWeekCell = document.createElement('td');
+        emptyWeekCell.textContent = '';
+        newTotalRow.appendChild(emptyWeekCell);
+
+        // 總曝光數
+        const totalImpCell = document.createElement('td');
+        totalImpCell.textContent = totalImp > 0 ? totalImp.toLocaleString() : '';
+        totalImpCell.style.fontWeight = 'bold';
+        newTotalRow.appendChild(totalImpCell);
+
+        // 總點擊數
+        const totalClkCell = document.createElement('td');
+        totalClkCell.textContent = totalClk > 0 ? totalClk : '';
+        totalClkCell.style.fontWeight = 'bold';
+        newTotalRow.appendChild(totalClkCell);
+
+        // 總點擊率
+        const totalCtrCell = document.createElement('td');
+        totalCtrCell.textContent = totalCtr;
+        totalCtrCell.style.fontWeight = 'bold';
+        totalCtrCell.style.color = '#dc3545';
+        newTotalRow.appendChild(totalCtrCell);
+
+        // 總 Cut 數據
+        for (let i = 0; i < maxCuts; i++) {
+            const totalCutCell = document.createElement('td');
+            totalCutCell.textContent = totalCutTotals[i] > 0 ? totalCutTotals[i] : '';
+            totalCutCell.style.fontWeight = 'bold';
+            totalCutCell.style.backgroundColor = '#fff3cd';
+            newTotalRow.appendChild(totalCutCell);
+        }
+
+        // 總文案
+        const totalTextCell = document.createElement('td');
+        totalTextCell.textContent = totalTextClicks > 0 ? totalTextClicks : '';
+        totalTextCell.style.fontWeight = 'bold';
+        totalTextCell.style.backgroundColor = '#d1ecf1';
+        newTotalRow.appendChild(totalTextCell);
+
+        newTable.appendChild(newTotalRow);
 
         return newTable;
     }

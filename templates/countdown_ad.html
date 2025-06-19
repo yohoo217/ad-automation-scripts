@@ -194,7 +194,7 @@
             <button type="submit" class="clear-form-btn" onclick="return confirm('確定要清除所有填寫的內容嗎？')">🗑️ 清除所有內容</button>
         </form>
 
-        <form action="{{ url_for('main.create_countdown_ad') }}" method="post" id="ad-form">
+        <form action="{{ url_for('main.create_countdown_ad') }}" method="post" id="ad-form" onsubmit="return validateAndSubmit()">
             <div class="field-group">
                 <h3>📋 基本廣告資訊</h3>
                 
@@ -538,7 +538,7 @@
         }
 
         // 初始化預覽
-        updateCountdownPreview();
+        updateCountdownAdPreview();
 
         // 在頁面加載完成後更新 payload 和預覽
         updateGameWidgetPayload();
@@ -566,6 +566,43 @@
                 });
             }
         });
+
+        // 添加文件上傳處理
+        document.querySelectorAll('.file-input').forEach(input => {
+            input.addEventListener('change', function() {
+                const targetId = this.getAttribute('data-target');
+                const file = this.files[0];
+                
+                if (file && targetId) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    fetch("{{ url_for('upload.upload_file') }}", {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById(targetId).value = data.file_path;
+                            
+                            // 更新預覽
+                            updateGameWidgetPayload();
+                            updateCountdownAdPreview();
+                            
+                            console.log('文件上傳成功:', data.file_path);
+                        } else {
+                            console.error('文件上傳失敗:', data.message);
+                            alert('文件上傳失敗: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('文件上傳錯誤:', error);
+                        alert('文件上傳時發生錯誤');
+                    });
+                }
+            });
+        });
     });
 
     function updateCountdownAdPreview() {
@@ -583,8 +620,28 @@
         // 更新背景
         const mainPreview = document.querySelector('.ad-preview-main');
         const backgroundUrl = document.getElementById('background_url').value;
-        mainPreview.style.backgroundImage = backgroundUrl ? `url(${backgroundUrl})` : 'none';
-        mainPreview.style.backgroundColor = backgroundUrl ? 'transparent' : '#f0f0f0';
+        
+        if (backgroundUrl && backgroundUrl.trim() !== '') {
+            console.log('設置背景圖片:', backgroundUrl);
+            mainPreview.style.backgroundImage = `url("${backgroundUrl}")`;
+            mainPreview.style.backgroundColor = 'transparent';
+            
+            // 檢查圖片是否載入成功
+            const img = new Image();
+            img.onload = function() {
+                console.log('✅ 背景圖片載入成功');
+            };
+            img.onerror = function() {
+                console.error('❌ 背景圖片載入失敗:', backgroundUrl);
+                mainPreview.style.backgroundImage = 'none';
+                mainPreview.style.backgroundColor = '#ffebee';
+            };
+            img.src = backgroundUrl;
+        } else {
+            console.log('清除背景圖片');
+            mainPreview.style.backgroundImage = 'none';
+            mainPreview.style.backgroundColor = '#f0f0f0';
+        }
 
         // 更新倒數計時彈窗
         const popup = document.getElementById('preview-countdown-popup');
@@ -639,6 +696,25 @@
     // 每秒更新倒數計時
     setInterval(updateCountdownTimer, 1000);
 
+    // 表單提交前驗證函數
+    function validateAndSubmit() {
+        // 確保在提交前更新 payload
+        updateGameWidgetPayload();
+        
+        // 檢查 payload 是否存在
+        const payloadValue = document.getElementById('payload_game_widget').value;
+        if (!payloadValue || payloadValue.trim() === '') {
+            alert('❌ 無法生成遊戲套件 payload，請檢查必要欄位是否已填寫：\n• 倒數結束時間\n• 背景圖片網址\n• 目標網址');
+            console.error('payload_game_widget 為空:', payloadValue);
+            return false;
+        }
+        
+        console.log('✅ 表單驗證通過，payload 已生成');
+        return true;
+    }
+
+
+
     function updateGameWidgetPayload() {
         const endDate = document.getElementById('end_date').value;
         const backgroundUrl = document.getElementById('background_url').value;
@@ -662,19 +738,25 @@
         const showMin = document.getElementById('show_min').checked;
         const showSec = document.getElementById('show_sec').checked;
 
-        if (!endDate || !backgroundUrl || !targetUrl) return; // 如果必要的輸入缺失，不更新
+        // 檢查是否有必要欄位為空，但仍生成基本 payload 避免表單提交錯誤
+        let isValid = endDate && backgroundUrl && targetUrl;
+        
+        // 提供預設值確保 payload 不會為空
+        const finalEndDate = endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16).replace('T', ' ') + ':00';
+        const finalBackgroundUrl = backgroundUrl || 'https://example.com/default-bg.jpg';
+        const finalTargetUrl = targetUrl || 'https://example.com';
 
         // 轉換日期時間格式 (從 YYYY-MM-DDTHH:MM 轉換為 YYYY-MM-DD HH:MM:SS)
-        let formattedEndDate = endDate;
-        if (endDate.includes('T')) {
-            formattedEndDate = endDate.replace('T', ' ') + ':00';
+        let formattedEndDate = finalEndDate;
+        if (finalEndDate.includes('T')) {
+            formattedEndDate = finalEndDate.replace('T', ' ') + ':00';
         }
 
         const payload = {
             "type": "COUNTDOWN",
             "imgProperty": {
                 "endDate": formattedEndDate,
-                "backgroundImage": backgroundUrl,
+                "backgroundImage": finalBackgroundUrl,
                 "descriptionText": descriptionText,
                 "position": position,
                 "dateNumberColor": dateNumberColor,
@@ -692,14 +774,19 @@
                 {
                     "action": "OPEN_EXTERNAL_BROWSER",
                     "payload": {
-                        "url": targetUrl
+                        "url": finalTargetUrl
                     }
                 }
             ]
         };
 
         document.getElementById('payload_game_widget').value = JSON.stringify(payload);
-        console.log('Updated payload:', payload); // 用於調試
+        console.log('Updated payload:', payload, 'Valid fields:', isValid); // 用於調試
+        
+        // 如果欄位不完整，顯示警告但不阻止 payload 生成
+        if (!isValid) {
+            console.warn('部分必要欄位未填寫，使用預設值生成 payload');
+        }
     }
 
     // 快速資訊解析函數

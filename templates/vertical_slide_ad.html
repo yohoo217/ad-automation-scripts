@@ -17,6 +17,34 @@
         border-radius: 5px;
         background-color: #f9f9f9;
     }
+    .vertical-slide-item {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+        position: relative;
+    }
+    .remove-item-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
+        font-size: 16px;
+        line-height: 1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .remove-item-btn:hover {
+        background-color: #c82333;
+    }
     .clear-form-btn {
         background-color: #f44336;
         color: white;
@@ -325,6 +353,11 @@
 
 {% block additional_scripts %}
 <script>
+    // 全局變量聲明
+    let slideItemCount = 0;
+    let slidePreviewInterval = null;
+    let currentPreviewSlideIndex = 0;
+
     // Debounce 函數，防止事件過於頻繁觸發
     function debounce(func, wait) {
         let timeout;
@@ -402,6 +435,7 @@
             });
         } else {
             // 如果沒有項目，添加一個空的
+            slideItemCount = 0;
             addSlideItem();
         }
         
@@ -415,6 +449,12 @@
     }
     
     function addSlideItemWithData(index, imageUrl, targetUrl) {
+        // 如果沒有指定 index，使用當前的 slideItemCount
+        if (typeof index === 'undefined' || index === null) {
+            index = slideItemCount;
+        }
+        
+        // 更新 slideItemCount 為最大值
         if (index >= slideItemCount) {
             slideItemCount = index + 1;
         }

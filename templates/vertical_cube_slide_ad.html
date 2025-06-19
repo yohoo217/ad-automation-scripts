@@ -179,6 +179,29 @@
         border: none;
         padding: 0;
     }
+    .remove-item-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background-color: #f44336;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+    }
+    .remove-item-btn:hover {
+        background-color: #d32f2f;
+    }
+    .vertical-cube-slide-item {
+        position: relative;
+    }
 </style>
 {% endblock %}
 
@@ -335,6 +358,11 @@
 
 {% block additional_scripts %}
 <script>
+    // 全局變數定義
+    let slideItemCount = 0;
+    let slidePreviewInterval = null;
+    let currentPreviewSlideIndex = 0;
+
     // Debounce 函數，防止事件過於頻繁觸發
     function debounce(func, wait) {
         let timeout;

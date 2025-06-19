@@ -317,46 +317,51 @@ def run(playwright: Playwright, ad_data: dict, ad_type: str = 'gif') -> bool:
         # 更新 urlInteractivePopups
         log_message("更新 urlInteractivePopups")
         try:
-            url_interactive_popups_textarea = page.locator("textarea[name=\"urlInteractivePopups\"]")
-            
-            # 根據廣告類型決定 urlInteractivePopups 的格式
-            if ad_data.get('ad_type') == 'treasure_box':
-                log_message("偵測到 treasure_box 廣告類型，使用特殊的 urlInteractivePopups 格式")
-                # 寶箱廣告使用 a、b、c 三個 key，每個都有對應的 query parameter
-                popups_list = [
-                    {
-                        "key": "a",
-                        "url": new_value + "?key=a"
-                    },
-                    {
-                        "key": "b",
-                        "url": new_value + "?key=b"
-                    },
-                    {
-                        "key": "c",
-                        "url": new_value + "?key=c"
-                    }
-                ]
+            # 這些廣告類型不需要填入 urlInteractivePopups，因為它們的互動邏輯在 payload_game_widget 中
+            skip_popup_ad_types = ['slide', 'vertical_slide', 'vertical_cube_slide', 'vote', 'countdown']
+            if ad_data.get('ad_type') in skip_popup_ad_types:
+                log_message(f"偵測到 {ad_data.get('ad_type')} 廣告類型，不需要更新 urlInteractivePopups")
             else:
-                # 其他廣告類型使用原本的格式
-                log_message("使用標準的 urlInteractivePopups 格式")
-                popups_list = [
-                    {
-                        "key": "a",
-                        "url": new_value
-                    },
-                    {
-                        "key": "a", 
-                        "url": new_value
-                    }
-                ]
-            
-            updated_popups_json = json.dumps(popups_list, indent=2)
-            log_message(f"更新後的 urlInteractivePopups: {updated_popups_json}")
-            
-            url_interactive_popups_textarea.fill(updated_popups_json)
-            log_message("已填入更新後的 urlInteractivePopups")
-            slow_down(page)
+                url_interactive_popups_textarea = page.locator("textarea[name=\"urlInteractivePopups\"]")
+                
+                # 根據廣告類型決定 urlInteractivePopups 的格式
+                if ad_data.get('ad_type') == 'treasure_box':
+                    log_message("偵測到 treasure_box 廣告類型，使用特殊的 urlInteractivePopups 格式")
+                    # 寶箱廣告使用 a、b、c 三個 key，每個都有對應的 query parameter
+                    popups_list = [
+                        {
+                            "key": "a",
+                            "url": new_value + "?key=a"
+                        },
+                        {
+                            "key": "b",
+                            "url": new_value + "?key=b"
+                        },
+                        {
+                            "key": "c",
+                            "url": new_value + "?key=c"
+                        }
+                    ]
+                else:
+                    # 其他廣告類型使用原本的格式
+                    log_message("使用標準的 urlInteractivePopups 格式")
+                    popups_list = [
+                        {
+                            "key": "a",
+                            "url": new_value
+                        },
+                        {
+                            "key": "a", 
+                            "url": new_value
+                        }
+                    ]
+                
+                updated_popups_json = json.dumps(popups_list, indent=2)
+                log_message(f"更新後的 urlInteractivePopups: {updated_popups_json}")
+                
+                url_interactive_popups_textarea.fill(updated_popups_json)
+                log_message("已填入更新後的 urlInteractivePopups")
+                slow_down(page)
             
         except Exception as e:
             log_message(f"更新 urlInteractivePopups 時發生錯誤: {str(e)}")

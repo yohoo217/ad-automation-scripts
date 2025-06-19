@@ -479,6 +479,9 @@
 
 {% block additional_scripts %}
 <script>
+    // 投票選項計數器
+    let voteOptionCount = 0;
+
     // Debounce 函數，防止事件過於頻繁觸發
     function debounce(func, wait) {
         let timeout;
@@ -545,11 +548,22 @@
         
         // 添加/移除投票選項按鈕
         document.getElementById('add-vote-option').addEventListener('click', function() {
-            addVoteOption();
+            console.log('Add vote option button clicked');
+            try {
+                addVoteOption();
+            } catch (error) {
+                console.error('Error adding vote option:', error);
+                alert('新增投票選項時發生錯誤：' + error.message);
+            }
         });
         
         document.getElementById('remove-vote-option').addEventListener('click', function() {
-            removeVoteOption();
+            try {
+                removeVoteOption();
+            } catch (error) {
+                console.error('Error removing vote option:', error);
+                alert('移除投票選項時發生錯誤：' + error.message);
+            }
         });
         
         // 表單提交前確保更新 payload
@@ -609,12 +623,7 @@
             if (textInput) textInput.value = colorDefaults[id];
         });
         
-        // 清除投票選項
-        const container = document.getElementById('vote-options-container');
-        container.innerHTML = '';
-        voteOptionCount = 0;
-        
-        // 重新初始化兩個默認選項
+        // 重新初始化投票選項（會自動清除和重置計數器）
         initializeVoteOptions();
         
         // 清除預覽圖片
@@ -637,6 +646,13 @@
     }
     
     function initializeVoteOptions() {
+        // 重置計數器
+        voteOptionCount = 0;
+        
+        // 清空容器
+        const container = document.getElementById('vote-options-container');
+        container.innerHTML = '';
+        
         // 從 session 數據恢復選項，或者添加默認選項
         const existingOptions = JSON.parse('{{ vote_options | tojson | safe }}' || '[]');
         

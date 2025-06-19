@@ -485,8 +485,8 @@
                             <h5>彈窗內容 (2/2): 滑動圖片組件</h5>
                             <div class="form-row">
                                 <label for="slide_autoplay_delay">自動播放延遲 (毫秒)</label>
-                                <input type="number" id="slide_autoplay_delay" class="payload-popup-input" placeholder="500" min="100" step="100"
-                                       value="{{ popup_payload.slide_autoplay_delay or '500' }}">
+                                <input type="number" id="slide_autoplay_delay" class="payload-popup-input" placeholder="2000" min="100" step="100"
+                                       value="{{ popup_payload.slide_autoplay_delay or '2000' }}">
                                 <div class="help-text">滑動圖片自動播放的延遲時間，單位為毫秒</div>
                             </div>
                             <div class="form-row">
@@ -834,7 +834,7 @@
             
             // 如果有多張圖片，啟動自動播放
             if (slides.length > 1) {
-                const autoplayDelay = parseInt(document.getElementById('slide_autoplay_delay').value) || 500;
+                const autoplayDelay = parseInt(document.getElementById('slide_autoplay_delay').value) || 2000;
                 popupSlidePreviewInterval = setInterval(() => {
                     currentPopupSlideIndex = (currentPopupSlideIndex + 1) % slides.length;
                     showSlide();

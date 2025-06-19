@@ -197,6 +197,50 @@
         color: #666;
         border-radius: 5px;
         overflow: hidden;
+        position: relative;
+    }
+    .popup-slide-wrapper {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+    .popup-preview-slide {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+    }
+    .popup-preview-slide.active {
+        opacity: 1;
+    }
+    .popup-preview-slide img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background-color: #f0f0f0;
+    }
+    .popup-dots-container {
+        position: absolute;
+        bottom: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 5px;
+        z-index: 10;
+    }
+    .popup-preview-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #888;
+        border-radius: 50%;
+        transition: background-color 0.3s;
+    }
+    .popup-preview-dot.active {
+        background-color: #fff;
     }
     .dynamic-item {
         border: 1px solid #ccc;
@@ -508,10 +552,15 @@
                     </div>
                     
                     <!-- 圖片區域：對應 690x788，實際顯示 300x343 -->
-                    <div class="popup-image-preview" id="popup-image-preview" style="width: 300px; height: 343px; position: relative;">
-                        <img id="popup-preview-image" src="" alt="圖片素材" style="display: none; width: 100%; height: 100%; object-fit: contain; background-color: #f0f0f0;">
+                    <div class="popup-image-preview" id="popup-image-preview" style="width: 300px; height: 343px;">
+                        <div class="popup-slide-wrapper" id="popup-slide-wrapper">
+                            <!-- Slides will be injected here -->
+                        </div>
+                        <div class="popup-dots-container" id="popup-dots-container">
+                            <!-- Dots will be injected here -->
+                        </div>
                         <div id="popup-image-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999; font-size: 12px; text-align: center;">
-                            🖼️<br>圖片素材<br>690×788
+                            🖼️<br>滑動圖片組件<br>尚未新增圖片
                         </div>
                     </div>
                 </div>
@@ -561,6 +610,8 @@
     // 原生彈跳影音滑動廣告特有的 JavaScript
     let previewVideo;
     let isVideoPlaying = false;
+    let popupSlidePreviewInterval;
+    let currentPopupSlideIndex = 0;
     
     document.addEventListener('DOMContentLoaded', function() {
         // 為表單添加輸入事件監聽器以觸發自動儲存
@@ -713,27 +764,7 @@
         }
         
         // 更新滑動圖片預覽
-        const slideItems = document.querySelectorAll('.slide-item');
-        const popupImage = document.getElementById('popup-preview-image');
-        const imagePlaceholder = document.getElementById('popup-image-placeholder');
-        
-        // 顯示第一張滑動圖片作為預覽
-        if (slideItems.length > 0) {
-            const firstSlideImageUrl = slideItems[0].querySelector('.slide-image-url').value;
-            if (firstSlideImageUrl) {
-                popupImage.src = firstSlideImageUrl;
-                popupImage.style.display = 'block';
-                imagePlaceholder.style.display = 'none';
-            } else {
-                popupImage.style.display = 'none';
-                imagePlaceholder.style.display = 'flex';
-            }
-            imagePlaceholder.innerHTML = `📊<br>滑動圖片組件<br>${slideItems.length} 張圖片`;
-        } else {
-            popupImage.style.display = 'none';
-            imagePlaceholder.style.display = 'flex';
-            imagePlaceholder.innerHTML = '📊<br>滑動圖片組件<br>尚未新增圖片';
-        }
+        updatePopupSlidePreview();
     }
 
     function togglePopupVideoPlayback() {
@@ -748,6 +779,71 @@
                 popupVideo.pause();
                 playBtn.textContent = '▶';
             }
+        }
+    }
+
+    function updatePopupSlidePreview() {
+        const slideWrapper = document.getElementById('popup-slide-wrapper');
+        const dotsContainer = document.getElementById('popup-dots-container');
+        const imagePlaceholder = document.getElementById('popup-image-placeholder');
+        
+        // 清除現有內容
+        slideWrapper.innerHTML = '';
+        dotsContainer.innerHTML = '';
+        
+        // 停止現有的自動播放
+        clearInterval(popupSlidePreviewInterval);
+        
+        // 收集所有滑動圖片
+        const slideItems = document.querySelectorAll('.slide-item');
+        let validSlides = [];
+        
+        slideItems.forEach((item, index) => {
+            const imageUrlInput = item.querySelector('.slide-image-url');
+            if (imageUrlInput && imageUrlInput.value) {
+                validSlides.push(imageUrlInput.value);
+                
+                // 創建滑動項目
+                const slideDiv = document.createElement('div');
+                slideDiv.className = 'popup-preview-slide';
+                slideDiv.innerHTML = `<img src="${imageUrlInput.value}" alt="Slide ${index + 1}">`;
+                slideWrapper.appendChild(slideDiv);
+                
+                // 創建指示器
+                const dotSpan = document.createElement('span');
+                dotSpan.className = 'popup-preview-dot';
+                dotsContainer.appendChild(dotSpan);
+            }
+        });
+        
+        if (validSlides.length > 0) {
+            // 隱藏佔位符
+            imagePlaceholder.style.display = 'none';
+            
+            const slides = slideWrapper.querySelectorAll('.popup-preview-slide');
+            const dots = dotsContainer.querySelectorAll('.popup-preview-dot');
+            currentPopupSlideIndex = 0;
+            
+            function showSlide() {
+                slides.forEach((s, i) => s.classList.toggle('active', i === currentPopupSlideIndex));
+                dots.forEach((d, i) => d.classList.toggle('active', i === currentPopupSlideIndex));
+            }
+            
+            // 顯示第一張圖片
+            showSlide();
+            
+            // 如果有多張圖片，啟動自動播放
+            if (slides.length > 1) {
+                const autoplayDelay = parseInt(document.getElementById('slide_autoplay_delay').value) || 500;
+                popupSlidePreviewInterval = setInterval(() => {
+                    currentPopupSlideIndex = (currentPopupSlideIndex + 1) % slides.length;
+                    showSlide();
+                }, autoplayDelay);
+            }
+        } else {
+            // 顯示佔位符
+            imagePlaceholder.style.display = 'flex';
+            imagePlaceholder.innerHTML = '🖼️<br>滑動圖片組件<br>尚未新增圖片';
         }
     }
 
@@ -804,7 +900,7 @@
                         container.querySelectorAll('input').forEach(input => {
                             input.addEventListener('input', () => {
                                 updatePayloadPopupJson();
-                                updatePopupContentPreview();
+                                updatePopupSlidePreview();
                             });
                         });
                         
@@ -847,7 +943,7 @@
             container.querySelectorAll('input').forEach(input => {
                 input.addEventListener('input', () => {
                     updatePayloadPopupJson();
-                    updatePopupContentPreview();
+                    updatePopupSlidePreview();
                 });
             });
         }
@@ -882,7 +978,7 @@
         newSlideItem.querySelectorAll('input').forEach(input => {
             input.addEventListener('input', () => {
                 updatePayloadPopupJson();
-                updatePopupContentPreview();
+                updatePopupSlidePreview();
             });
         });
         
@@ -902,7 +998,7 @@
             slideItem.remove();
             updateSlideLabels();
             updatePayloadPopupJson();
-            updatePopupContentPreview();
+            updatePopupSlidePreview();
         }
     }
 

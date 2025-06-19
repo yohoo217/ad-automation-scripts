@@ -319,17 +319,37 @@ def run(playwright: Playwright, ad_data: dict, ad_type: str = 'gif') -> bool:
         try:
             url_interactive_popups_textarea = page.locator("textarea[name=\"urlInteractivePopups\"]")
             
-            # 建立包含完整 URL 的 JSON 結構
-            popups_list = [
-                {
-                    "key": "a",
-                    "url": new_value
-                },
-                {
-                    "key": "a", 
-                    "url": new_value
-                }
-            ]
+            # 根據廣告類型決定 urlInteractivePopups 的格式
+            if ad_data.get('ad_type') == 'treasure_box':
+                log_message("偵測到 treasure_box 廣告類型，使用特殊的 urlInteractivePopups 格式")
+                # 寶箱廣告使用 a、b、c 三個 key，每個都有對應的 query parameter
+                popups_list = [
+                    {
+                        "key": "a",
+                        "url": new_value + "?key=a"
+                    },
+                    {
+                        "key": "b",
+                        "url": new_value + "?key=b"
+                    },
+                    {
+                        "key": "c",
+                        "url": new_value + "?key=c"
+                    }
+                ]
+            else:
+                # 其他廣告類型使用原本的格式
+                log_message("使用標準的 urlInteractivePopups 格式")
+                popups_list = [
+                    {
+                        "key": "a",
+                        "url": new_value
+                    },
+                    {
+                        "key": "a", 
+                        "url": new_value
+                    }
+                ]
             
             updated_popups_json = json.dumps(popups_list, indent=2)
             log_message(f"更新後的 urlInteractivePopups: {updated_popups_json}")

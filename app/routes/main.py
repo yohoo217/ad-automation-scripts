@@ -976,6 +976,9 @@ def create_treasure_box_ad():
             'image_path_m': request.form.get('image_path_m', ''),
             'image_path_s': request.form.get('image_path_s', ''),
             
+            # suprad 腳本需要的 background_url 欄位 (對應 background_image)
+            'background_url': request.form.get('background_image', ''),
+            
             # 寶箱廣告特定欄位（支援 treasure_ 前綴）
             'img_logo': request.form.get('treasure_img_logo', request.form.get('img_logo', '')),
             'img_background': request.form.get('treasure_img_background', request.form.get('img_background', '')),
@@ -987,10 +990,7 @@ def create_treasure_box_ad():
             'items_active_2': request.form.get('treasure_items_active_2', request.form.get('items_active_2', '')),
             'items_idle_2': request.form.get('treasure_items_idle_2', request.form.get('items_idle_2', '')),
             'items_active_3': request.form.get('treasure_items_active_3', request.form.get('items_active_3', '')),
-            'items_idle_3': request.form.get('treasure_items_idle_3', request.form.get('items_idle_3', '')),
-            'url_interactive_a': request.form.get('treasure_url_interactive_a', request.form.get('url_interactive_a', '')),
-            'url_interactive_b': request.form.get('treasure_url_interactive_b', request.form.get('url_interactive_b', '')),
-            'url_interactive_c': request.form.get('treasure_url_interactive_c', request.form.get('url_interactive_c', ''))
+            'items_idle_3': request.form.get('treasure_items_idle_3', request.form.get('items_idle_3', ''))
         }
         
         # 保存表單數據到 session
@@ -1022,25 +1022,9 @@ def create_treasure_box_ad():
             }
         }
         
-        # 建構 urlInteractivePopups
-        url_interactive_popups = [
-            {
-                "key": "a",
-                "url": ad_data.get('url_interactive_a', '')
-            },
-            {
-                "key": "b", 
-                "url": ad_data.get('url_interactive_b', '')
-            },
-            {
-                "key": "c",
-                "url": ad_data.get('url_interactive_c', '')
-            }
-        ]
-        
-        # 將 payload 和 urlInteractivePopups 添加到 ad_data
+        # 將 payload 和廣告類型添加到 ad_data
         ad_data['payload_game_widget'] = json.dumps(treasure_box_payload, ensure_ascii=False)
-        ad_data['urlInteractivePopups'] = json.dumps(url_interactive_popups, ensure_ascii=False)
+        ad_data['ad_type'] = 'treasure_box'
         
         # 實際調用 suprad 腳本建立廣告
         try:

@@ -122,14 +122,12 @@ python run.py
   app.run(debug=False, port=5002, use_reloader=False)
   ```
 
-## 常見問題與解決方案
 
 ### "Target page, context or browser has been closed" 錯誤
 
 **解決方案**：
 - 資源管理優化：
   - 調整了 Playwright 的資源清理順序：先頁面，再上下文，最後瀏覽器
-  - 更改了 sync_playwright 的使用方式，從 with 語句改為手動管理生命週期
   - 增加了詳細的錯誤捕獲和處理，確保所有資源被正確關閉
 
 - 啟動選項調整：

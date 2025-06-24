@@ -1735,3 +1735,150 @@ def clear_treasure_box_form():
     session.pop('treasure_box_form_data', None)
     flash("表單內容已清除", 'info')
     return redirect(url_for('main.treasure_box_ad'))
+
+@main_bp.route('/create_ad_route', methods=['POST'])
+def create_ad_route():
+    """根據 active_tab 參數決定創建哪種類型的廣告"""
+    try:
+        active_tab = request.form.get('active_tab', 'native-ad')
+        
+        # 根據 active_tab 重定向到對應的創建函數
+        if active_tab == 'native-ad':
+            # 重定向到原生廣告創建
+            from .native_ad import create_native_ad
+            return create_native_ad()
+        elif active_tab == 'gif-ad':
+            # 需要重新映射字段名稱（去掉 gif_ 前綴）
+            adjusted_form_data = {}
+            for key, value in request.form.items():
+                if key.startswith('gif_'):
+                    adjusted_form_data[key[4:]] = value  # 移除 'gif_' 前綴
+                else:
+                    adjusted_form_data[key] = value
+            
+            # 創建一個新的 request.form 對象
+            from werkzeug.datastructures import ImmutableMultiDict
+            request.form = ImmutableMultiDict(adjusted_form_data)
+            
+            return create_gif_ad()
+        elif active_tab == 'slide-ad':
+            # 類似處理其他廣告類型...
+            flash("水平 Slide 廣告創建功能尚未實現", 'warning')
+            return redirect(url_for('main.index'))
+        elif active_tab == 'vertical-slide-ad':
+            flash("垂直 Slide 廣告創建功能尚未實現", 'warning')
+            return redirect(url_for('main.index'))
+        elif active_tab == 'vertical-cube-slide-ad':
+            flash("垂直 Cube Slide 廣告創建功能尚未實現", 'warning')
+            return redirect(url_for('main.index'))
+        elif active_tab == 'treasure-box-ad':
+            # 直接處理寶箱廣告創建
+            try:
+                # 獲取基本表單數據（支援 treasure_ 前綴欄位）
+                ad_data = {
+                    'adset_id': request.form.get('treasure_adset_id', ''),
+                    'display_name': request.form.get('treasure_display_name', ''),
+                    'advertiser': request.form.get('treasure_advertiser', ''),
+                    'main_title': request.form.get('treasure_main_title', ''),
+                    'subtitle': request.form.get('treasure_subtitle', ''),
+                    'landing_page': request.form.get('treasure_landing_page', ''),
+                    'call_to_action': request.form.get('treasure_call_to_action', '開啟寶箱'),
+                    'image_path_m': request.form.get('image_path_m', ''),
+                    'image_path_s': request.form.get('image_path_s', ''),
+                    
+                    # 寶箱廣告特定欄位
+                    'img_logo': request.form.get('treasure_img_logo', ''),
+                    'img_background': request.form.get('treasure_img_background', ''),
+                    'img_item_idle': request.form.get('treasure_img_item_idle', ''),
+                    'img_item_pressed': request.form.get('treasure_img_item_pressed', ''),
+                    'img_item_activated': request.form.get('treasure_img_item_activated', ''),
+                    'items_active_1': request.form.get('treasure_items_active_1', ''),
+                    'items_idle_1': request.form.get('treasure_items_idle_1', ''),
+                    'items_active_2': request.form.get('treasure_items_active_2', ''),
+                    'items_idle_2': request.form.get('treasure_items_idle_2', ''),
+                    'items_active_3': request.form.get('treasure_items_active_3', ''),
+                    'items_idle_3': request.form.get('treasure_items_idle_3', ''),
+                    'url_interactive_a': request.form.get('treasure_url_interactive_a', ''),
+                    'url_interactive_b': request.form.get('treasure_url_interactive_b', ''),
+                    'url_interactive_c': request.form.get('treasure_url_interactive_c', '')
+                }
+                
+                # 保存表單數據到 session
+                session['treasure_box_form_data'] = ad_data
+                
+                # 建構寶箱專用的 payload_game_widget
+                treasure_box_payload = {
+                    "type": "CHEST",
+                    "data": {
+                        "items": [
+                            {
+                                "active": ad_data.get('items_active_1', ''),
+                                "idle": ad_data.get('items_idle_1', '')
+                            },
+                            {
+                                "active": ad_data.get('items_active_2', ''),
+                                "idle": ad_data.get('items_idle_2', '')
+                            },
+                            {
+                                "active": ad_data.get('items_active_3', ''),
+                                "idle": ad_data.get('items_idle_3', '')
+                            }
+                        ],
+                        "img_logo": ad_data.get('img_logo', ''),
+                        "img_background": ad_data.get('img_background', ''),
+                        "img_item_idle": ad_data.get('img_item_idle', ''),
+                        "img_item_pressed": ad_data.get('img_item_pressed', ''),
+                        "img_item_activated": ad_data.get('img_item_activated', '')
+                    }
+                }
+                
+                # 建構 urlInteractivePopups
+                url_interactive_popups = [
+                    {
+                        "key": "a",
+                        "url": ad_data.get('url_interactive_a', '')
+                    },
+                    {
+                        "key": "b", 
+                        "url": ad_data.get('url_interactive_b', '')
+                    },
+                    {
+                        "key": "c",
+                        "url": ad_data.get('url_interactive_c', '')
+                    }
+                ]
+                
+                # 將 payload 和 urlInteractivePopups 添加到 ad_data
+                import json
+                ad_data['payload_game_widget'] = json.dumps(treasure_box_payload, ensure_ascii=False)
+                ad_data['urlInteractivePopups'] = json.dumps(url_interactive_popups, ensure_ascii=False)
+                
+                # 實際調用 suprad 腳本建立廣告
+                try:
+                    with sync_playwright() as p:
+                        result = run_suprad(p, ad_data, 'treasure_box')
+                    
+                    if result:
+                        flash("寶箱廣告創建成功！", 'success')
+                    else:
+                        flash("寶箱廣告創建失敗", 'error')
+                        
+                    return redirect(url_for('main.index'))
+                    
+                except Exception as e:
+                    logger.error(f"調用 suprad 時發生錯誤: {str(e)}")
+                    flash(f"寶箱廣告創建失敗: {str(e)}", 'error')
+                    return redirect(url_for('main.index'))
+                    
+            except Exception as e:
+                logger.error(f"創建寶箱廣告時發生錯誤: {str(e)}")
+                flash(f"創建寶箱廣告時發生錯誤: {str(e)}", 'error')
+                return redirect(url_for('main.index'))
+        else:
+            flash(f"未知的廣告類型: {active_tab}", 'error')
+            return redirect(url_for('main.index'))
+            
+    except Exception as e:
+        logger.error(f"創建廣告時發生錯誤: {str(e)}")
+        flash(f"創建廣告時發生錯誤: {str(e)}", 'error')
+        return redirect(url_for('main.index'))

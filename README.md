@@ -51,7 +51,7 @@ PASSWORD = "your_password"
 1. 啟動 Web 應用程式：
 
 ```bash
-python app.py
+python run.py
 ```
 
 2. 在瀏覽器中訪問 http://localhost:5002
@@ -112,14 +112,14 @@ python app.py
 
 ## 配置選項
 
-- 修改 `app.py` 中的 `app.secret_key` 以增強安全性：
+- 修改 `app/__init__.py` 中的 `app.secret_key` 以增強安全性：
   ```python
   app.secret_key = 'your_very_secret_key'  # 更換為安全的隨機字串
   ```
 - 建議以 headless 模式啟動瀏覽器 (headless=True) 以提高穩定性
-- 若需更改端口，調整 `app.py` 最後一行的 port 參數：
+- 若需更改端口，調整 `run.py` 最後一行的 port 參數：
   ```python
-  app.run(debug=True, port=5002)
+  app.run(debug=False, port=5002, use_reloader=False)
   ```
 
 ## 常見問題與解決方案
@@ -146,18 +146,3 @@ python app.py
 - **廣告創建失敗**：檢查日誌文件 logs/app.log 獲取詳細錯誤信息
 - **表單驗證錯誤**：確保填寫了所有必填欄位，並使用正確的格式
 
-## 版本歷史
-
-### v3.0.0 (當前版本)
-- 新增多種廣告類型支援：投票廣告、GIF廣告、滑動廣告、倒數廣告等
-- 改進 Playwright 資源管理
-- 增強錯誤處理和日誌記錄
-
-### v2.0.0
-- 新增 Web 介面
-- 支援300x300方形圖片
-- 改進圖片上傳流程
-- 表單驗證和錯誤處理
-
-### v1.0.0
-- 基於Google Sheet的批量廣告處理腳本

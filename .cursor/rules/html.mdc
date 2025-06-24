@@ -1,0 +1,117 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: HTML/CSS 開發規範和最佳實踐
+globs: **/*.html, **/*.css
+alwaysApply: true
+---
+
+# 🎨 HTML/CSS 開發規範
+
+## **HTML 結構**
+- 使用語義化的 HTML5 標籤
+- 保持標籤正確嵌套和閉合
+- 使用適當的縮排和格式化
+- 添加必要的 meta 標籤
+
+```html
+<!-- ✅ 良好的例子 -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>廣告預覽</title>
+</head>
+<body>
+    <main class="ad-container">
+        <section class="ad-content">
+            <h1 class="ad-title">廣告標題</h1>
+            <p class="ad-description">廣告描述</p>
+        </section>
+    </main>
+</body>
+</html>
+```
+
+## **CSS 組織**
+- 使用 BEM 命名方法論
+- 按功能模塊組織樣式
+- 使用 CSS 自定義屬性 (變量)
+- 避免過度嵌套選擇器
+
+```css
+/* ✅ 良好的例子 */
+:root {
+    --primary-color: #007bff;
+    --secondary-color: #6c757d;
+    --border-radius: 4px;
+}
+
+.ad-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.ad-container__title {
+    color: var(--primary-color);
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.ad-container__button {
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: var(--border-radius);
+    padding: 0.5rem 1rem;
+}
+
+.ad-container__button--secondary {
+    background-color: var(--secondary-color);
+}
+```
+
+## **廣告模板規範**
+- 使用一致的類名前綴
+- 分離結構、樣式和行為
+- 支援響應式設計
+- 優化載入性能
+
+```html
+<!-- 廣告模板結構 -->
+<div class="ad-widget ad-widget--{{ ad_type }}">
+    <div class="ad-widget__header">
+        <h2 class="ad-widget__title">{{ title }}</h2>
+    </div>
+    
+    <div class="ad-widget__content">
+        {{ content }}
+    </div>
+    
+    <div class="ad-widget__actions">
+        <button class="ad-widget__button">{{ button_text }}</button>
+    </div>
+</div>
+```
+
+## **性能優化**
+- 壓縮 CSS 和 JavaScript
+- 使用適當的圖片格式和大小
+- 減少 HTTP 請求數量
+- 使用 CSS Grid 和 Flexbox 進行佈局
+
+## **瀏覽器相容性**
+- 支援現代瀏覽器 (Chrome, Firefox, Safari, Edge)
+- 使用 autoprefixer 添加廠商前綴
+- 測試關鍵功能的向後相容性
+- 提供優雅降級方案
+
+## **可訪問性**
+- 使用適當的顏色對比度
+- 添加 alt 屬性到圖片
+- 使用語義化標籤
+- 支援鍵盤導航

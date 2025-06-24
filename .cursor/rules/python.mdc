@@ -1,0 +1,95 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: Python 開發規範和最佳實踐
+globs: **/*.py
+alwaysApply: true
+---
+
+# 🐍 Python 開發規範
+
+## **代碼風格**
+- 遵循 PEP 8 編碼規範
+- 使用 4 個空格進行縮排
+- 行長度限制為 88 字符
+- 使用 Black 格式化工具
+
+```python
+# ✅ 良好的例子
+def calculate_total_price(items: list[dict], tax_rate: float = 0.1) -> float:
+    """計算商品總價包含稅金."""
+    subtotal = sum(item['price'] * item['quantity'] for item in items)
+    return subtotal * (1 + tax_rate)
+
+# ❌ 避免的例子
+def calc(items,tax=0.1):
+    total=0
+    for i in items:
+        total+=i['price']*i['qty']
+    return total*(1+tax)
+```
+
+## **命名慣例**
+- **變量和函數**：使用 `snake_case`
+- **類別**：使用 `PascalCase`
+- **常數**：使用 `UPPER_SNAKE_CASE`
+- **私有成員**：以單底線 `_` 開頭
+
+## **類型提示**
+- 為所有函數參數和返回值添加類型提示
+- 使用現代的類型語法 (Python 3.9+)
+- 導入 `from __future__ import annotations` 以支援新語法
+
+```python
+from __future__ import annotations
+
+def process_ad_data(ad_config: dict[str, Any]) -> AdResult:
+    """處理廣告配置數據."""
+    pass
+```
+
+## **錯誤處理**
+- 使用具體的異常類型
+- 提供有意義的錯誤訊息
+- 使用 `logging` 模組而非 `print`
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+
+def load_template(template_name: str) -> str:
+    try:
+        with open(f"templates/{template_name}", 'r', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        logger.error(f"Template not found: {template_name}")
+        raise TemplateNotFoundError(f"無法找到模板: {template_name}")
+```
+
+## **文檔字符串**
+- 使用三重引號 `"""`
+- 簡潔描述函數功能
+- 必要時包含參數和返回值說明
+
+## **導入規範**
+- 標準庫導入在最前
+- 第三方庫導入在中間
+- 本地模組導入在最後
+- 每組之間空一行
+
+```python
+# 標準庫
+import logging
+from pathlib import Path
+
+# 第三方庫
+from flask import Flask, request
+import jinja2
+
+# 本地模組
+from app.models import AdUnit
+from app.services import TemplateService

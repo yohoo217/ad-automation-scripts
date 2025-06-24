@@ -4603,36 +4603,56 @@ document.addEventListener('DOMContentLoaded', function() {
             if (adunitReport.success) {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(adunitReport.content, 'text/html');
-                const table = findDailyReportTable(doc);
+                let table = findDailyReportTable(doc);
                 
                 if (table) {
+                    // 🎬 如果是 slide 廣告且有 cut 數據，處理 cut 數據
+                    if (isSlideAd && Object.keys(currentCutData).length > 0 && currentCutData[adunitUuid]) {
+                        console.log(`🎬 為垂直排列 Excel 的 AdUnit ${adunitName} 添加 cut 數據`);
+                        
+                        // 為單個 AdUnit 建構 cut 數據表格
+                        const singleAdunitCutData = {};
+                        singleAdunitCutData[adunitUuid] = currentCutData[adunitUuid];
+                        
+                        table = buildSlideReportTableForSingleAdunit(table, singleAdunitCutData, adunitUuid);
+                    }
+                    
                     const rows = table.querySelectorAll('tr');
                     if (rows.length > 0) {
                         // 添加表頭
                         const headerRow = rows[0];
                         const headers = Array.from(headerRow.querySelectorAll('th, td')).map(h => h.textContent.trim());
                         
-                        // 確定需要的欄位數量
-                        const colCount = Math.min(headers.length, 6); // 限制最多6欄
+                        // 確定需要的欄位數量 - 移除固定的6欄限制，以支援 slide cut 報表
+                        const colCount = headers.length;
                         
                         // 添加表頭
                         for (let j = 0; j < colCount; j++) {
                             const headerCell = worksheet.getCell(currentRow, j + 2); // 從第2欄開始
                             headerCell.value = headers[j] || '';
-                            headerCell.font = { name: 'Helvetica', bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
-                            headerCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF007BFF' } };
+                            headerCell.font = { name: 'Helvetica', bold: true, size: 13, color: { argb: 'FFFFFFFF' } };
+                            
+                            // 為 cut 相關欄位設定特殊樣式
+                            if (headers[j] && (headers[j].startsWith('cut') || headers[j] === '文案')) {
+                                headerCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE67E22' } }; // 橘色
+                            } else {
+                                headerCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } }; // 標準藍色
+                            }
+                            
                             headerCell.alignment = { vertical: 'middle', horizontal: 'center' };
                             headerCell.border = {
-                                top: { style: 'thin', color: { argb: 'FF0056B3' } },
-                                left: { style: 'thin', color: { argb: 'FF0056B3' } },
-                                bottom: { style: 'thin', color: { argb: 'FF0056B3' } },
-                                right: { style: 'thin', color: { argb: 'FF0056B3' } }
+                                top: { style: 'thin' },
+                                left: { style: 'thin' },
+                                bottom: { style: 'thin' },
+                                right: { style: 'thin' }
                             };
                         }
                         currentRow += 1;
                         
                         // 添加數據行
                         let totalImp = 0, totalClk = 0;
+                        const cutTotals = {}; // 存儲各 cut 的總數
+                        let totalTextClicks = 0; // 文案點擊數總計
                         
                         for (let i = 1; i < rows.length; i++) {
                             const dataRow = rows[i];
@@ -4644,19 +4664,26 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (dateText === 'TOTAL') continue; // 跳過現有的 TOTAL 行，我們稍後會自己計算
                             
                             // 添加數據到 Excel
-                            for (let j = 0; j < Math.min(cells.length, colCount); j++) {
+                            for (let j = 0; j < cells.length; j++) {
                                 const cellValue = cells[j].textContent.trim();
                                 const excelCell = worksheet.getCell(currentRow, j + 2);
                                 
                                 excelCell.value = cellValue;
-                                excelCell.font = { name: 'Helvetica', size: 9 };
+                                excelCell.font = { name: 'Helvetica', size: 13 };
                                 excelCell.alignment = { vertical: 'middle', horizontal: 'center' };
                                 excelCell.border = {
-                                    top: { style: 'thin', color: { argb: 'FFDDDDDD' } },
-                                    left: { style: 'thin', color: { argb: 'FFDDDDDD' } },
-                                    bottom: { style: 'thin', color: { argb: 'FFDDDDDD' } },
-                                    right: { style: 'thin', color: { argb: 'FFDDDDDD' } }
+                                    top: { style: 'thin' },
+                                    left: { style: 'thin' },
+                                    bottom: { style: 'thin' },
+                                    right: { style: 'thin' }
                                 };
+                                
+                                // 特殊處理：為包含 cut 數據的儲存格加上背景色
+                                if (headers[j] && headers[j].startsWith('cut')) {
+                                    excelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3CD' } };
+                                } else if (headers[j] && headers[j] === '文案') {
+                                    excelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1ECF1' } };
+                                }
                                 
                                 // 收集數據用於計算總數
                                 if (j > 0) { // 跳過日期欄
@@ -4666,6 +4693,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                             totalImp += numValue;
                                         } else if (headers[j] && headers[j].includes('點擊數')) {
                                             totalClk += numValue;
+                                        } else if (headers[j] && headers[j].startsWith('cut')) {
+                                            // 累計各 cut 的總數
+                                            if (!cutTotals[headers[j]]) cutTotals[headers[j]] = 0;
+                                            cutTotals[headers[j]] += numValue;
+                                        } else if (headers[j] && headers[j] === '文案') {
+                                            totalTextClicks += numValue;
                                         }
                                     }
                                 }
@@ -4676,12 +4709,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         // 添加 TOTAL 行
                         for (let j = 0; j < colCount; j++) {
                             const totalCell = worksheet.getCell(currentRow, j + 2);
-                            
+                            let isCutOrText = false;
+
                             if (j === 0) {
                                 totalCell.value = 'TOTAL';
+                            } else if (headers[j] && headers[j] === '星期') {
+                                totalCell.value = ''; // 星期欄留空
                             } else if (headers[j] && (headers[j].includes('曝光數') || headers[j].includes('播放數'))) {
                                 totalCell.value = totalImp > 0 ? totalImp.toLocaleString() : '';
-                            } else if (headers[j] && headers[j].includes('點擊數')) {
+                            } else if (headers[j] && headers[j].includes('點擊數') && !headers[j].startsWith('cut') && headers[j] !== '文案') {
                                 totalCell.value = totalClk > 0 ? totalClk.toString() : '';
                             } else if (headers[j] && (headers[j].includes('點擊率') || headers[j].includes('觀看率'))) {
                                 if (totalImp > 0) {
@@ -4689,21 +4725,35 @@ document.addEventListener('DOMContentLoaded', function() {
                                 } else {
                                     totalCell.value = '0.00%';
                                 }
+                            } else if (headers[j] && headers[j].startsWith('cut')) {
+                                isCutOrText = true;
+                                const cutTotal = cutTotals[headers[j]] || 0;
+                                totalCell.value = cutTotal > 0 ? cutTotal.toString() : '';
+                                totalCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE67E22' } };
+                                totalCell.font = { name: 'Helvetica', bold: true, size: 13, color: { argb: 'FFFFFFFF' } };
+                            } else if (headers[j] && headers[j] === '文案') {
+                                isCutOrText = true;
+                                totalCell.value = totalTextClicks > 0 ? totalTextClicks.toString() : '';
+                                totalCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF17A2B8' } };
+                                totalCell.font = { name: 'Helvetica', bold: true, size: 13, color: { argb: 'FFFFFFFF' } };
                             } else {
                                 totalCell.value = '';
                             }
+
+                            if (!isCutOrText) {
+                                totalCell.font = { name: 'Helvetica', bold: true, size: 13 };
+                                totalCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFDA66' } };
+                            }
                             
-                            totalCell.font = { name: 'Helvetica', bold: true, size: 9, color: { argb: 'FF2C3E50' } };
-                            totalCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7F3FF' } };
                             totalCell.alignment = { vertical: 'middle', horizontal: 'center' };
                             totalCell.border = {
-                                top: { style: 'thick', color: { argb: 'FF007BFF' } },
-                                left: { style: 'thin', color: { argb: 'FF007BFF' } },
-                                bottom: { style: 'thin', color: { argb: 'FF007BFF' } },
-                                right: { style: 'thin', color: { argb: 'FF007BFF' } }
+                                top: { style: 'thin' },
+                                left: { style: 'thin' },
+                                bottom: { style: 'thin' },
+                                right: { style: 'thin' }
                             };
                         }
-                        currentRow += 1;
+                        currentRow += 2; // 增加間距
                     }
                 } else {
                     // 無法解析報表數據

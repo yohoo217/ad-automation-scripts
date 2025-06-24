@@ -564,16 +564,20 @@
         const imageUrlInputs = document.querySelectorAll('input[name^="image_url_"]');
         const targetUrlInputs = document.querySelectorAll('input[name^="target_url_"]');
         
-        const slideItems = [];
+        const slides = [];
+        const invokes = [];
         
         for (let i = 0; i < imageUrlInputs.length; i++) {
             const imageUrl = imageUrlInputs[i].value;
             const targetUrl = targetUrlInputs[i].value;
             
             if (imageUrl && targetUrl) {
-                slideItems.push({
-                    imageUrl: imageUrl,
-                    targetUrl: targetUrl
+                slides.push(imageUrl);
+                invokes.push({
+                    action: "OPEN_EXTERNAL_BROWSER",
+                    payload: {
+                        url: targetUrl
+                    }
                 });
             }
         }
@@ -581,17 +585,9 @@
         const payload = {
             type: "SLIDE",
             data: {
-                slideItems: slideItems,
-                direction: "horizontal",
-                autoPlay: true,
-                autoPlayInterval: 3000
+                slides: slides
             },
-            invokes: slideItems.map(item => ({
-                action: "OPEN_EXTERNAL_BROWSER",
-                payload: {
-                    url: item.targetUrl
-                }
-            }))
+            invokes: invokes
         };
         
         document.getElementById('payload_game_widget').value = JSON.stringify(payload);

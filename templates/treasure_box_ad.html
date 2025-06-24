@@ -464,6 +464,16 @@
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('ad-form');
         
+        // 清除任何可能的錯誤路徑
+        const imagePathInputs = ['image_path_m', 'image_path_s'];
+        imagePathInputs.forEach(inputId => {
+            const input = document.getElementById(inputId);
+            if (input && input.value && input.value.includes('3fd66996-3c7e-4c57-adbe-1814ed6aba4c')) {
+                console.log('清除錯誤的檔案路徑:', input.value);
+                input.value = '';
+            }
+        });
+        
         // 即時預覽更新
         function updatePreview() {
             // 更新基本資訊
@@ -545,6 +555,55 @@
                     this.src = idleSrc;
                 } else {
                     this.src = activeSrc;
+                }
+            });
+        });
+
+        // 處理檔案上傳
+        document.querySelectorAll('.file-input').forEach(function(input) {
+            input.addEventListener('change', function(e) {
+                const targetField = this.dataset.target;
+                const targetInput = document.getElementById(targetField);
+                const previewId = 'preview_' + targetField.split('_').pop();
+                const previewImg = document.getElementById(previewId);
+                
+                if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    // 顯示上傳中的提示
+                    if (targetInput) targetInput.value = '上傳中...';
+                    
+                    // 發送上傳請求
+                    fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // 更新輸入框的值為文件路徑
+                            if (targetInput) targetInput.value = data.file_path;
+                            
+                            // 顯示圖片預覽
+                            if (previewImg) {
+                                previewImg.src = URL.createObjectURL(file);
+                                previewImg.style.display = 'block';
+                            }
+                            
+                            // 更新預覽
+                            updatePreview();
+                        } else {
+                            alert('上傳失敗: ' + data.error);
+                            if (targetInput) targetInput.value = '';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('上傳錯誤:', error);
+                        alert('上傳過程中發生錯誤');
+                        if (targetInput) targetInput.value = '';
+                    });
                 }
             });
         });

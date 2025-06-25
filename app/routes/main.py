@@ -11,6 +11,9 @@ import json
 # 導入 MongoDB 連接
 from app.models.database import get_mongo_client, get_activity_name_by_adset_id
 
+# 導入登入驗證
+from app.utils.auth import login_required
+
 # 導入 suprad 自動化腳本
 try:
     from suprad_adunit_auto_create import run as run_suprad
@@ -24,16 +27,19 @@ logger = logging.getLogger(__name__)
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
+@login_required
 def index():
     """主頁重定向到原生廣告頁面"""
     return redirect(url_for('native_ad.native_ad'))
 
 @main_bp.route('/batch')
+@login_required
 def batch():
     """批量廣告頁面"""
     return render_template('batch.html')
 
 @main_bp.route('/report')
+@login_required
 def report():
     """報表頁面"""
     return render_template('report.html')
@@ -424,6 +430,7 @@ def report_proxy():
         }), 500
 
 @main_bp.route('/vote-ad')
+@login_required
 def vote_ad():
     """投票廣告頁面"""
     form_data = session.get('form_data', {})
@@ -439,6 +446,7 @@ def clear_vote_form():
     return redirect(url_for('main.vote_ad'))
 
 @main_bp.route('/gif-ad')
+@login_required
 def gif_ad():
     """GIF 廣告頁面"""
     form_data = session.get('form_data', {})
@@ -452,6 +460,7 @@ def clear_gif_form():
     return redirect(url_for('main.gif_ad'))
 
 @main_bp.route('/slide-ad')
+@login_required
 def slide_ad():
     """水平 Slide 廣告頁面"""
     form_data = session.get('form_data', {})
@@ -467,6 +476,7 @@ def clear_slide_form():
     return redirect(url_for('main.slide_ad'))
 
 @main_bp.route('/vertical-slide-ad')
+@login_required
 def vertical_slide_ad():
     """垂直 Slide 廣告頁面"""
     form_data = session.get('form_data', {})
@@ -482,6 +492,7 @@ def clear_vertical_slide_form():
     return redirect(url_for('main.vertical_slide_ad'))
 
 @main_bp.route('/vertical-cube-slide-ad')
+@login_required
 def vertical_cube_slide_ad():
     """垂直 Cube Slide 廣告頁面"""
     form_data = session.get('form_data', {})
@@ -497,6 +508,7 @@ def clear_vertical_cube_slide_form():
     return redirect(url_for('main.vertical_cube_slide_ad'))
 
 @main_bp.route('/countdown-ad')
+@login_required
 def countdown_ad():
     """倒數廣告頁面"""
     form_data = session.get('form_data', {})
@@ -1082,6 +1094,7 @@ def parse_popup_payloads(form_data):
     return popup_payload
 
 @main_bp.route('/native-video-ad')
+@login_required
 def native_video_ad():
     """原生彈跳影音廣告頁面"""
     form_data = session.pop('form_data', {})
@@ -1578,6 +1591,7 @@ def get_adunit_reports():
     }), 400
 
 @main_bp.route('/popup-video-ad')
+@login_required
 def popup_video_ad():
     """原生彈跳影音廣告頁面"""
     form_data = session.get('form_data', {})
@@ -1642,6 +1656,7 @@ def clear_popup_video_form():
     return redirect(url_for('main.popup_video_ad'))
 
 @main_bp.route('/popup-video-slide-ad')
+@login_required
 def popup_video_slide_ad():
     """原生彈跳影音滑動廣告頁面"""
     form_data = session.get('form_data_slide', {})
@@ -1724,6 +1739,7 @@ def save_form_data():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @main_bp.route('/treasure-box-ad')
+@login_required
 def treasure_box_ad():
     """寶箱廣告頁面"""
     form_data = session.get('treasure_box_form_data', {})

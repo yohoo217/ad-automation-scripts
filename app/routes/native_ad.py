@@ -6,11 +6,15 @@ import time
 # 從修改後的腳本導入 run 函式
 from native_adunit_auto_create import run as run_native # type: ignore
 
+# 導入登入驗證
+from app.utils.auth import login_required
+
 logger = logging.getLogger(__name__)
 
 native_ad_bp = Blueprint('native_ad', __name__)
 
 @native_ad_bp.route('/native_ad')
+@login_required
 def native_ad():
     """原生廣告創建頁面"""
     form_data = session.get('form_data', {})

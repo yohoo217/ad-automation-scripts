@@ -107,9 +107,21 @@ def run(playwright: Playwright, ad_data: dict, ad_type: str = 'gif') -> bool:
         # 嘗試填寫表單
         try:
             log_message("填寫登入表單")
-            page.get_by_placeholder("Email 帳號").fill(config.EMAIL)
-            log_message(f"已填寫郵箱: {config.EMAIL}")
-            page.get_by_placeholder("密碼").fill(config.PASSWORD)
+            # 動態獲取帳號密碼（優先使用函數）
+            email = config.get_email()
+            password = config.get_password()
+            
+            if not email or not password:
+                # 如果函數沒有返回值，嘗試使用環境變數
+                email = config.EMAIL
+                password = config.PASSWORD
+                
+            if not email or not password:
+                raise Exception("無法獲取 Trek 系統帳號密碼，請確保已在 .env 中設定或已登入網頁系統")
+            
+            page.get_by_placeholder("Email 帳號").fill(email)
+            log_message(f"已填寫郵箱: {email}")
+            page.get_by_placeholder("密碼").fill(password)
             log_message("已填寫密碼")
             
             # 點擊登入按鈕而不是按 Enter 鍵，更穩定

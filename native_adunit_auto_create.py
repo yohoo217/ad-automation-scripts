@@ -50,9 +50,21 @@ def run(playwright: Playwright, ad_data: dict) -> bool:
         page.wait_for_load_state("networkidle")
 
         page.get_by_placeholder("Email 帳號").click()
-        page.get_by_placeholder("Email 帳號").fill(config.EMAIL)
+        # 動態獲取帳號密碼（優先使用函數）
+        email = config.get_email()
+        password = config.get_password()
+        
+        if not email or not password:
+            # 如果函數沒有返回值，嘗試使用環境變數
+            email = config.EMAIL
+            password = config.PASSWORD
+            
+        if not email or not password:
+            raise Exception("無法獲取 Trek 系統帳號密碼，請確保已在 .env 中設定或已登入網頁系統")
+        
+        page.get_by_placeholder("Email 帳號").fill(email)
         page.get_by_placeholder("Email 帳號").press("Tab")
-        page.get_by_placeholder("密碼").fill(config.PASSWORD)
+        page.get_by_placeholder("密碼").fill(password)
         page.get_by_placeholder("密碼").press("Enter")
 
         # 等待登入完成

@@ -224,6 +224,25 @@
             background-color: #229954;
         }
         
+        .nav-button.logout {
+            background-color: #e74c3c;
+            font-size: 10px;
+            padding: 4px 8px;
+        }
+        
+        .nav-button.logout:hover {
+            background-color: #c0392b;
+        }
+        
+        .nav-user-info {
+            font-size: 10px;
+            color: #666;
+            padding: 4px 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+        
         .nav-divider {
             width: 1px;
             height: 20px;
@@ -522,6 +541,14 @@
     <div class="container">
         <div class="nav-buttons">
             <div class="nav-container">
+                <!-- 使用者資訊 -->
+                <div class="nav-group">
+                    <span class="nav-user-info">👤 {{ session.user_email or '未登入' }}</span>
+                    <a href="{{ url_for('auth.logout') }}" class="nav-button logout">登出</a>
+                </div>
+                
+                <div class="nav-divider"></div>
+                
                 <!-- 主要功能 -->
                 <div class="nav-group">
                     <a href="{{ url_for('main.batch') }}" class="nav-button secondary">批量廣告創建</a>

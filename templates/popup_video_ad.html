@@ -1,0 +1,793 @@
+影音播放設定{% extends "base.html" %}
+
+{% block title %}原生彈跳影音廣告建立{% endblock %}
+
+{% block page_title %}建立原生彈跳影音廣告{% endblock %}
+
+{% block additional_styles %}
+<style>
+    .video-controls {
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .video-item {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+    .clear-form-btn {
+        background-color: #f44336;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 15px;
+    }
+    .clear-form-btn:hover {
+        background-color: #d32f2f;
+    }
+    .main-content-wrapper {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    .form-column {
+        flex: 1;
+        min-width: 0;
+    }
+    .preview-column {
+        width: 300px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 20px;
+    }
+    .ad-preview-container {
+        width: 300px;
+        height: 250px;
+        border: 2px solid #333;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        background-color: #000;
+        overflow: hidden;
+    }
+    .ad-preview-header {
+        padding: 2px 8px;
+        font-size: 12px;
+        color: #cd9601;
+        text-align: left;
+    }
+    .ad-preview-main {
+        flex-grow: 1;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        height: 157px;
+        background-color: #000;
+    }
+    .ad-preview-title {
+        padding: 4px 8px;
+        font-weight: bold;
+        font-size: 14px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: white;
+    }
+    .ad-preview-subtitle {
+        padding: 4px 8px;
+        font-size: 12px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: gray;
+    }
+    .ad-preview-footer {
+        display: flex;
+        font-size: 12px;
+    }
+    .ad-preview-advertiser {
+        flex-grow: 1;
+        padding: 4px 8px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: gray;
+    }
+    .ad-preview-cta {
+        padding: 4px 12px;
+        font-weight: bold;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 5px;
+        margin: 4px;
+    }
+    #preview-cut1-view {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+        background-color: #000;
+    }
+    .preview-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .preview-poster {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        cursor: pointer;
+    }
+    .video-play-btn {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+    }
+    .video-play-btn:hover {
+        background: rgba(0, 0, 0, 0.9);
+    }
+    .video-duration-display {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+        z-index: 10;
+    }
+    .cut1-background-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .popup-content-preview {
+        width: 300px;
+        height: 500px;
+        border: 2px solid #666;
+        background-color: #000;
+        margin: 0 auto;
+        overflow: hidden;
+        position: relative;
+        /* 影片區域 300x157 + 圖片區域 300x343 = 總高度 500px */
+    }
+    .popup-video-preview {
+        background-color: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    .popup-image-preview {
+        background-color: #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    .dynamic-item {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 15px;
+        margin-top: 10px;
+        background-color: #f9f9f9;
+    }
+    .dynamic-item .dynamic-item {
+        background-color: #f0f0f0;
+        border-color: #bbb;
+    }
+    .add-item-btn {
+        background-color: #28a745;
+        color: white;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+    .add-item-btn:hover {
+        background-color: #218838;
+    }
+    .remove-item-btn {
+        background-color: #dc3545;
+        color: white;
+        padding: 5px 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        float: right;
+    }
+    .remove-item-btn:hover {
+        background-color: #c82333;
+    }
+    .dynamic-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .dynamic-item-header label {
+        margin: 0;
+    }
+    .preview-section {
+        background: transparent;
+        border: none;
+        padding: 0;
+        margin: 0;
+    }
+    .preview-section h3 {
+        background: transparent;
+        border: none;
+        padding: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-content-wrapper">
+    <div class="form-column">
+        <form action="{{ url_for('main.clear_popup_video_form') }}" method="post" style="display: inline;">
+            <button type="submit" class="clear-form-btn" onclick="return confirm('確定要清除所有填寫的內容嗎？')">清除所有內容</button>
+        </form>
+
+        <form action="{{ url_for('main.create_popup_video_ad') }}" method="post" id="ad-form">
+            <div class="field-group">
+                <h3>📋 基本廣告資訊</h3>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="adset_id">Adset ID <span class="required">*</span></label>
+                        <input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required
+                               placeholder="例如：EXAMPLE_ADSET_ID">
+                        <div class="help-text">廣告組ID，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="display_name">廣告單元顯示名稱</label>
+                        <input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}"
+                               placeholder="僅供後台顯示使用">
+                        <div class="help-text">僅顯示於後台，可選</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="advertiser">廣告商 <span class="required">*</span></label>
+                        <input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required
+                               placeholder="廣告主名稱">
+                        <div class="help-text">廣告主名稱，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="main_title">主標題 <span class="required">*</span></label>
+                        <input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required
+                               placeholder="廣告主標題">
+                        <div class="help-text">廣告主標題，必填</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="subtitle">文字敘述</label>
+                        <input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}"
+                               placeholder="廣告副標題（可選）">
+                        <div class="help-text">廣告副標題，可選</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="call_to_action">行動呼籲按鈕文字</label>
+                        <input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '立即了解' }}"
+                               placeholder="立即了解">
+                        <div class="help-text">CTA按鈕文字，預設為「立即了解」</div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <label for="landing_page">到達頁面網址 <span class="required">*</span></label>
+                    <input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" 
+                           value="{{ landing_page or '' }}" required>
+                    <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <h3>📹 廣告素材</h3>
+                <p style="margin-bottom: 20px; color: #666; font-style: italic;">
+                    所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。
+                </p>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="image_path_m">大尺寸圖片 1200x628 <span class="required">*</span></label>
+                        <div class="file-upload-container">
+                            <input type="text" id="image_path_m" name="image_path_m" 
+                                   placeholder="/path/to/your/image_1200x628.jpg" 
+                                   value="{{ image_path_m or '' }}" required>
+                            <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                            <div class="preview-container">
+                                <label class="custom-file-upload">
+                                    📁 上傳圖片
+                                    <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
+                                </label>
+                                <img id="preview_m" class="upload-preview" style="display: none;" alt="預覽圖">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="image_path_s">小尺寸圖片 300x300 <span class="required">*</span></label>
+                        <div class="file-upload-container">
+                            <input type="text" id="image_path_s" name="image_path_s" 
+                                   placeholder="/path/to/your/image_300x300.jpg" 
+                                   value="{{ image_path_s or '' }}" required>
+                            <div class="help-text">方形圖片，尺寸300x300像素</div>
+                            <div class="preview-container">
+                                <label class="custom-file-upload">
+                                    📁 上傳圖片
+                                    <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
+                                </label>
+                                <img id="preview_s" class="upload-preview" style="display: none;" alt="預覽圖">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label for="background_image">互動廣告墊檔背景 <span class="required">*</span></label>
+                    <input type="text" id="background_image" name="background_image" 
+                           placeholder="請輸入背景圖片網址" value="{{ background_image or '' }}" required>
+                    <div class="help-text">互動廣告墊檔背景圖片網址</div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <h3>⚙️ 進階互動設定 & cut1 圖片設定</h3>
+                <p style="margin-bottom: 20px; color: #666; font-style: italic;">
+                    此區塊為進階設定，主要用於原生彈跳影音廣告的互動層。若不確定，可保留預設值。
+                </p>
+
+                <input type="hidden" name="generate_popup_url" value="true">
+
+                <div class="form-row">
+                    <label for="img_background">cut1 背景圖片網址</label>
+                    <input type="url" id="img_background" name="img_background" 
+                           placeholder="https://cdn.example.com/media/..." 
+                           value="{{ popup_payload.img_background or '' }}">
+                    <div class="help-text">設定廣告的 cut1 背景圖片網址</div>
+                </div>
+
+                <div class="form-row">
+                    <label>彈窗內容 (payload_popupJson)</label>
+                    <div class="help-text" style="margin-bottom: 10px;">
+                        根據固定格式產生彈窗內容。第一段 HTML 會自動產生，請填寫以下影片與圖片資訊。
+                    </div>
+                    <div id="popup-list-container" class="dynamic-container">
+                        <!-- Video Item -->
+                        <div class="dynamic-item">
+                            <h5>彈窗內容 (2/3): 影片</h5>
+                            <div class="form-row">
+                                <label for="popup_video_url">影片素材網址</label>
+                                <input type="url" id="popup_video_url" class="payload-popup-input" placeholder="https://.../video.mp4"
+                                       value="{{ popup_payload.video_url or '' }}">
+                            </div>
+                            <div class="form-row">
+                                <label for="popup_video_landing_url">影片點擊網址</label>
+                                <input type="url" id="popup_video_landing_url" class="payload-popup-input" placeholder="https://..."
+                                       value="{{ popup_payload.video_landing_url or '' }}">
+                            </div>
+                        </div>
+                        <!-- Image Link Item -->
+                        <div class="dynamic-item">
+                            <h5>彈窗內容 (3/3): 圖片連結</h5>
+                            <div class="form-row">
+                                <label for="popup_image_source_url">圖片素材網址</label>
+                                <input type="url" id="popup_image_source_url" class="payload-popup-input" placeholder="https://.../image.jpg"
+                                       value="{{ popup_payload.image_source_url or '' }}">
+                            </div>
+                             <div class="form-row">
+                                <label for="popup_image_landing_url">圖片點擊網址</label>
+                                <input type="url" id="popup_image_landing_url" class="payload-popup-input" placeholder="https://..."
+                                       value="{{ popup_payload.image_landing_url or '' }}">
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="payload_popup_json" name="payload_popup_json" value="{{ payload_popup_json or '' }}">
+                </div>
+                
+                <input type="hidden" id="payload_game_widget" name="payload_game_widget" value="{{ payload_game_widget or '' }}">
+            </div>
+            
+            <!-- 隱藏的相容性欄位，確保 JavaScript 正常運作 -->
+            <input type="hidden" id="video_url" name="video_url" value="">
+            <input type="hidden" id="poster_image" name="poster_image" value="">
+            
+            <input type="submit" value="🎯 建立原生彈跳影音廣告">
+        </form>
+    </div>
+
+    <div class="preview-column">
+        <div class="preview-section">
+            <h3 style="color: #333; margin-bottom: 15px; font-size: 16px; font-weight: 600;">🖼️ 廣告即時預覽</h3>
+            <div class="ad-preview-container">
+                <div class="ad-preview-header">廣告</div>
+                <div class="ad-preview-main">
+                    <div id="preview-cut1-view">
+                        <img id="preview-cut1-bg" class="cut1-background-img" src="" alt="cut1 背景圖片" style="display: none;">
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666; font-size: 14px;">
+                            尚未設定 cut1 背景圖片
+                        </div>
+                    </div>
+                </div>
+                <div id="preview-main-title" class="ad-preview-title">主標題</div>
+                <div id="preview-subtitle" class="ad-preview-subtitle">文字敘述</div>
+                <div class="ad-preview-footer">
+                    <div id="preview-advertiser" class="ad-preview-advertiser">廣告商</div>
+                    <div id="preview-call-to-action" class="ad-preview-cta">行動呼籲按鈕文字</div>
+                </div>
+            </div>
+            
+            <h3 style="color: #333; margin: 20px 0 15px 0; font-size: 16px; font-weight: 600;">🎬 彈窗內容預覽</h3>
+                <div class="popup-content-preview">
+                    <div style="position: absolute; top: 5px; left: 5px; background: rgba(255,255,255,0.9); padding: 3px 6px; border-radius: 3px; font-size: 10px; font-weight: bold; z-index: 10;">
+                        彈窗內容預覽 (影片1200×628 + 圖片690×788)
+                    </div>
+                    
+                    <!-- 影片區域：對應 1200x628，實際顯示 300x157 -->
+                    <div class="popup-video-preview" id="popup-video-preview" style="width: 300px; height: 157px; position: relative;">
+                        <video id="popup-preview-video" style="display: none; width: 100%; height: 100%; object-fit: cover;" muted playsinline controls>
+                            <source id="popup-preview-video-source" src="" type="video/mp4">
+                            您的瀏覽器不支援影音播放
+                        </video>
+                        <button id="popup-play-btn" class="video-play-btn" style="display: none;">▶</button>
+                        <div id="popup-video-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #ccc; font-size: 12px; text-align: center;">
+                            📹<br>影片素材<br>1200×628
+                        </div>
+                    </div>
+                    
+                    <!-- 圖片區域：對應 690x788，實際顯示 300x343 -->
+                    <div class="popup-image-preview" id="popup-image-preview" style="width: 300px; height: 343px; position: relative;">
+                        <img id="popup-preview-image" src="" alt="圖片素材" style="display: none; width: 100%; height: 100%; object-fit: contain; background-color: #f0f0f0;">
+                        <div id="popup-image-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999; font-size: 12px; text-align: center;">
+                            🖼️<br>圖片素材<br>690×788
+                        </div>
+                    </div>
+                </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+    // Debounce 函數，防止事件過於頻繁觸發
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // 自動儲存表單狀態到後端 session
+    const autoSaveForm = debounce(() => {
+        const form = document.getElementById('ad-form');
+        const formData = new FormData(form);
+        
+        // 使用 fetch API 將表單數據發送到後端
+        fetch("{{ url_for('main.save_form_data') }}", {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                console.log('Form state auto-saved to session.');
+            } else {
+                console.error('Failed to auto-save form state:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error in auto-save request:', error);
+        });
+    }, 500); // 在用戶停止輸入 500 毫秒後觸發
+
+    // 原生彈跳影音廣告特有的 JavaScript
+    let previewVideo;
+    let isVideoPlaying = false;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // 為表單添加輸入事件監聽器以觸發自動儲存
+        const adForm = document.getElementById('ad-form');
+        if (adForm) {
+            adForm.addEventListener('input', autoSaveForm);
+        }
+
+        // 初始化影音預覽
+        previewVideo = document.getElementById('preview-video');
+        
+        // 更新 payload
+        updatePayload();
+
+        // 添加事件監聽器以更新預覽
+        const inputsToTrack = ['advertiser', 'main_title', 'subtitle', 'call_to_action', 
+                              'img_background', 'popup_video_url', 'popup_image_source_url'];
+        inputsToTrack.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('input', updateVideoAdPreview);
+                element.addEventListener('change', updateVideoAdPreview);
+            }
+        });
+
+        // 為彈窗預覽影片添加播放控制
+        const popupPlayBtn = document.getElementById('popup-play-btn');
+        if (popupPlayBtn) {
+            popupPlayBtn.addEventListener('click', togglePopupVideoPlayback);
+        }
+
+        // 初始化互動設定
+        initializeInteractiveSettings();
+
+        // 首次加載時更新預覽
+        updateVideoAdPreview();
+    });
+    
+    function updatePayload() {
+        const imgBackground = document.getElementById('img_background').value;
+        
+        const payload = {
+            type: "SIMPLE",
+            data: {
+                img_background: imgBackground
+            },
+            _sys: {
+                popupActionKeys: ["a"]
+            }
+        };
+        
+        document.getElementById('payload_game_widget').value = JSON.stringify(payload);
+    }
+
+    function updateVideoAdPreview() {
+        // 更新 payload
+        updatePayload();
+        
+        // 更新文字部分
+        document.getElementById('preview-main-title').textContent = document.getElementById('main_title').value || '主標題';
+        document.getElementById('preview-subtitle').textContent = document.getElementById('subtitle').value || '文字敘述';
+        document.getElementById('preview-advertiser').textContent = document.getElementById('advertiser').value || '廣告商';
+        document.getElementById('preview-call-to-action').textContent = document.getElementById('call_to_action').value || '行動呼籲按鈕文字';
+
+        // 更新 cut1 背景圖片預覽
+        updateCut1Preview();
+        
+        // 更新彈窗內容預覽
+        updatePopupContentPreview();
+    }
+
+    function updateCut1Preview() {
+        const imgBackground = document.getElementById('img_background').value;
+        const cut1BgImg = document.getElementById('preview-cut1-bg');
+        const placeholder = cut1BgImg.nextElementSibling;
+        
+        if (imgBackground) {
+            cut1BgImg.src = imgBackground;
+            cut1BgImg.style.display = 'block';
+            placeholder.style.display = 'none';
+        } else {
+            cut1BgImg.style.display = 'none';
+            placeholder.style.display = 'flex';
+        }
+    }
+
+    function updatePopupContentPreview() {
+        // 更新影片預覽
+        const videoUrl = document.getElementById('popup_video_url').value;
+        const popupVideo = document.getElementById('popup-preview-video');
+        const popupVideoSource = document.getElementById('popup-preview-video-source');
+        const videoPlaceholder = document.getElementById('popup-video-placeholder');
+        const playBtn = document.getElementById('popup-play-btn');
+        
+        if (videoUrl) {
+            popupVideoSource.src = videoUrl;
+            popupVideo.load();
+            popupVideo.style.display = 'block';
+            videoPlaceholder.style.display = 'none';
+            if (playBtn) {
+                playBtn.style.display = 'flex';
+                playBtn.textContent = '▶';
+            }
+        } else {
+            popupVideo.style.display = 'none';
+            videoPlaceholder.style.display = 'flex';
+            if (playBtn) {
+                playBtn.style.display = 'none';
+            }
+        }
+        
+        // 更新圖片預覽
+        const imageUrl = document.getElementById('popup_image_source_url').value;
+        const popupImage = document.getElementById('popup-preview-image');
+        const imagePlaceholder = document.getElementById('popup-image-placeholder');
+        
+        if (imageUrl) {
+            popupImage.src = imageUrl;
+            popupImage.style.display = 'block';
+            imagePlaceholder.style.display = 'none';
+        } else {
+            popupImage.style.display = 'none';
+            imagePlaceholder.style.display = 'flex';
+        }
+    }
+
+    function togglePopupVideoPlayback() {
+        const popupVideo = document.getElementById('popup-preview-video');
+        const playBtn = document.getElementById('popup-play-btn');
+        
+        if (popupVideo && playBtn) {
+            if (popupVideo.paused) {
+                popupVideo.play();
+                playBtn.textContent = '⏸';
+            } else {
+                popupVideo.pause();
+                playBtn.textContent = '▶';
+            }
+        }
+    }
+
+    // =================================================================
+    // Interactive Settings (urlInteractivePopups & payload_popupJson)
+    // =================================================================
+
+    function initializeInteractiveSettings() {
+        // --- Event Listeners ---
+        // Add new popup content item is removed, so no listener needed.
+        
+        // Use event delegation for dynamically added elements
+        const form = document.getElementById('ad-form');
+        form.addEventListener('input', handleDynamicInputs);
+    }
+
+    function handleDynamicInputs(e) {
+        // Using a timeout to avoid excessive updates on every keystroke
+        clearTimeout(window.inputUpdateTimeout);
+        window.inputUpdateTimeout = setTimeout(() => {
+            // Always update the popup payload json as its inputs are static
+            updatePayloadPopupJson();
+        }, 300);
+    }
+
+    // --- urlInteractivePopups functions (addInteractivePopup, updateUrlInteractivePopups) are removed ---
+
+    // --- payload_popupJson (Simplified Static Version) ---
+
+    function updatePayloadPopupJson() {
+        const videoUrl = document.getElementById('popup_video_url').value;
+        const videoLandingUrl = document.getElementById('popup_video_landing_url').value;
+        const imageUrl = document.getElementById('popup_image_source_url').value;
+        const imageLandingUrl = document.getElementById('popup_image_landing_url').value;
+
+        // 1. Fixed HTML item
+        const htmlItem = {
+            type: "html",
+            html: "<style> body { background: #000; } </style>"
+        };
+
+        // 2. Video item
+        const videoItem = {
+            type: "video-mp4",
+            url: videoUrl,
+            actionList: [
+                {
+                    type: "click",
+                    payload: { action: "BROWSER", browser: { url: videoLandingUrl } }
+                },
+                { type: "click", payload: { action: "CLOSE_POPUP" } },
+                { type: "click", payload: { action: "PlatformTracker", method: "tkadn", parms: ["CLICK_EVENT_img_link"] } }
+            ]
+        };
+        
+        // 3. Image link item
+        const imageItem = {
+            type: "img-link",
+            url: imageLandingUrl,
+            imgUrl: imageUrl,
+            target: "_blank",
+            actionList: [
+                {
+                    type: "click",
+                    payload: { action: "BROWSER", browser: { url: imageLandingUrl } }
+                },
+                { type: "click", payload: { action: "CLOSE_POPUP" } },
+                { type: "click", payload: { action: "PlatformTracker", method: "tkadn", parms: ["CLICK_EVENT_img_link"] } }
+            ]
+        };
+
+        // Final payload object
+        const finalPayload = {
+            popupList: [htmlItem, videoItem, imageItem]
+        };
+
+        document.getElementById('payload_popup_json').value = JSON.stringify(finalPayload, null, 2);
+    }
+
+    // 快速資訊解析函數
+    function parseInfoText(text) {
+        try {
+            // 解析廣告主
+            const advertiserMatch = text.match(/[-·]\s*廣告主[:：]\s*(.+)/);
+            if (advertiserMatch) {
+                document.getElementById('advertiser').value = advertiserMatch[1].trim();
+            }
+
+            // 解析活動名稱作為主標題
+            const titleMatch = text.match(/[-·]\s*活動名稱[:：]\s*(.+)/);
+            if (titleMatch) {
+                document.getElementById('main_title').value = titleMatch[1].trim();
+            }
+
+            // 解析標題
+            const headlineMatch = text.match(/[-·]\s*標題[:：]\s*(.+)/);
+            if (headlineMatch) {
+                document.getElementById('subtitle').value = headlineMatch[1].trim();
+            }
+
+            // 解析 CTA
+            const ctaMatch = text.match(/[-·]\s*CTA[:：]\s*(.+)/);
+            if (ctaMatch) {
+                document.getElementById('call_to_action').value = ctaMatch[1].trim();
+            }
+
+            // 解析導連
+            const landingMatch = text.match(/(?:導連|到達頁面)[:：]\s*(https?:\/\/[^\s]+)/);
+            if (landingMatch) {
+                document.getElementById('landing_page').value = landingMatch[1].trim();
+            }
+
+            updatePayload();
+            updateVideoAdPreview();
+            alert('✅ 資訊解析完成！請檢查填入的內容是否正確。');
+        } catch (error) {
+            console.error('解析錯誤:', error);
+            alert('❌ 解析過程中發生錯誤，請檢查輸入格式。');
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,700 @@
+{% extends "base.html" %}
+
+{% block title %}水平 Slide 廣告建立{% endblock %}
+
+{% block page_title %}建立水平 Slide 廣告{% endblock %}
+
+{% block additional_styles %}
+<style>
+    .slide-controls {
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .slide-item {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+    .clear-form-btn {
+        background-color: #f44336;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 15px;
+    }
+    .clear-form-btn:hover {
+        background-color: #d32f2f;
+    }
+    .main-content-wrapper {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    .form-column {
+        flex: 1;
+        min-width: 0;
+    }
+    .preview-column {
+        width: 300px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 20px;
+    }
+    .ad-preview-container {
+        width: 300px;
+        height: 250px;
+        border: 2px solid #333;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        background-color: #000;
+        overflow: hidden;
+    }
+    .ad-preview-header {
+        padding: 2px 8px;
+        font-size: 12px;
+        color: #cd9601;
+        text-align: left;
+    }
+    .ad-preview-main {
+        flex-grow: 1;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        height: 157px;
+        background-color: #000;
+    }
+    .ad-preview-title {
+        padding: 4px 8px;
+        font-weight: bold;
+        font-size: 14px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: white;
+    }
+    .ad-preview-subtitle {
+        padding: 4px 8px;
+        font-size: 12px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: gray;
+    }
+    .ad-preview-footer {
+        display: flex;
+        font-size: 12px;
+    }
+    .ad-preview-advertiser {
+        flex-grow: 1;
+        padding: 4px 8px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: gray;
+    }
+    .ad-preview-cta {
+        padding: 4px 12px;
+        font-weight: bold;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 5px;
+        margin: 4px;
+    }
+    #preview-slide-wrapper {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+    .preview-slide {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+    }
+    .preview-slide.active {
+        opacity: 1;
+    }
+    .preview-slide img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    #preview-dots-container {
+        position: absolute;
+        bottom: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 5px;
+        z-index: 10;
+    }
+    .preview-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #888;
+        border-radius: 50%;
+        transition: background-color 0.3s;
+    }
+    .preview-dot.active {
+        background-color: #fff;
+    }
+    .preview-section {
+        background: transparent;
+        border: none;
+        padding: 0;
+        margin: 0;
+    }
+    .preview-section h3 {
+        background: transparent;
+        border: none;
+        padding: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-content-wrapper">
+    <div class="form-column">
+        <form action="{{ url_for('main.clear_slide_form') }}" method="post" style="display: inline;">
+            <button type="submit" class="clear-form-btn" onclick="return confirm('確定要清除所有填寫的內容嗎？')">清除所有內容</button>
+        </form>
+
+        <form action="{{ url_for('main.create_slide_ad') }}" method="post" id="ad-form">
+            <div class="field-group">
+                <h3>📋 基本廣告資訊</h3>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="adset_id">Adset ID <span class="required">*</span></label>
+                        <input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required
+                               placeholder="例如：EXAMPLE_ADSET_ID">
+                        <div class="help-text">廣告組ID，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="display_name">廣告單元顯示名稱</label>
+                        <input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}"
+                               placeholder="僅供後台顯示使用">
+                        <div class="help-text">僅顯示於後台，可選</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="advertiser">廣告商 <span class="required">*</span></label>
+                        <input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required
+                               placeholder="廣告主名稱">
+                        <div class="help-text">廣告主名稱，必填</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="main_title">主標題 <span class="required">*</span></label>
+                        <input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required
+                               placeholder="廣告主標題">
+                        <div class="help-text">廣告主標題，必填</div>
+                    </div>
+                </div>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="subtitle">文字敘述</label>
+                        <input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}"
+                               placeholder="廣告副標題（可選）">
+                        <div class="help-text">廣告副標題，可選</div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="call_to_action">行動呼籲按鈕文字</label>
+                        <input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '立即了解' }}"
+                               placeholder="立即了解">
+                        <div class="help-text">CTA按鈕文字，預設為「立即了解」</div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <label for="landing_page">到達頁面網址 <span class="required">*</span></label>
+                    <input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" 
+                           value="{{ landing_page or '' }}" required>
+                    <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <h3>廣告素材</h3>
+                <p style="margin-bottom: 20px; color: #666; font-style: italic;">
+                    所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。
+                </p>
+                
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="image_path_m">大尺寸圖片 1200x628 <span class="required">*</span></label>
+                        <div class="file-upload-container">
+                            <input type="text" id="image_path_m" name="image_path_m" 
+                                   placeholder="/path/to/your/image_1200x628.jpg" 
+                                   value="{{ image_path_m or '' }}" required>
+                            <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                            <div class="preview-container">
+                                <label class="custom-file-upload">
+                                    📁 上傳圖片
+                                    <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
+                                </label>
+                                <img id="preview_m" class="upload-preview" style="display: none;" alt="預覽圖">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="image_path_s">小尺寸圖片 300x300 <span class="required">*</span></label>
+                        <div class="file-upload-container">
+                            <input type="text" id="image_path_s" name="image_path_s" 
+                                   placeholder="/path/to/your/image_300x300.jpg" 
+                                   value="{{ image_path_s or '' }}" required>
+                            <div class="help-text">方形圖片，尺寸300x300像素</div>
+                            <div class="preview-container">
+                                <label class="custom-file-upload">
+                                    📁 上傳圖片
+                                    <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
+                                </label>
+                                <img id="preview_s" class="upload-preview" style="display: none;" alt="預覽圖">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label for="background_image">互動廣告墊檔背景 <span class="required">*</span></label>
+                    <input type="text" id="background_image" name="background_image" 
+                           placeholder="請輸入背景圖片網址" value="{{ background_image or '' }}" required>
+                    <div class="help-text">互動廣告墊檔背景圖片網址</div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <h3>滑動廣告設定</h3>
+                <div class="dynamic-items-container">
+                    <div id="slide-items-container">
+                        <!-- 滑動項目將由 JavaScript 動態生成 -->
+                    </div>
+                    
+                    <div class="vote-controls">
+                        <button type="button" id="add-slide-item" class="add-item-btn">➕ 新增滑動項目</button>
+                        <button type="button" id="remove-slide-item" class="clear-form-btn">➖ 移除最後一個項目</button>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="payload_game_widget" name="payload_game_widget">
+                
+                <!-- 隱藏的數據傳遞 -->
+                <input type="hidden" id="slide_items_data" value="{{ slide_items | tojson | e }}">
+            </div>
+            
+            <input type="submit" value="🎯 建立水平 Slide 廣告">
+        </form>
+    </div>
+
+    <div class="preview-column">
+        <div class="preview-section">
+            <h3 style="color: #333; margin-bottom: 15px; font-size: 16px; font-weight: 600;">🖼️ 廣告即時預覽</h3>
+            <div class="ad-preview-container">
+                <div class="ad-preview-header">廣告</div>
+                <div class="ad-preview-main">
+                    <div id="preview-slide-wrapper">
+                        <!-- Slides will be injected here -->
+                    </div>
+                    <div id="preview-dots-container">
+                        <!-- Dots will be injected here -->
+                    </div>
+                </div>
+                <div id="preview-main-title" class="ad-preview-title">主標題</div>
+                <div id="preview-subtitle" class="ad-preview-subtitle">文字敘述</div>
+                <div class="ad-preview-footer">
+                    <div id="preview-advertiser" class="ad-preview-advertiser">廣告商</div>
+                    <div id="preview-call-to-action" class="ad-preview-cta">行動呼籲按鈕文字</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+    let slideItemCount = 0;
+    let slidePreviewInterval;
+    let currentPreviewSlideIndex = 0;
+
+    // Debounce 函數，防止事件過於頻繁觸發
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // 自動儲存表單狀態到後端 session
+    const autoSaveForm = debounce(() => {
+        const form = document.getElementById('ad-form');
+        const formData = new FormData(form);
+        
+        // 使用 fetch API 將表單數據發送到後端
+        fetch("{{ url_for('main.save_form_data') }}", {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                console.log('Form state auto-saved to session.');
+            } else {
+                console.error('Failed to auto-save form state:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error in auto-save request:', error);
+        });
+    }, 500); // 在用戶停止輸入 500 毫秒後觸發
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // 為表單添加輸入事件監聽器以觸發自動儲存
+        const adForm = document.getElementById('ad-form');
+        if (adForm) {
+            adForm.addEventListener('input', autoSaveForm);
+        }
+
+        const addSlideItemBtn = document.getElementById('add-slide-item');
+        const removeSlideItemBtn = document.getElementById('remove-slide-item');
+
+        // 初始化滑動項目
+        initializeSlideItems();
+        
+        // 添加/移除滑動項目按鈕
+        addSlideItemBtn.addEventListener('click', function() {
+            addSlideItem();
+        });
+        
+        removeSlideItemBtn.addEventListener('click', function() {
+            removeSlideItem();
+        });
+        
+        // 更新 payload
+        updatePayload();
+
+        // 添加事件監聽器以更新預覽
+        const inputsToTrack = ['advertiser', 'main_title', 'subtitle', 'call_to_action'];
+        inputsToTrack.forEach(id => {
+            document.getElementById(id).addEventListener('input', updateSlideAdPreview);
+        });
+
+        // 首次加載時更新預覽
+        updateSlideAdPreview();
+    });
+    
+    function initializeSlideItems() {
+        // 從隱藏元素中讀取滑動項目數據
+        const slideItemsDataElement = document.getElementById('slide_items_data');
+        let slideItemsData = [];
+        
+        if (slideItemsDataElement && slideItemsDataElement.value) {
+            try {
+                slideItemsData = JSON.parse(slideItemsDataElement.value);
+            } catch (e) {
+                console.error('解析滑動項目數據失敗:', e);
+            }
+        }
+        
+        if (slideItemsData && slideItemsData.length > 0) {
+            // 恢復現有的滑動項目
+            slideItemsData.forEach(function(item) {
+                addSlideItemWithData(item.index, item.image_url, item.target_url);
+            });
+        } else {
+            // 如果沒有項目，添加一個空的
+            addSlideItem();
+        }
+        
+        // 更新 payload 和預覽
+        updatePayload();
+        updateSlideAdPreview();
+    }
+    
+    function addSlideItem() {
+        addSlideItemWithData(slideItemCount, '', '');
+    }
+    
+    function addSlideItemWithData(index, imageUrl, targetUrl) {
+        if (index >= slideItemCount) {
+            slideItemCount = index + 1;
+        }
+        
+        const container = document.getElementById('slide-items-container');
+        const newItem = document.createElement('div');
+        newItem.className = 'dynamic-item';
+        newItem.setAttribute('data-index', index);
+        
+        newItem.innerHTML = `
+            <button type="button" class="remove-item-btn" onclick="removeSpecificSlideItem(${index})" title="移除此項目">×</button>
+            <h4>滑動項目 #${index + 1}</h4>
+            <div class="form-grid-2">
+                <div class="form-row">
+                    <label for="image_url_${index}">圖片網址 <span class="required">*</span></label>
+                    <input type="url" id="image_url_${index}" name="image_url_${index}" 
+                           placeholder="https://example.com/slide${index + 1}.jpg" 
+                           value="${imageUrl}" required>
+                    <div class="help-text">滑動項目的圖片網址</div>
+                </div>
+                
+                <div class="form-row">
+                    <label for="target_url_${index}">目標網址 <span class="required">*</span></label>
+                    <input type="url" id="target_url_${index}" name="target_url_${index}" 
+                           placeholder="https://example.com/target${index + 1}" 
+                           value="${targetUrl}" required>
+                    <div class="help-text">點擊此滑動項目後跳轉的網址</div>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(newItem);
+        
+        // 為新添加的輸入欄位綁定事件
+        newItem.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', () => {
+                updatePayload();
+                updateSlideAdPreview();
+            });
+        });
+        
+        updatePayload();
+        updateSlideAdPreview();
+    }
+    
+    function removeSlideItem() {
+        const container = document.getElementById('slide-items-container');
+        if (container.children.length > 1) {
+            container.removeChild(container.lastChild);
+            slideItemCount--;
+            updatePayload();
+            updateSlideAdPreview();
+        } else {
+            alert('至少需要保留一個滑動項目！');
+        }
+    }
+    
+    function removeSpecificSlideItem(index) {
+        const container = document.getElementById('slide-items-container');
+        if (container.children.length > 1) {
+            const item = container.querySelector(`[data-index="${index}"]`);
+            if (item) {
+                container.removeChild(item);
+                // 重新編號其餘項目
+                renumberSlideItems();
+                updatePayload();
+                updateSlideAdPreview();
+            }
+        } else {
+            alert('至少需要保留一個滑動項目！');
+        }
+    }
+    
+    function renumberSlideItems() {
+        const container = document.getElementById('slide-items-container');
+        const items = container.querySelectorAll('.dynamic-item');
+        
+        items.forEach((item, newIndex) => {
+            item.setAttribute('data-index', newIndex);
+            item.querySelector('h4').textContent = `滑動項目 #${newIndex + 1}`;
+            
+            // 更新所有相關的 ID 和 name
+            const inputs = item.querySelectorAll('input');
+            inputs.forEach(input => {
+                const oldName = input.getAttribute('name');
+                const oldId = input.getAttribute('id');
+                
+                if (oldName) {
+                    const baseName = oldName.replace(/_\d+$/, '');
+                    input.setAttribute('name', `${baseName}_${newIndex}`);
+                }
+                
+                if (oldId) {
+                    const baseId = oldId.replace(/_\d+$/, '');
+                    input.setAttribute('id', `${baseId}_${newIndex}`);
+                }
+                
+                // 更新對應的 label
+                const label = item.querySelector(`label[for="${oldId}"]`);
+                if (label) {
+                    label.setAttribute('for', input.id);
+                }
+            });
+            
+            // 更新移除按鈕的 onclick
+            const removeBtn = item.querySelector('.remove-item-btn');
+            if (removeBtn) {
+                removeBtn.setAttribute('onclick', `removeSpecificSlideItem(${newIndex})`);
+            }
+        });
+        
+        slideItemCount = items.length;
+    }
+    
+    function updatePayload() {
+        const imageUrlInputs = document.querySelectorAll('input[name^="image_url_"]');
+        const targetUrlInputs = document.querySelectorAll('input[name^="target_url_"]');
+        
+        const slides = [];
+        const invokes = [];
+        
+        for (let i = 0; i < imageUrlInputs.length; i++) {
+            const imageUrl = imageUrlInputs[i].value;
+            const targetUrl = targetUrlInputs[i].value;
+            
+            if (imageUrl && targetUrl) {
+                slides.push(imageUrl);
+                invokes.push({
+                    action: "OPEN_EXTERNAL_BROWSER",
+                    payload: {
+                        url: targetUrl
+                    }
+                });
+            }
+        }
+        
+        const payload = {
+            type: "SLIDE",
+            data: {
+                slides: slides
+            },
+            invokes: invokes
+        };
+        
+        document.getElementById('payload_game_widget').value = JSON.stringify(payload);
+    }
+
+    function updateSlideAdPreview() {
+        // 更新文字部分
+        document.getElementById('preview-main-title').textContent = document.getElementById('main_title').value || '主標題';
+        document.getElementById('preview-subtitle').textContent = document.getElementById('subtitle').value || '文字敘述';
+        document.getElementById('preview-advertiser').textContent = document.getElementById('advertiser').value || '廣告商';
+        document.getElementById('preview-call-to-action').textContent = document.getElementById('call_to_action').value || '行動呼籲按鈕文字';
+
+        // 更新幻燈片部分
+        const slideWrapper = document.getElementById('preview-slide-wrapper');
+        const dotsContainer = document.getElementById('preview-dots-container');
+        slideWrapper.innerHTML = '';
+        dotsContainer.innerHTML = '';
+
+        const slideItemForms = document.querySelectorAll('#slide-items-container .dynamic-item');
+        
+        if (slideItemForms.length === 0) {
+            slideWrapper.innerHTML = '<span style="color: #888; font-size: 14px; padding: 10px;">滑動廣告設定</span>';
+            return;
+        }
+        
+        let validSlides = [];
+        slideItemForms.forEach((item, index) => {
+            const imageUrlInput = item.querySelector('input[name^="image_url_"]');
+            if (imageUrlInput && imageUrlInput.value) {
+                validSlides.push(imageUrlInput.value);
+                
+                const slideDiv = document.createElement('div');
+                slideDiv.className = 'preview-slide';
+                slideDiv.innerHTML = `<img src="${imageUrlInput.value}" alt="Slide ${index + 1}">`;
+                slideWrapper.appendChild(slideDiv);
+
+                const dotSpan = document.createElement('span');
+                dotSpan.className = 'preview-dot';
+                dotsContainer.appendChild(dotSpan);
+            }
+        });
+
+        clearInterval(slidePreviewInterval);
+
+        if (validSlides.length > 0) {
+            const slides = slideWrapper.querySelectorAll('.preview-slide');
+            const dots = dotsContainer.querySelectorAll('.preview-dot');
+            currentPreviewSlideIndex = 0;
+            
+            function showSlide() {
+                slides.forEach((s, i) => s.classList.toggle('active', i === currentPreviewSlideIndex));
+                dots.forEach((d, i) => d.classList.toggle('active', i === currentPreviewSlideIndex));
+            }
+
+            showSlide();
+
+            if (slides.length > 1) {
+                slidePreviewInterval = setInterval(() => {
+                    currentPreviewSlideIndex = (currentPreviewSlideIndex + 1) % slides.length;
+                    showSlide();
+                }, 3000);
+            }
+        } else {
+             slideWrapper.innerHTML = '<span style="color: #888; font-size: 14px; padding: 10px;">請於滑動廣告設定中<br>輸入有效的圖片網址</span>';
+        }
+    }
+
+    // 快速資訊解析函數
+    function parseInfoText(text) {
+        try {
+            // 解析廣告主
+            const advertiserMatch = text.match(/[-·]\s*廣告主[:：]\s*(.+)/);
+            if (advertiserMatch) {
+                document.getElementById('advertiser').value = advertiserMatch[1].trim();
+            }
+
+            // 解析活動名稱作為主標題
+            const titleMatch = text.match(/[-·]\s*活動名稱[:：]\s*(.+)/);
+            if (titleMatch) {
+                document.getElementById('main_title').value = titleMatch[1].trim();
+            }
+
+            // 解析標題
+            const headlineMatch = text.match(/[-·]\s*標題[:：]\s*(.+)/);
+            if (headlineMatch) {
+                document.getElementById('subtitle').value = headlineMatch[1].trim();
+            }
+
+            // 解析 CTA
+            const ctaMatch = text.match(/[-·]\s*CTA[:：]\s*(.+)/);
+            if (ctaMatch) {
+                document.getElementById('call_to_action').value = ctaMatch[1].trim();
+            }
+
+            // 解析導連
+            const landingMatch = text.match(/(?:導連|到達頁面)[:：]\s*(https?:\/\/[^\s]+)/);
+            if (landingMatch) {
+                document.getElementById('landing_page').value = landingMatch[1].trim();
+            }
+
+            updatePayload();
+            updateSlideAdPreview();
+            alert('✅ 資訊解析完成！請檢查填入的內容是否正確。');
+        } catch (error) {
+            console.error('解析錯誤:', error);
+            alert('❌ 解析過程中發生錯誤，請檢查輸入格式。');
+        }
+    }
+</script>
+{% endblock %} 

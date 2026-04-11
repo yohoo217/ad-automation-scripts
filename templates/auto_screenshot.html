@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}SuprAd 自動截圖{% endblock %}
+
+{% block page_title %}SuprAd 自動截圖工具{% endblock %}
+
+{% block additional_styles %}
+<style>
+    .screenshot-form {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+    }
+    
+    .uuid-input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        margin-bottom: 15px;
+        box-sizing: border-box;
+    }
+    
+    .uuid-input:focus {
+        border-color: #5cb85c;
+        outline: none;
+    }
+    
+    .screenshot-btn {
+        background-color: #5cb85c;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        width: 100%;
+        margin-bottom: 15px;
+    }
+    
+    .screenshot-btn:hover {
+        background-color: #4cae4c;
+    }
+    
+    .help-section {
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+    
+    .help-section h3 {
+        color: #333;
+        margin-top: 0;
+    }
+    
+    .help-section ul {
+        margin: 10px 0;
+        padding-left: 20px;
+    }
+    
+    .help-section li {
+        margin: 5px 0;
+        color: #666;
+    }
+    
+    .screenshot-preview {
+        max-width: 100%;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        margin-top: 15px;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .preview-container {
+        text-align: center;
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+    }
+    
+    .file-path {
+        background-color: #f5f5f5;
+        padding: 8px;
+        border-radius: 4px;
+        font-family: monospace;
+        word-break: break-all;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+    }
+    
+    .info-box {
+        background-color: #e7f3ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 20px;
+    }
+    
+    .info-box .icon {
+        color: #0066cc;
+        font-weight: bold;
+        margin-right: 5px;
+    }
+
+    .adunit-info {
+        background-color: #f0f8f0;
+        border: 1px solid #c6e8c6;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="screenshot-form">
+    <div class="info-box">
+        <span class="icon">ℹ️</span>
+        此工具會根據您提供的 UUID，從資料庫查詢 AdUnit 資料並自動建構截圖網址，然後截取手機版本的螢幕畫面。
+    </div>
+    
+    <form action="{{ url_for('screenshot.create_screenshot') }}" method="post">
+        <label for="uuid">輸入 UUID：</label>
+        <input type="text" 
+               id="uuid" 
+               name="uuid" 
+               class="uuid-input" 
+               placeholder="例如：84ab2622-dc2b-402d-b42b-b3ea54f9faeb" 
+               required>
+        
+        <div style="margin-bottom: 15px;">
+            <label for="device">選擇裝置類型：</label>
+            <select id="device" name="device" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="iphone_x">iPhone X (375x812)</option>
+                <option value="iphone_se">iPhone SE (375x667)</option>
+                <option value="iphone_plus">iPhone Plus (414x736)</option>
+                <option value="android">Android 標準 (360x640)</option>
+                <option value="tablet">平板電腦 (768x1024)</option>
+            </select>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label>
+                <input type="checkbox" name="full_page" value="true"> 
+                完整頁面截圖（而非僅可視區域）
+            </label>
+        </div>
+    
+        <div style="margin-bottom: 15px;">
+            <label for="scroll_distance">向下滾動距離（像素）：</label>
+            <input type="number" 
+                   id="scroll_distance" 
+                   name="scroll_distance" 
+                   value="4800" 
+                   min="0" 
+                   max="5000" 
+                   step="50"
+                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label for="wait_time">等待時間（秒）：</label>
+            <input type="number" 
+                   id="wait_time" 
+                   name="wait_time" 
+                   value="3" 
+                   min="1" 
+                   max="30" 
+                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
+        
+        <button type="submit" class="screenshot-btn">開始截圖</button>
+    </form>
+    
+    {% if session.last_screenshot %}
+    <div class="preview-container">
+        <h3>最新截圖結果</h3>
+        
+        {% if session.last_screenshot_adunit_title %}
+        <div class="adunit-info">
+            <strong>AdUnit 標題：</strong>{{ session.last_screenshot_adunit_title }}<br>
+            <strong>UUID：</strong>{{ session.last_screenshot_uuid }}
+        </div>
+        {% endif %}
+        
+        <div class="file-path">
+            <strong>檔案位置：</strong>{{ session.last_screenshot }}
+        </div>
+        
+        {% set relative_path = session.last_screenshot.replace(config.get('UPLOAD_FOLDER', 'uploads'), '') %}
+        {% if relative_path.startswith('/') %}
+            {% set relative_path = relative_path[1:] %}
+        {% endif %}
+        
+        {% if relative_path.endswith(('.png', '.jpg', '.jpeg', '.gif')) %}
+        <img src="{{ url_for('screenshot.screenshot_base64', filename=relative_path) }}" 
+             alt="截圖預覽" 
+             class="screenshot-preview"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <div style="display: none; color: #999; margin-top: 10px;">
+            無法載入圖片預覽
+        </div>
+        {% endif %}
+        
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+    // 表單提交時顯示載入狀態
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const submitBtn = document.querySelector('.screenshot-btn');
+        const originalText = submitBtn.textContent;
+        
+        form.addEventListener('submit', function() {
+            submitBtn.textContent = '截圖中，請稍候...';
+            submitBtn.disabled = true;
+            submitBtn.style.backgroundColor = '#ccc';
+        });
+    });
+</script>
+{% endblock %} 

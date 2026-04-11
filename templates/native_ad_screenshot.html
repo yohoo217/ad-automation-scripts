@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+
+{% block title %}Native 廣告多尺寸截圖{% endblock %}
+
+{% block page_title %}Native 廣告多尺寸截圖工具{% endblock %}
+
+{% block additional_styles %}
+<style>
+    .screenshot-form {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+    }
+    
+    .input-group {
+        margin-bottom: 20px;
+    }
+    
+    .input-group label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #333;
+    }
+    
+    .uuid-input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        box-sizing: border-box;
+    }
+    
+    .uuid-input:focus {
+        border-color: #5cb85c;
+        outline: none;
+    }
+    
+    .screenshot-btn {
+        background-color: #5cb85c;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        width: 100%;
+        margin-bottom: 15px;
+    }
+    
+    .screenshot-btn:hover {
+        background-color: #4cae4c;
+    }
+    
+    .screenshot-btn:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
+    
+    .progress-container {
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 20px;
+        display: none;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 20px;
+        background-color: #f0f0f0;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background-color: #5cb85c;
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+    
+    .progress-text {
+        text-align: center;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+    
+    .results-container {
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+    
+    .screenshot-result {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 20px;
+        background-color: #fafafa;
+    }
+    
+    .screenshot-result h4 {
+        margin: 0 0 15px 0;
+        color: #333;
+    }
+    
+    .file-path {
+        background-color: #f5f5f5;
+        padding: 12px;
+        border-radius: 4px;
+        font-family: monospace;
+        word-break: break-all;
+        margin: 10px 0 15px 0;
+        border: 1px solid #ddd;
+        font-size: 14px;
+    }
+
+    .open-location-btn {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    
+    .open-location-btn:hover {
+        background-color: #0056b3;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .info-box {
+        background-color: #e7f3ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 20px;
+    }
+    
+    .info-box .icon {
+        color: #0066cc;
+        font-weight: bold;
+        margin-right: 5px;
+    }
+    
+    .error-message {
+        background-color: #ffe6e6;
+        border: 1px solid #ffcccc;
+        color: #cc0000;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+    }
+    
+    .success-message {
+        background-color: #e6ffe6;
+        border: 1px solid #ccffcc;
+        color: #008800;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="screenshot-form">
+    <div class="info-box">
+        <span class="icon">ℹ️</span>
+        此工具會根據您提供的 UUID，自動截取 Native 廣告的所有尺寸（1200x628、300x300、320x50、300x250、640x200），每種尺寸使用不同的裝置和滾動設定。
+    </div>
+    
+    <form id="screenshot-form">
+        <div class="input-group">
+            <label for="uuid">輸入 UUID：</label>
+            <input type="text" 
+                   id="uuid" 
+                   name="uuid" 
+                   class="uuid-input" 
+                   placeholder="例如：84ab2622-dc2b-402d-b42b-b3ea54f9faeb" 
+                   required>
+        </div>
+        
+        <button type="submit" class="screenshot-btn" id="submit-btn">開始多尺寸截圖</button>
+    </form>
+    
+    <div class="progress-container" id="progress-container">
+        <h3>截圖進度</h3>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-text" id="progress-text">準備開始...</div>
+    </div>
+    
+    <div class="results-container" id="results-container" style="display: none;">
+        <h3>截圖結果</h3>
+        <div id="screenshots-list"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('screenshot-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const progressContainer = document.getElementById('progress-container');
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+    const resultsContainer = document.getElementById('results-container');
+    const screenshotsList = document.getElementById('screenshots-list');
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const uuid = document.getElementById('uuid').value.trim();
+        if (!uuid) {
+            alert('請輸入 UUID');
+            return;
+        }
+        
+        // 開始截圖流程
+        startScreenshots(uuid);
+    });
+    
+    function startScreenshots(uuid) {
+        // 重置 UI
+        submitBtn.disabled = true;
+        submitBtn.textContent = '截圖進行中...';
+        progressContainer.style.display = 'block';
+        resultsContainer.style.display = 'none';
+        screenshotsList.innerHTML = '';
+        
+        // 截圖配置
+        const configs = [
+            {
+                size: '1200x628',
+                name: '大圖廣告',
+                device: 'iphone_x',
+                scroll: 10000,
+                template: 'ptt-article'
+            },
+            {
+                size: '300x300',
+                name: '方形廣告',
+                device: 'iphone_x',
+                scroll: 0,
+                template: 'ptt-article-list'
+            },
+            {
+                size: '320x50',
+                name: '橫幅廣告',
+                device: 'iphone_x',
+                scroll: 0,
+                template: 'ptt-article'
+            },
+            {
+                size: '300x250',
+                name: '中等廣告',
+                device: 'iphone_x',
+                scroll: 6000,
+                template: 'moptt'
+            },
+            {
+                size: '640x200',
+                name: '寬幅廣告',
+                device: 'iphone_x',
+                scroll: 0,
+                template: 'pnn-article'
+            }
+        ];
+        
+        let currentIndex = 0;
+        const results = [];
+        
+        function processNext() {
+            if (currentIndex >= configs.length) {
+                // 全部完成
+                completeScreenshots(results);
+                return;
+            }
+            
+            const config = configs[currentIndex];
+            const progress = ((currentIndex) / configs.length) * 100;
+            
+            updateProgress(progress, `正在截圖 ${config.name} (${config.size})...`);
+            
+            // 發送截圖請求
+            fetch('/create-native-screenshot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    uuid: uuid,
+                    size: config.size,
+                    device: config.device,
+                    scroll_distance: config.scroll,
+                    template: config.template
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    results.push({
+                        config: config,
+                        data: data
+                    });
+                    console.log(`${config.name} 截圖成功`);
+                } else {
+                    results.push({
+                        config: config,
+                        error: data.error
+                    });
+                    console.error(`${config.name} 截圖失敗:`, data.error);
+                }
+                
+                currentIndex++;
+                setTimeout(processNext, 1000); // 延遲 1 秒再處理下一個
+            })
+            .catch(error => {
+                results.push({
+                    config: config,
+                    error: error.message
+                });
+                currentIndex++;
+                setTimeout(processNext, 1000);
+            });
+        }
+        
+        processNext();
+    }
+    
+    function updateProgress(percent, text) {
+        progressFill.style.width = percent + '%';
+        progressText.textContent = text;
+    }
+    
+    function completeScreenshots(results) {
+        updateProgress(100, '截圖完成！');
+        
+        setTimeout(() => {
+            progressContainer.style.display = 'none';
+            submitBtn.disabled = false;
+            submitBtn.textContent = '開始多尺寸截圖';
+            
+            // 顯示結果
+            displayResults(results);
+        }, 1000);
+    }
+    
+    function displayResults(results) {
+        screenshotsList.innerHTML = '';
+        
+        // 統計成功和失敗的數量
+        const successCount = results.filter(r => !r.error).length;
+        const failCount = results.filter(r => r.error).length;
+        
+        // 創建總結區塊
+        const summaryDiv = document.createElement('div');
+        summaryDiv.className = 'screenshot-result';
+        summaryDiv.innerHTML = `
+            <h4>📊 截圖總結</h4>
+            <div class="file-path">
+                <strong>成功：</strong>${successCount} 個，<strong>失敗：</strong>${failCount} 個
+            </div>
+            ${successCount > 0 ? `
+                <button class="open-location-btn" onclick="openScreenshotFolder()">
+                    📁 開啟所有截圖儲存位置
+                </button>
+            ` : ''}
+        `;
+        screenshotsList.appendChild(summaryDiv);
+        
+        // 詳細結果列表
+        results.forEach((result, index) => {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'screenshot-result';
+            
+            if (result.error) {
+                resultDiv.innerHTML = `
+                    <h4>${result.config.name} (${result.config.size})</h4>
+                    <div class="error-message">
+                        ❌ 截圖失敗: ${result.error}
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <h4>✅ ${result.config.name} (${result.config.size}) - 截圖成功</h4>
+                `;
+            }
+            
+            screenshotsList.appendChild(resultDiv);
+        });
+        
+        resultsContainer.style.display = 'block';
+        
+        // 儲存當前的 UUID 以供開啟資料夾使用
+        if (successCount > 0) {
+            window.currentScreenshotUuid = document.getElementById('uuid').value.trim();
+        }
+    }
+    
+    // 開啟截圖資料夾的函數
+    window.openScreenshotFolder = function() {
+        const uuid = window.currentScreenshotUuid;
+        if (!uuid) {
+            alert('無法取得 UUID');
+            return;
+        }
+        
+        const folderPath = `uploads/screenshots/${uuid}`;
+        
+        // 發送請求到後端開啟文件夾
+        fetch('/open-folder', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                folder_path: folderPath
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('截圖資料夾已開啟');
+            } else {
+                alert('無法開啟截圖資料夾: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('開啟截圖資料夾時發生錯誤:', error);
+            alert('開啟截圖資料夾時發生錯誤');
+        });
+    };
+});
+</script>
+{% endblock %} 

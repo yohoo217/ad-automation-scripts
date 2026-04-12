@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}Native 廣告多尺寸截圖{% endblock %}
+{% block title %}Native Ad Multi-Size Screenshot{% endblock %}
 
-{% block page_title %}Native 廣告多尺寸截圖工具{% endblock %}
+{% block page_title %}Native Ad Multi-Size Screenshot Tool{% endblock %}
 
 {% block additional_styles %}
 <style>
@@ -180,33 +180,33 @@
 <div class="screenshot-form">
     <div class="info-box">
         <span class="icon">ℹ️</span>
-        此工具會根據您提供的 UUID，自動截取 Native 廣告的所有尺寸（1200x628、300x300、320x50、300x250、640x200），每種尺寸使用不同的裝置和滾動設定。
+        This tool automatically takes screenshots of Native ads in all sizes (1200x628, 300x300, 320x50, 300x250, 640x200) based on the UUID you provide, using different devices and scroll settings for each size.
     </div>
-    
+
     <form id="screenshot-form">
         <div class="input-group">
-            <label for="uuid">輸入 UUID：</label>
-            <input type="text" 
-                   id="uuid" 
-                   name="uuid" 
-                   class="uuid-input" 
-                   placeholder="例如：84ab2622-dc2b-402d-b42b-b3ea54f9faeb" 
+            <label for="uuid">Enter UUID:</label>
+            <input type="text"
+                   id="uuid"
+                   name="uuid"
+                   class="uuid-input"
+                   placeholder="e.g., 84ab2622-dc2b-402d-b42b-b3ea54f9faeb"
                    required>
         </div>
-        
-        <button type="submit" class="screenshot-btn" id="submit-btn">開始多尺寸截圖</button>
+
+        <button type="submit" class="screenshot-btn" id="submit-btn">Start Multi-Size Screenshot</button>
     </form>
     
     <div class="progress-container" id="progress-container">
-        <h3>截圖進度</h3>
+        <h3>Screenshot Progress</h3>
         <div class="progress-bar">
             <div class="progress-fill" id="progress-fill"></div>
         </div>
-        <div class="progress-text" id="progress-text">準備開始...</div>
+        <div class="progress-text" id="progress-text">Preparing...</div>
     </div>
-    
+
     <div class="results-container" id="results-container" style="display: none;">
-        <h3>截圖結果</h3>
+        <h3>Screenshot Results</h3>
         <div id="screenshots-list"></div>
     </div>
 </div>
@@ -226,80 +226,80 @@ document.addEventListener('DOMContentLoaded', function() {
     
     form.addEventListener('submit', function(e) {
         e.preventDefault();
-        
+
         const uuid = document.getElementById('uuid').value.trim();
         if (!uuid) {
-            alert('請輸入 UUID');
+            alert('Please enter UUID');
             return;
         }
-        
-        // 開始截圖流程
+
+        // Start screenshot process
         startScreenshots(uuid);
     });
     
     function startScreenshots(uuid) {
-        // 重置 UI
+        // Reset UI
         submitBtn.disabled = true;
-        submitBtn.textContent = '截圖進行中...';
+        submitBtn.textContent = 'Screenshotting...';
         progressContainer.style.display = 'block';
         resultsContainer.style.display = 'none';
         screenshotsList.innerHTML = '';
-        
-        // 截圖配置
+
+        // Screenshot configurations
         const configs = [
             {
                 size: '1200x628',
-                name: '大圖廣告',
+                name: 'Large Image Ad',
                 device: 'iphone_x',
                 scroll: 10000,
-                template: 'ptt-article'
+                template: 'news-article'
             },
             {
                 size: '300x300',
-                name: '方形廣告',
+                name: 'Square Ad',
                 device: 'iphone_x',
                 scroll: 0,
-                template: 'ptt-article-list'
+                template: 'news-article-list'
             },
             {
                 size: '320x50',
-                name: '橫幅廣告',
+                name: 'Banner Ad',
                 device: 'iphone_x',
                 scroll: 0,
-                template: 'ptt-article'
+                template: 'news-article'
             },
             {
                 size: '300x250',
-                name: '中等廣告',
+                name: 'Medium Ad',
                 device: 'iphone_x',
                 scroll: 6000,
-                template: 'moptt'
+                template: 'social-forum'
             },
             {
                 size: '640x200',
-                name: '寬幅廣告',
+                name: 'Wide Ad',
                 device: 'iphone_x',
                 scroll: 0,
-                template: 'pnn-article'
+                template: 'news-article'
             }
         ];
-        
+
         let currentIndex = 0;
         const results = [];
-        
+
         function processNext() {
             if (currentIndex >= configs.length) {
-                // 全部完成
+                // All complete
                 completeScreenshots(results);
                 return;
             }
-            
+
             const config = configs[currentIndex];
             const progress = ((currentIndex) / configs.length) * 100;
-            
-            updateProgress(progress, `正在截圖 ${config.name} (${config.size})...`);
-            
-            // 發送截圖請求
+
+            updateProgress(progress, `Screenshotting ${config.name} (${config.size})...`);
+
+            // Send screenshot request
             fetch('/create-native-screenshot', {
                 method: 'POST',
                 headers: {
@@ -320,17 +320,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         config: config,
                         data: data
                     });
-                    console.log(`${config.name} 截圖成功`);
+                    console.log(`${config.name} screenshot successful`);
                 } else {
                     results.push({
                         config: config,
                         error: data.error
                     });
-                    console.error(`${config.name} 截圖失敗:`, data.error);
+                    console.error(`${config.name} screenshot failed:`, data.error);
                 }
-                
+
                 currentIndex++;
-                setTimeout(processNext, 1000); // 延遲 1 秒再處理下一個
+                setTimeout(processNext, 1000); // Delay 1 second before next
             })
             .catch(error => {
                 results.push({
@@ -341,91 +341,91 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(processNext, 1000);
             });
         }
-        
+
         processNext();
     }
-    
+
     function updateProgress(percent, text) {
         progressFill.style.width = percent + '%';
         progressText.textContent = text;
     }
-    
+
     function completeScreenshots(results) {
-        updateProgress(100, '截圖完成！');
-        
+        updateProgress(100, 'Screenshot completed!');
+
         setTimeout(() => {
             progressContainer.style.display = 'none';
             submitBtn.disabled = false;
-            submitBtn.textContent = '開始多尺寸截圖';
-            
-            // 顯示結果
+            submitBtn.textContent = 'Start Multi-Size Screenshot';
+
+            // Display results
             displayResults(results);
         }, 1000);
     }
-    
+
     function displayResults(results) {
         screenshotsList.innerHTML = '';
-        
-        // 統計成功和失敗的數量
+
+        // Count successes and failures
         const successCount = results.filter(r => !r.error).length;
         const failCount = results.filter(r => r.error).length;
-        
-        // 創建總結區塊
+
+        // Create summary block
         const summaryDiv = document.createElement('div');
         summaryDiv.className = 'screenshot-result';
         summaryDiv.innerHTML = `
-            <h4>📊 截圖總結</h4>
+            <h4>📊 Screenshot Summary</h4>
             <div class="file-path">
-                <strong>成功：</strong>${successCount} 個，<strong>失敗：</strong>${failCount} 個
+                <strong>Success:</strong> ${successCount}, <strong>Failed:</strong> ${failCount}
             </div>
             ${successCount > 0 ? `
                 <button class="open-location-btn" onclick="openScreenshotFolder()">
-                    📁 開啟所有截圖儲存位置
+                    📁 Open All Screenshot Locations
                 </button>
             ` : ''}
         `;
         screenshotsList.appendChild(summaryDiv);
-        
-        // 詳細結果列表
+
+        // Detailed results list
         results.forEach((result, index) => {
             const resultDiv = document.createElement('div');
             resultDiv.className = 'screenshot-result';
-            
+
             if (result.error) {
                 resultDiv.innerHTML = `
                     <h4>${result.config.name} (${result.config.size})</h4>
                     <div class="error-message">
-                        ❌ 截圖失敗: ${result.error}
+                        ❌ Screenshot failed: ${result.error}
                     </div>
                 `;
             } else {
                 resultDiv.innerHTML = `
-                    <h4>✅ ${result.config.name} (${result.config.size}) - 截圖成功</h4>
+                    <h4>✅ ${result.config.name} (${result.config.size}) - Screenshot successful</h4>
                 `;
             }
-            
+
             screenshotsList.appendChild(resultDiv);
         });
-        
+
         resultsContainer.style.display = 'block';
-        
-        // 儲存當前的 UUID 以供開啟資料夾使用
+
+        // Store current UUID for opening folder
         if (successCount > 0) {
             window.currentScreenshotUuid = document.getElementById('uuid').value.trim();
         }
     }
-    
-    // 開啟截圖資料夾的函數
+
+    // Open screenshot folder function
     window.openScreenshotFolder = function() {
         const uuid = window.currentScreenshotUuid;
         if (!uuid) {
-            alert('無法取得 UUID');
+            alert('Cannot get UUID');
             return;
         }
-        
+
         const folderPath = `uploads/screenshots/${uuid}`;
-        
-        // 發送請求到後端開啟文件夾
+
+        // Send request to backend to open folder
         fetch('/open-folder', {
             method: 'POST',
             headers: {
@@ -438,14 +438,14 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                console.log('截圖資料夾已開啟');
+                console.log('Screenshot folder opened');
             } else {
-                alert('無法開啟截圖資料夾: ' + data.error);
+                alert('Unable to open screenshot folder: ' + data.error);
             }
         })
         .catch(error => {
-            console.error('開啟截圖資料夾時發生錯誤:', error);
-            alert('開啟截圖資料夾時發生錯誤');
+            console.error('Error opening screenshot folder:', error);
+            alert('Error opening screenshot folder');
         });
     };
 });

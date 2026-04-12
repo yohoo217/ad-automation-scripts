@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>建立廣告</title>
+    <title>Create Ad</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
         .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); max-width: 1200px; margin: 0 auto; }
@@ -156,10 +156,10 @@
 <body>
     <div class="container">
         <div class="nav-buttons">
-            <a href="{{ url_for('batch') }}" class="button nav-button">批量廣告創建</a>
+            <a href="{{ url_for('batch') }}" class="button nav-button">Bulk Ad Creation</a>
         </div>
-        
-        <h1>建立廣告</h1>
+
+        <h1>Create Ad</h1>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -171,115 +171,115 @@
             {% endif %}
         {% endwith %}
 
-        <!-- 快速輸入區塊 -->
+        <!-- Quick input section -->
         <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 25px;">
-            <h2 style="text-align: center;">快速資訊輸入</h2>
-            <p>將格式化文案貼到下方文字區，然後點擊「解析資訊」按鈕自動填入表單</p>
-            <textarea id="bulk-info-input" placeholder="請貼上格式化的廣告資訊，例如：
-廣告資訊
--廣告主：示範品牌股份有限公司
--代理商：示範媒體代理商
--活動名稱：Spring_Product_Launch_Campaign
--活動走期：2025/5/21 ~ 2025/6/3
--投放版位：原生影音版位
--總預算：NT$150,000(未稅) 
--計價方式：CPV $0.4星期
+            <h2 style="text-align: center;">Quick Info Input</h2>
+            <p>Paste formatted ad information below, then click "Parse Info" button to auto-fill the form</p>
+            <textarea id="bulk-info-input" placeholder="Please paste formatted ad information, for example:
+Ad Information
+-Advertiser: Example Brand Inc.
+-Agency: Example Media Agency
+-Campaign Name: Spring_Product_Launch_Campaign
+-Campaign Period: 2025/5/21 ~ 2025/6/3
+-Placement: Native Video Placement
+-Total Budget: NT$150,000 (Untaxed)
+-Pricing: CPV $0.4 per week
 
-廣告素材
-l   素材：https://assets.example.com/campaign/demo-creative
+Ad Creative
+l   Creative: https://assets.example.com/campaign/demo-creative
 
-l   導連：https://www.mcdonalds.com/tw/zh-tw/whats-hot/0521meatyangus.html?utm_source=ptt&utm_medium=paid-video&utm_campaign=cp~np-meaty-angus_sd~2025-05-21&utm_content=at~pnta_cv~tvc20s-5s-acg　
+l   Landing URL: https://www.example.com/tw/zh-tw/product-page
 
-l   文案：
+l   Copy:
 
--  標題：傳說中的辣個美味！電動追番必吃「辣味四盎司牛肉堡」
+-  Title: Exciting New Product Launch!
 
--   CTA：吃飽再戰"></textarea>
-            <button type="button" id="parse-info" class="nav-button" style="margin-top: 10px;">解析資訊</button>
+-   CTA: Learn More"></textarea>
+            <button type="button" id="parse-info" class="nav-button" style="margin-top: 10px;">Parse Info</button>
         </div>
 
         <form action="{{ url_for('create_ad_route') }}" method="post" id="ad-form">
             <input type="hidden" id="active_tab_input" name="active_tab" value="{{ active_tab }}">
             <div class="tabs">
-                <div class="tab {% if active_tab == 'native-ad' %}active{% endif %}" data-tab="native-ad">原生廣告</div>
-                <div class="tab {% if active_tab == 'gif-ad' %}active{% endif %}" data-tab="gif-ad">GIF 廣告</div>
-                <div class="tab {% if active_tab == 'treasure-box-ad' %}active{% endif %}" data-tab="treasure-box-ad">寶箱廣告</div>
-                <div class="tab {% if active_tab == 'slide-ad' %}active{% endif %}" data-tab="slide-ad">水平 Slide 廣告</div>
-                <div class="tab {% if active_tab == 'vertical-slide-ad' %}active{% endif %}" data-tab="vertical-slide-ad">垂直 Slide 廣告</div>
-                <div class="tab {% if active_tab == 'vertical-cube-slide-ad' %}active{% endif %}" data-tab="vertical-cube-slide-ad">垂直 Cube Slide 廣告</div>
+                <div class="tab {% if active_tab == 'native-ad' %}active{% endif %}" data-tab="native-ad">Native Ad</div>
+                <div class="tab {% if active_tab == 'gif-ad' %}active{% endif %}" data-tab="gif-ad"GIF Ad/div>
+                <div class="tab {% if active_tab == 'treasure-box-ad' %}active{% endif %}" data-tab="treasure-box-ad"Treasure Box Ad/div>
+                <div class="tab {% if active_tab == 'slide-ad' %}active{% endif %}" data-tab="slide-ad"Horizontal Slide Ad/div>
+                <div class="tab {% if active_tab == 'vertical-slide-ad' %}active{% endif %}" data-tab="vertical-slide-ad"Vertical Slide Ad/div>
+                <div class="tab {% if active_tab == 'vertical-cube-slide-ad' %}active{% endif %}" data-tab="vertical-cube-slide-ad"Vertical Cube Slide Ad/div>
             </div>
             
             <div id="native-ad" class="tab-content {% if active_tab == 'native-ad' %}active{% endif %}">
                 <div class="field-group">
-                    <h3>廣告資訊</h3>
+                    <h3>Ad Information</h3>
                     <table>
                         <tr>
-                            <th width="30%">欄位名稱</th>
-                            <th>內容</th>
+                            <th width="30%">Field Name</th>
+                            <th>Content</th>
                         </tr>
                         <tr>
                             <td><label for="adset_id">Adset ID <span class="required">*</span></label></td>
                             <td><input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required>
-                                <div class="help-text">廣告組ID，必填，例如：EXAMPLE_ADSET_ID</div>
+                                <div class="help-text">Ad group ID, required，e.g., EXAMPLE_ADSET_ID</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="display_name">廣告單元顯示名稱</label></td>
+                            <td><label for="display_name">Ad Unit Display Name</label></td>
                             <td><input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}">
-                                <div class="help-text">僅顯示於後台，可選</div>
+                                <div class="help-text">Displayed in backend only, optional</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="advertiser">廣告商 <span class="required">*</span></label></td>
+                            <td><label for="advertiser">Advertiser <span class="required">*</span></label></td>
                             <td><input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required>
-                                <div class="help-text">廣告主名稱，必填</div>
+                                <div class="help-text">Advertiser name，required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="main_title">主標題 <span class="required">*</span></label></td>
+                            <td><label for="main_title">Main Title <span class="required">*</span></label></td>
                             <td><input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required>
-                                <div class="help-text">廣告主標題，必填</div>
+                                <div class="help-text">Ad Main Title，required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="subtitle">副標題</label></td>
+                            <td><label for="subtitle">Subtitle</label></td>
                             <td><input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}">
-                                <div class="help-text">廣告副標題，可選</div>
+                                <div class="help-text">Ad subtitle, optional</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="landing_page">到達頁面網址 <span class="required">*</span></label></td>
+                            <td><label for="landing_page">Landing Page URL <span class="required">*</span></label></td>
                             <td><input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" value="{{ landing_page or '' }}" required>
-                                <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                                <div class="help-text">URL to navigate to when ad is clicked, required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="call_to_action">行動呼籲按鈕文字</label></td>
-                            <td><input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '瞭解詳情' }}">
-                                <div class="help-text">CTA按鈕文字，預設為「瞭解詳情」</div>
+                            <td><label for="call_to_action">Call to Action Button Text</label></td>
+                            <td><input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or 'Learn More' }}">
+                                <div class="help-text">CTAButtontexttext，predictsetto「Learn More」</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="tracking_url">追蹤 URL</label></td>
+                            <td><label for="tracking_url">Tracking URL</label></td>
                             <td><input type="url" id="tracking_url" name="tracking_url" placeholder="https://tracker.example.com?id=123" value="{{ tracking_url or '' }}">
-                                <div class="help-text">用於追蹤點擊的URL，可選</div>
+                                <div class="help-text">URL for tracking clicks, optional</div>
                             </td>
                         </tr>
                     </table>
                 </div>
 
                 <div class="field-group">
-                    <h3>廣告圖片 <span class="required">*</span></h3>
-                    <p>所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。</p>
+                    <h3>Ad Images <span class="required">*</span></h3>
+                    <p>All images are required. Provide complete local file paths or use the upload function.</p>
                     
                     <div class="form-row">
-                        <label for="image_path_m">圖片 1200x628 <span class="required">*</span></label>
+                        <label for="image_path_m">Image 1200x628 <span class="required">*</span></label>
                         <div class="file-upload-container">
                             <input type="text" id="image_path_m" name="image_path_m" placeholder="/path/to/your/image_1200x628.jpg" value="{{ image_path_m or '' }}" required>
-                            <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                            <div class="help-text">Large banner image, 1200x628 pixels</div>
                             <div class="preview-container">
                                 <label class="custom-file-upload">
-                                    上傳圖片
+                                    Upload Image
                                     <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
                                 </label>
                                 <img id="preview_m" class="upload-preview" style="display: none;">
@@ -288,13 +288,13 @@ l   文案：
                     </div>
                     
                     <div class="form-row">
-                        <label for="image_path_p">圖片 336x280/300x250 <span class="required">*</span></label>
+                        <label for="image_path_p">Image 336x280/300x250 <span class="required">*</span></label>
                         <div class="file-upload-container">
                             <input type="text" id="image_path_p" name="image_path_p" placeholder="/path/to/your/image_336x280.jpg" value="{{ image_path_p or '' }}" required>
-                            <div class="help-text">中型橫幅圖片，尺寸336x280像素或300x250像素</div>
+                            <div class="help-text">Medium banner image, 336x280 or 300x250 pixels</div>
                             <div class="preview-container">
                                 <label class="custom-file-upload">
-                                    上傳圖片
+                                    Upload Image
                                     <input type="file" class="file-input" data-target="image_path_p" accept="image/*">
                                 </label>
                                 <img id="preview_p" class="upload-preview" style="display: none;">
@@ -303,13 +303,13 @@ l   文案：
                     </div>
                     
                     <div class="form-row">
-                        <label for="image_path_o">圖片 640x100 <span class="required">*</span></label>
+                        <label for="image_path_o">Image 640x100 <span class="required">*</span></label>
                         <div class="file-upload-container">
                             <input type="text" id="image_path_o" name="image_path_o" placeholder="/path/to/your/image_640x100.jpg" value="{{ image_path_o or '' }}" required>
-                            <div class="help-text">窄橫幅圖片，尺寸640x100像素</div>
+                            <div class="help-text">Narrow banner image, 640x100 pixels</div>
                             <div class="preview-container">
                                 <label class="custom-file-upload">
-                                    上傳圖片
+                                    Upload Image
                                     <input type="file" class="file-input" data-target="image_path_o" accept="image/*">
                                 </label>
                                 <img id="preview_o" class="upload-preview" style="display: none;">
@@ -318,13 +318,13 @@ l   文案：
                     </div>
                     
                     <div class="form-row">
-                        <label for="image_path_s">圖片 300x300 <span class="required">*</span></label>
+                        <label for="image_path_s">Image 300x300 <span class="required">*</span></label>
                         <div class="file-upload-container">
                             <input type="text" id="image_path_s" name="image_path_s" placeholder="/path/to/your/image_300x300.jpg" value="{{ image_path_s or '' }}" required>
-                            <div class="help-text">方形圖片，尺寸300x300像素</div>
+                            <div class="help-text">Square image, 300x300 pixels</div>
                             <div class="preview-container">
                                 <label class="custom-file-upload">
-                                    上傳圖片
+                                    Upload Image
                                     <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
                                 </label>
                                 <img id="preview_s" class="upload-preview" style="display: none;">
@@ -336,69 +336,69 @@ l   文案：
 
             <div id="gif-ad" class="tab-content {% if active_tab == 'gif-ad' %}active{% endif %}">
                 <div class="field-group">
-                    <h3>廣告資訊</h3>
+                    <h3>Ad Information</h3>
                     <table>
                         <tr>
-                            <th width="30%">欄位名稱</th>
-                            <th>內容</th>
+                            <th width="30%">Field Name</th>
+                            <th>Content</th>
                         </tr>
                         <tr>
                             <td><label for="gif_adset_id">Adset ID <span class="required">*</span></label></td>
                             <td><input type="text" id="gif_adset_id" name="gif_adset_id" value="{{ gif_adset_id or '' }}" required>
-                                <div class="help-text">廣告組ID，必填，例如：EXAMPLE_ADSET_ID</div>
+                                <div class="help-text">Ad group ID, required，e.g., EXAMPLE_ADSET_ID</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="gif_display_name">廣告單元顯示名稱</label></td>
+                            <td><label for="gif_display_name">Ad Unit Display Name</label></td>
                             <td><input type="text" id="gif_display_name" name="gif_display_name" value="{{ gif_display_name or '' }}">
-                                <div class="help-text">僅顯示於後台，可選</div>
+                                <div class="help-text">Displayed in backend only, optional</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="gif_advertiser">廣告商 <span class="required">*</span></label></td>
+                            <td><label for="gif_advertiser">Advertiser <span class="required">*</span></label></td>
                             <td><input type="text" id="gif_advertiser" name="gif_advertiser" value="{{ gif_advertiser or '' }}" required>
-                                <div class="help-text">廣告主名稱，必填</div>
+                                <div class="help-text">Advertiser name，required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="gif_main_title">主標題 <span class="required">*</span></label></td>
+                            <td><label for="gif_main_title">Main Title <span class="required">*</span></label></td>
                             <td><input type="text" id="gif_main_title" name="gif_main_title" value="{{ gif_main_title or '' }}" required>
-                                <div class="help-text">廣告主標題，必填</div>
+                                <div class="help-text">Ad Main Title，required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="gif_subtitle">副標題</label></td>
+                            <td><label for="gif_subtitle">Subtitle</label></td>
                             <td><input type="text" id="gif_subtitle" name="gif_subtitle" value="{{ gif_subtitle or '' }}">
-                                <div class="help-text">廣告副標題，可選</div>
+                                <div class="help-text">Ad subtitle, optional</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="gif_landing_page">到達頁面網址 <span class="required">*</span></label></td>
+                            <td><label for="gif_landing_page">Landing Page URL <span class="required">*</span></label></td>
                             <td><input type="url" id="gif_landing_page" name="gif_landing_page" placeholder="https://example.com" value="{{ gif_landing_page or '' }}" required>
-                                <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                                <div class="help-text">URL to navigate to when ad is clicked, required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="gif_call_to_action">行動呼籲按鈕文字</label></td>
-                            <td><input type="text" id="gif_call_to_action" name="gif_call_to_action" value="{{ gif_call_to_action or '立即購買' }}">
-                                <div class="help-text">CTA按鈕文字，預設為「立即購買」</div>
+                            <td><label for="gif_call_to_action">Call to Action Button Text</label></td>
+                            <td><input type="text" id="gif_call_to_action" name="gif_call_to_action" value="{{ gif_call_to_action or 'setimmediatelybuybuy' }}">
+                                <div class="help-text">CTAButtontexttext，predictsetto「setimmediatelybuybuy」</div>
                             </td>
                         </tr>
                     </table>
                 </div>
 
                 <div class="field-group">
-                    <h3>廣告素材 <span class="required">*</span></h3>
-                    <p>所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。</p>
+                    <h3>AdMaterials <span class="required">*</span></h3>
+                    <p>All images are required. Provide complete local file paths or use the upload function.</p>
                     
                     <div class="form-row">
-                        <label for="gif_image_path_m">圖片 1200x628 <span class="required">*</span></label>
+                        <label for="gif_image_path_m">Image 1200x628 <span class="required">*</span></label>
                         <div class="file-upload-container">
                             <input type="text" id="gif_image_path_m" name="gif_image_path_m" placeholder="/path/to/your/image_1200x628.jpg" value="{{ gif_image_path_m or '' }}" required>
-                            <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                            <div class="help-text">Large banner image, 1200x628 pixels</div>
                             <div class="preview-container">
                                 <label class="custom-file-upload">
-                                    上傳圖片
+                                    Upload Image
                                     <input type="file" class="file-input" data-target="gif_image_path_m" accept="image/*">
                                 </label>
                                 <img id="preview_gif_m" class="upload-preview" style="display: none;">
@@ -407,13 +407,13 @@ l   文案：
                     </div>
                     
                     <div class="form-row">
-                        <label for="gif_image_path_s">圖片 300x300 <span class="required">*</span></label>
+                        <label for="gif_image_path_s">Image 300x300 <span class="required">*</span></label>
                         <div class="file-upload-container">
                             <input type="text" id="gif_image_path_s" name="gif_image_path_s" placeholder="/path/to/your/image_300x300.jpg" value="{{ gif_image_path_s or '' }}" required>
-                            <div class="help-text">方形圖片，尺寸300x300像素</div>
+                            <div class="help-text">Square image, 300x300 pixels</div>
                             <div class="preview-container">
                                 <label class="custom-file-upload">
-                                    上傳圖片
+                                    Upload Image
                                     <input type="file" class="file-input" data-target="gif_image_path_s" accept="image/*">
                                 </label>
                                 <img id="preview_gif_s" class="upload-preview" style="display: none;">
@@ -422,23 +422,23 @@ l   文案：
                     </div>
 
                     <div class="form-row">
-                        <label for="gif_background_image">遊戲套件預設背景 <span class="required">*</span></label>
-                        <input type="text" id="gif_background_image" name="gif_background_image" placeholder="請輸入背景圖片網址" value="{{ gif_background_image or '' }}" required>
-                        <div class="help-text">遊戲套件預設背景圖片網址</div>
+                        <label for="gif_background_image">gameplaysetitempredictsetBackground <span class="required">*</span></label>
+                        <input type="text" id="gif_background_image" name="gif_background_image" placeholder="Please enterBackground Image URL" value="{{ gif_background_image or '' }}" required>
+                        <div class="help-text">gameplaysetitempredictsetBackground Image URL</div>
                     </div>
                 </div>
 
                 <div class="field-group">
-                    <h3>遊戲套件設定</h3>
+                    <h3>gameplaysetitemSettings</h3>
                     <div class="form-row">
-                        <label for="gif_background_url">背景圖片網址 <span class="required">*</span></label>
+                        <label for="gif_background_url">Background Image URL <span class="required">*</span></label>
                         <input type="url" id="gif_background_url" name="gif_background_url" placeholder="https://example.com/background.webp" value="{{ gif_background_url or '' }}" required>
-                        <div class="help-text">背景圖片的網址，必填</div>
+                        <div class="help-text">Background ImageofURL，required</div>
                     </div>
                     <div class="form-row">
-                        <label for="gif_target_url">目標網址 <span class="required">*</span></label>
+                        <label for="gif_target_url">eyelabelURL <span class="required">*</span></label>
                         <input type="url" id="gif_target_url" name="gif_target_url" placeholder="https://example.com" value="{{ gif_target_url or '' }}" required>
-                        <div class="help-text">點擊後跳轉的目標網址，必填</div>
+                        <div class="help-text">ClickafterjumpconvertofeyelabelURL，required</div>
                     </div>
                     <input type="hidden" id="gif_payload_game_widget" name="gif_payload_game_widget">
                 </div>
@@ -446,157 +446,157 @@ l   文案：
 
             <div id="treasure-box-ad" class="tab-content {% if active_tab == 'treasure-box-ad' %}active{% endif %}">
                 <div class="field-group">
-                    <h3>廣告資訊</h3>
+                    <h3>Ad Information</h3>
                     <table>
                         <tr>
-                            <th width="30%">欄位名稱</th>
-                            <th>內容</th>
+                            <th width="30%">Field Name</th>
+                            <th>Content</th>
                         </tr>
                         <tr>
                             <td><label for="treasure_adset_id">Adset ID <span class="required">*</span></label></td>
                             <td><input type="text" id="treasure_adset_id" name="treasure_adset_id" value="{{ treasure_adset_id or '' }}" required>
-                                <div class="help-text">廣告組ID，必填，例如：EXAMPLE_ADSET_ID</div>
+                                <div class="help-text">Ad group ID, required，e.g., EXAMPLE_ADSET_ID</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="treasure_display_name">廣告單元顯示名稱</label></td>
+                            <td><label for="treasure_display_name">Ad Unit Display Name</label></td>
                             <td><input type="text" id="treasure_display_name" name="treasure_display_name" value="{{ treasure_display_name or '' }}">
-                                <div class="help-text">僅顯示於後台，可選</div>
+                                <div class="help-text">Displayed in backend only, optional</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="treasure_advertiser">廣告商 <span class="required">*</span></label></td>
+                            <td><label for="treasure_advertiser">Advertiser <span class="required">*</span></label></td>
                             <td><input type="text" id="treasure_advertiser" name="treasure_advertiser" value="{{ treasure_advertiser or '' }}" required>
-                                <div class="help-text">廣告主名稱，必填</div>
+                                <div class="help-text">Advertiser name，required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="treasure_main_title">主標題 <span class="required">*</span></label></td>
+                            <td><label for="treasure_main_title">Main Title <span class="required">*</span></label></td>
                             <td><input type="text" id="treasure_main_title" name="treasure_main_title" value="{{ treasure_main_title or '' }}" required>
-                                <div class="help-text">廣告主標題，必填</div>
+                                <div class="help-text">Ad Main Title，required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="treasure_subtitle">副標題</label></td>
+                            <td><label for="treasure_subtitle">Subtitle</label></td>
                             <td><input type="text" id="treasure_subtitle" name="treasure_subtitle" value="{{ treasure_subtitle or '' }}">
-                                <div class="help-text">廣告副標題，可選</div>
+                                <div class="help-text">Ad subtitle, optional</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="treasure_landing_page">到達頁面網址 <span class="required">*</span></label></td>
+                            <td><label for="treasure_landing_page">Landing Page URL <span class="required">*</span></label></td>
                             <td><input type="url" id="treasure_landing_page" name="treasure_landing_page" placeholder="https://example.com" value="{{ treasure_landing_page or '' }}" required>
-                                <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                                <div class="help-text">URL to navigate to when ad is clicked, required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="treasure_call_to_action">行動呼籲按鈕文字</label></td>
-                            <td><input type="text" id="treasure_call_to_action" name="treasure_call_to_action" value="{{ treasure_call_to_action or '開啟寶箱' }}">
-                                <div class="help-text">CTA按鈕文字，預設為「開啟寶箱」</div>
+                            <td><label for="treasure_call_to_action">Call to Action Button Text</label></td>
+                            <td><input type="text" id="treasure_call_to_action" name="treasure_call_to_action" value="{{ treasure_call_to_action or 'openstarttreasurebox' }}">
+                                <div class="help-text">CTAButtontexttext，predictsetto「openstarttreasurebox」</div>
                             </td>
                         </tr>
                     </table>
                 </div>
 
                 <div class="field-group">
-                    <h3>寶箱遊戲設定 <span class="required">*</span></h3>
-                    <p>所有圖片都是必填。請提供完整的圖片網址。</p>
+                    <h3>treasureboxgameplaySettings <span class="required">*</span></h3>
+                    <p>placehaveImageallisrequired。pleaseprovideprovideperfectwholeofImage URL。</p>
                     
                     <div class="form-row">
-                        <label for="treasure_img_logo">品牌 Logo 圖片 URL <span class="required">*</span></label>
+                        <label for="treasure_img_logo">productcard Logo Image URL <span class="required">*</span></label>
                         <input type="url" id="treasure_img_logo" name="treasure_img_logo" placeholder="https://example.com/logo.png" value="{{ treasure_img_logo or '' }}" required>
-                        <div class="help-text">品牌 Logo 圖片網址，必填</div>
+                        <div class="help-text">productcard Logo Image URL，required</div>
                     </div>
                     
                     <div class="form-row">
-                        <label for="treasure_img_background">背景圖片 URL <span class="required">*</span></label>
+                        <label for="treasure_img_background">Background Image URL <span class="required">*</span></label>
                         <input type="url" id="treasure_img_background" name="treasure_img_background" placeholder="https://example.com/background.jpg" value="{{ treasure_img_background or '' }}" required>
-                        <div class="help-text">遊戲背景圖片網址，必填</div>
+                        <div class="help-text">gameplayBackground Image URL，required</div>
                     </div>
                     
-                    <h4>寶箱狀態圖片</h4>
+                    <h4>treasureboxstatusstateImage</h4>
                     <div class="form-row">
-                        <label for="treasure_img_item_idle">寶箱閒置狀態圖片 URL <span class="required">*</span></label>
+                        <label for="treasure_img_item_idle">treasureboxidleplacestatusstateImage URL <span class="required">*</span></label>
                         <input type="url" id="treasure_img_item_idle" name="treasure_img_item_idle" placeholder="https://example.com/chest_idle.png" value="{{ treasure_img_item_idle or '' }}" required>
-                        <div class="help-text">寶箱閒置時的圖片網址，必填</div>
+                        <div class="help-text">treasureboxidleplacetimeofImage URL，required</div>
                     </div>
                     
                     <div class="form-row">
-                        <label for="treasure_img_item_pressed">寶箱按下狀態圖片 URL <span class="required">*</span></label>
+                        <label for="treasure_img_item_pressed">treasureboxpressdownstatusstateImage URL <span class="required">*</span></label>
                         <input type="url" id="treasure_img_item_pressed" name="treasure_img_item_pressed" placeholder="https://example.com/chest_pressed.png" value="{{ treasure_img_item_pressed or '' }}" required>
-                        <div class="help-text">寶箱被按下時的圖片網址，必填</div>
+                        <div class="help-text">treasureboxbypressdowntimeofImage URL，required</div>
                     </div>
                     
                     <div class="form-row">
-                        <label for="treasure_img_item_activated">寶箱激活狀態圖片 URL <span class="required">*</span></label>
+                        <label for="treasure_img_item_activated">treasureboxexciteactivestatusstateImage URL <span class="required">*</span></label>
                         <input type="url" id="treasure_img_item_activated" name="treasure_img_item_activated" placeholder="https://example.com/chest_opened.png" value="{{ treasure_img_item_activated or '' }}" required>
-                        <div class="help-text">寶箱激活開啟時的圖片網址，必填</div>
+                        <div class="help-text">treasureboxexciteactiveopenstarttimeofImage URL，required</div>
                     </div>
                 </div>
 
                 <div class="field-group">
-                    <h3>獎品設定 <span class="required">*</span></h3>
-                    <p>設定三個獎品的激活和閒置狀態圖片。</p>
+                    <h3>prizeproductSettings <span class="required">*</span></h3>
+                    <p>SettingsthreeaprizeproductofexciteactiveharmonyidleplacestatusstateImage。</p>
                     
-                    <h4>獎品 1</h4>
+                    <h4>prizeproduct 1</h4>
                     <div class="form-row">
-                        <label for="treasure_items_active_1">獎品1激活狀態圖片 URL <span class="required">*</span></label>
+                        <label for="treasure_items_active_1">prizeproduct1exciteactivestatusstateImage URL <span class="required">*</span></label>
                         <input type="url" id="treasure_items_active_1" name="treasure_items_active_1" placeholder="https://example.com/reward1_active.png" value="{{ treasure_items_active_1 or '' }}" required>
-                        <div class="help-text">獎品1激活時的圖片網址，必填</div>
+                        <div class="help-text">prizeproduct1exciteactivetimeofImage URL，required</div>
                     </div>
                     
                     <div class="form-row">
-                        <label for="treasure_items_idle_1">獎品1閒置狀態圖片 URL <span class="required">*</span></label>
+                        <label for="treasure_items_idle_1">prizeproduct1idleplacestatusstateImage URL <span class="required">*</span></label>
                         <input type="url" id="treasure_items_idle_1" name="treasure_items_idle_1" placeholder="https://example.com/reward1_idle.png" value="{{ treasure_items_idle_1 or '' }}" required>
-                        <div class="help-text">獎品1閒置時的圖片網址，必填</div>
+                        <div class="help-text">prizeproduct1idleplacetimeofImage URL，required</div>
                     </div>
                     
-                    <h4>獎品 2</h4>
+                    <h4>prizeproduct 2</h4>
                     <div class="form-row">
-                        <label for="treasure_items_active_2">獎品2激活狀態圖片 URL <span class="required">*</span></label>
+                        <label for="treasure_items_active_2">prizeproduct2exciteactivestatusstateImage URL <span class="required">*</span></label>
                         <input type="url" id="treasure_items_active_2" name="treasure_items_active_2" placeholder="https://example.com/reward2_active.png" value="{{ treasure_items_active_2 or '' }}" required>
-                        <div class="help-text">獎品2激活時的圖片網址，必填</div>
+                        <div class="help-text">prizeproduct2exciteactivetimeofImage URL，required</div>
                     </div>
                     
                     <div class="form-row">
-                        <label for="treasure_items_idle_2">獎品2閒置狀態圖片 URL <span class="required">*</span></label>
+                        <label for="treasure_items_idle_2">prizeproduct2idleplacestatusstateImage URL <span class="required">*</span></label>
                         <input type="url" id="treasure_items_idle_2" name="treasure_items_idle_2" placeholder="https://example.com/reward2_idle.png" value="{{ treasure_items_idle_2 or '' }}" required>
-                        <div class="help-text">獎品2閒置時的圖片網址，必填</div>
+                        <div class="help-text">prizeproduct2idleplacetimeofImage URL，required</div>
                     </div>
                     
-                    <h4>獎品 3</h4>
+                    <h4>prizeproduct 3</h4>
                     <div class="form-row">
-                        <label for="treasure_items_active_3">獎品3激活狀態圖片 URL <span class="required">*</span></label>
+                        <label for="treasure_items_active_3">prizeproduct3exciteactivestatusstateImage URL <span class="required">*</span></label>
                         <input type="url" id="treasure_items_active_3" name="treasure_items_active_3" placeholder="https://example.com/reward3_active.png" value="{{ treasure_items_active_3 or '' }}" required>
-                        <div class="help-text">獎品3激活時的圖片網址，必填</div>
+                        <div class="help-text">prizeproduct3exciteactivetimeofImage URL，required</div>
                     </div>
                     
                     <div class="form-row">
-                        <label for="treasure_items_idle_3">獎品3閒置狀態圖片 URL <span class="required">*</span></label>
+                        <label for="treasure_items_idle_3">prizeproduct3idleplacestatusstateImage URL <span class="required">*</span></label>
                         <input type="url" id="treasure_items_idle_3" name="treasure_items_idle_3" placeholder="https://example.com/reward3_idle.png" value="{{ treasure_items_idle_3 or '' }}" required>
-                        <div class="help-text">獎品3閒置時的圖片網址，必填</div>
+                        <div class="help-text">prizeproduct3idleplacetimeofImage URL，required</div>
                     </div>
                 </div>
 
                 <div class="field-group">
-                    <h3>互動彈窗設定 <span class="required">*</span></h3>
-                    <p>設定三個互動彈窗的 URL。</p>
+                    <h3>interactivemovepopupwindowSettings <span class="required">*</span></h3>
+                    <p>Settingsthreeainteractivemovepopupwindowof URL。</p>
                     
                     <div class="form-row">
-                        <label for="treasure_url_interactive_a">互動彈窗 A 的 URL <span class="required">*</span></label>
+                        <label for="treasure_url_interactive_a">interactivemovepopupwindow A of URL <span class="required">*</span></label>
                         <input type="url" id="treasure_url_interactive_a" name="treasure_url_interactive_a" placeholder="https://example.com/popup_a" value="{{ treasure_url_interactive_a or '' }}" required>
-                        <div class="help-text">互動彈窗 A 的 URL，必填</div>
+                        <div class="help-text">interactivemovepopupwindow A of URL，required</div>
                     </div>
                     
                     <div class="form-row">
-                        <label for="treasure_url_interactive_b">互動彈窗 B 的 URL <span class="required">*</span></label>
+                        <label for="treasure_url_interactive_b">interactivemovepopupwindow B of URL <span class="required">*</span></label>
                         <input type="url" id="treasure_url_interactive_b" name="treasure_url_interactive_b" placeholder="https://example.com/popup_b" value="{{ treasure_url_interactive_b or '' }}" required>
-                        <div class="help-text">互動彈窗 B 的 URL，必填</div>
+                        <div class="help-text">interactivemovepopupwindow B of URL，required</div>
                     </div>
                     
                     <div class="form-row">
-                        <label for="treasure_url_interactive_c">互動彈窗 C 的 URL <span class="required">*</span></label>
+                        <label for="treasure_url_interactive_c">interactivemovepopupwindow C of URL <span class="required">*</span></label>
                         <input type="url" id="treasure_url_interactive_c" name="treasure_url_interactive_c" placeholder="https://example.com/popup_c" value="{{ treasure_url_interactive_c or '' }}" required>
-                        <div class="help-text">互動彈窗 C 的 URL，必填</div>
+                        <div class="help-text">interactivemovepopupwindow C of URL，required</div>
                     </div>
                     
                     <input type="hidden" id="treasure_payload_game_widget" name="treasure_payload_game_widget">
@@ -605,69 +605,69 @@ l   文案：
 
             <div id="slide-ad" class="tab-content {% if active_tab == 'slide-ad' %}active{% endif %}">
                 <div class="field-group">
-                    <h3>廣告資訊</h3>
+                    <h3>Ad Information</h3>
                     <table>
                         <tr>
-                            <th width="30%">欄位名稱</th>
-                            <th>內容</th>
+                            <th width="30%">Field Name</th>
+                            <th>Content</th>
                         </tr>
                         <tr>
                             <td><label for="slide_adset_id">Adset ID <span class="required">*</span></label></td>
                             <td><input type="text" id="slide_adset_id" name="slide_adset_id" value="{{ slide_adset_id or '' }}" required>
-                                <div class="help-text">廣告組ID，必填，例如：EXAMPLE_ADSET_ID</div>
+                                <div class="help-text">Ad group ID, required，e.g., EXAMPLE_ADSET_ID</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="slide_display_name">廣告單元顯示名稱</label></td>
+                            <td><label for="slide_display_name">Ad Unit Display Name</label></td>
                             <td><input type="text" id="slide_display_name" name="slide_display_name" value="{{ slide_display_name or '' }}">
-                                <div class="help-text">僅顯示於後台，可選</div>
+                                <div class="help-text">Displayed in backend only, optional</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="slide_advertiser">廣告商 <span class="required">*</span></label></td>
+                            <td><label for="slide_advertiser">Advertiser <span class="required">*</span></label></td>
                             <td><input type="text" id="slide_advertiser" name="slide_advertiser" value="{{ slide_advertiser or '' }}" required>
-                                <div class="help-text">廣告主名稱，必填</div>
+                                <div class="help-text">Advertiser name，required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="slide_main_title">主標題 <span class="required">*</span></label></td>
+                            <td><label for="slide_main_title">Main Title <span class="required">*</span></label></td>
                             <td><input type="text" id="slide_main_title" name="slide_main_title" value="{{ slide_main_title or '' }}" required>
-                                <div class="help-text">廣告主標題，必填</div>
+                                <div class="help-text">Ad Main Title，required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="slide_subtitle">副標題</label></td>
+                            <td><label for="slide_subtitle">Subtitle</label></td>
                             <td><input type="text" id="slide_subtitle" name="slide_subtitle" value="{{ slide_subtitle or '' }}">
-                                <div class="help-text">廣告副標題，可選</div>
+                                <div class="help-text">Ad subtitle, optional</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="slide_landing_page">到達頁面網址 <span class="required">*</span></label></td>
+                            <td><label for="slide_landing_page">Landing Page URL <span class="required">*</span></label></td>
                             <td><input type="url" id="slide_landing_page" name="slide_landing_page" placeholder="https://example.com" value="{{ slide_landing_page or '' }}" required>
-                                <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                                <div class="help-text">URL to navigate to when ad is clicked, required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="slide_call_to_action">行動呼籲按鈕文字</label></td>
-                            <td><input type="text" id="slide_call_to_action" name="slide_call_to_action" value="{{ slide_call_to_action or '立即了解' }}">
-                                <div class="help-text">CTA按鈕文字，預設為「立即了解」</div>
+                            <td><label for="slide_call_to_action">Call to Action Button Text</label></td>
+                            <td><input type="text" id="slide_call_to_action" name="slide_call_to_action" value="{{ slide_call_to_action or 'Learn More' }}">
+                                <div class="help-text">CTAButtontexttext，predictsetto「Learn More」</div>
                             </td>
                         </tr>
                     </table>
                 </div>
 
                 <div class="field-group">
-                    <h3>廣告素材 <span class="required">*</span></h3>
-                    <p>所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。</p>
+                    <h3>AdMaterials <span class="required">*</span></h3>
+                    <p>All images are required. Provide complete local file paths or use the upload function.</p>
                     
                     <div class="form-row">
-                        <label for="slide_image_path_m">圖片 1200x628 <span class="required">*</span></label>
+                        <label for="slide_image_path_m">Image 1200x628 <span class="required">*</span></label>
                         <div class="file-upload-container">
                             <input type="text" id="slide_image_path_m" name="slide_image_path_m" placeholder="/path/to/your/image_1200x628.jpg" value="{{ slide_image_path_m or '' }}" required>
-                            <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                            <div class="help-text">Large banner image, 1200x628 pixels</div>
                             <div class="preview-container">
                                 <label class="custom-file-upload">
-                                    上傳圖片
+                                    Upload Image
                                     <input type="file" class="file-input" data-target="slide_image_path_m" accept="image/*">
                                 </label>
                                 <img id="preview_slide_m" class="upload-preview" style="display: none;">
@@ -676,13 +676,13 @@ l   文案：
                     </div>
                     
                     <div class="form-row">
-                        <label for="slide_image_path_s">圖片 300x300 <span class="required">*</span></label>
+                        <label for="slide_image_path_s">Image 300x300 <span class="required">*</span></label>
                         <div class="file-upload-container">
                             <input type="text" id="slide_image_path_s" name="slide_image_path_s" placeholder="/path/to/your/image_300x300.jpg" value="{{ slide_image_path_s or '' }}" required>
-                            <div class="help-text">方形圖片，尺寸300x300像素</div>
+                            <div class="help-text">Square image, 300x300 pixels</div>
                             <div class="preview-container">
                                 <label class="custom-file-upload">
-                                    上傳圖片
+                                    Upload Image
                                     <input type="file" class="file-input" data-target="slide_image_path_s" accept="image/*">
                                 </label>
                                 <img id="preview_slide_s" class="upload-preview" style="display: none;">
@@ -691,35 +691,35 @@ l   文案：
                     </div>
 
                     <div class="form-row">
-                        <label for="slide_background_image">遊戲套件預設背景 <span class="required">*</span></label>
-                        <input type="text" id="slide_background_image" name="slide_background_image" placeholder="請輸入背景圖片網址" value="{{ slide_background_image or '' }}" required>
-                        <div class="help-text">遊戲套件預設背景圖片網址</div>
+                        <label for="slide_background_image">gameplaysetitempredictsetBackground <span class="required">*</span></label>
+                        <input type="text" id="slide_background_image" name="slide_background_image" placeholder="Please enterBackground Image URL" value="{{ slide_background_image or '' }}" required>
+                        <div class="help-text">gameplaysetitempredictsetBackground Image URL</div>
                     </div>
                 </div>
 
                 <div class="field-group">
-                    <h3>滑動廣告設定 <span class="required">*</span></h3>
+                    <h3>slidemoveAd Settings <span class="required">*</span></h3>
                     <div id="slide-items-container">
-                        <!-- 默認顯示一個滑動項目 -->
+                        <!-- silentknowclearshowaaslidemoveitemeye -->
                         <div class="slide-item" data-index="0">
-                            <h4>滑動項目 #1</h4>
+                            <h4>slidemoveitemeye #1</h4>
                             <div class="form-row">
-                                <label for="slide_image_url_0">圖片網址 <span class="required">*</span></label>
+                                <label for="slide_image_url_0">Image URL <span class="required">*</span></label>
                                 <input type="url" id="slide_image_url_0" name="slide_image_url_0" class="slide-image-url" 
                                        placeholder="https://example.com/image1.jpg" value="" required>
-                                <div class="help-text">滑動廣告圖片的URL，必填</div>
+                                <div class="help-text">slidemoveAd ImagesofURL，required</div>
                             </div>
                             <div class="form-row">
-                                <label for="slide_target_url_0">目標網址 <span class="required">*</span></label>
+                                <label for="slide_target_url_0">eyelabelURL <span class="required">*</span></label>
                                 <input type="url" id="slide_target_url_0" name="slide_target_url_0" class="slide-target-url"
                                        placeholder="https://example.com/page1" value="" required>
-                                <div class="help-text">點擊圖片後跳轉的目標網址，必填</div>
+                                <div class="help-text">ClickImageafterjumpconvertofeyelabelURL，required</div>
                             </div>
                         </div>
                     </div>
                     <div class="slide-controls">
-                        <button type="button" id="add-slide-item" class="button nav-button">新增滑動項目</button>
-                        <button type="button" id="remove-slide-item" class="button" style="background-color: #d9534f;">移除最後一個項目</button>
+                        <button type="button" id="add-slide-item" class="button nav-button">Addslidemoveitemeye</button>
+                        <button type="button" id="remove-slide-item" class="button" style="background-color: #d9534f;">moveremovemostafteraaitemeye</button>
                     </div>
                     <input type="hidden" id="slide_payload_game_widget" name="slide_payload_game_widget">
                 </div>
@@ -727,69 +727,69 @@ l   文案：
 
             <div id="vertical-slide-ad" class="tab-content {% if active_tab == 'vertical-slide-ad' %}active{% endif %}">
                 <div class="field-group">
-                    <h3>廣告資訊</h3>
+                    <h3>Ad Information</h3>
                     <table>
                         <tr>
-                            <th width="30%">欄位名稱</th>
-                            <th>內容</th>
+                            <th width="30%">Field Name</th>
+                            <th>Content</th>
                         </tr>
                         <tr>
                             <td><label for="vertical_slide_adset_id">Adset ID <span class="required">*</span></label></td>
                             <td><input type="text" id="vertical_slide_adset_id" name="vertical_slide_adset_id" value="{{ vertical_slide_adset_id or '' }}" required>
-                                <div class="help-text">廣告組ID，必填，例如：EXAMPLE_ADSET_ID</div>
+                                <div class="help-text">Ad group ID, required，e.g., EXAMPLE_ADSET_ID</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="vertical_slide_display_name">廣告單元顯示名稱</label></td>
+                            <td><label for="vertical_slide_display_name">Ad Unit Display Name</label></td>
                             <td><input type="text" id="vertical_slide_display_name" name="vertical_slide_display_name" value="{{ vertical_slide_display_name or '' }}">
-                                <div class="help-text">僅顯示於後台，可選</div>
+                                <div class="help-text">Displayed in backend only, optional</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="vertical_slide_advertiser">廣告商 <span class="required">*</span></label></td>
+                            <td><label for="vertical_slide_advertiser">Advertiser <span class="required">*</span></label></td>
                             <td><input type="text" id="vertical_slide_advertiser" name="vertical_slide_advertiser" value="{{ vertical_slide_advertiser or '' }}" required>
-                                <div class="help-text">廣告主名稱，必填</div>
+                                <div class="help-text">Advertiser name，required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="vertical_slide_main_title">主標題 <span class="required">*</span></label></td>
+                            <td><label for="vertical_slide_main_title">Main Title <span class="required">*</span></label></td>
                             <td><input type="text" id="vertical_slide_main_title" name="vertical_slide_main_title" value="{{ vertical_slide_main_title or '' }}" required>
-                                <div class="help-text">廣告主標題，必填</div>
+                                <div class="help-text">Ad Main Title，required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="vertical_slide_subtitle">副標題</label></td>
+                            <td><label for="vertical_slide_subtitle">Subtitle</label></td>
                             <td><input type="text" id="vertical_slide_subtitle" name="vertical_slide_subtitle" value="{{ vertical_slide_subtitle or '' }}">
-                                <div class="help-text">廣告副標題，可選</div>
+                                <div class="help-text">Ad subtitle, optional</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="vertical_slide_landing_page">到達頁面網址 <span class="required">*</span></label></td>
+                            <td><label for="vertical_slide_landing_page">Landing Page URL <span class="required">*</span></label></td>
                             <td><input type="url" id="vertical_slide_landing_page" name="vertical_slide_landing_page" placeholder="https://example.com" value="{{ vertical_slide_landing_page or '' }}" required>
-                                <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                                <div class="help-text">URL to navigate to when ad is clicked, required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="vertical_slide_call_to_action">行動呼籲按鈕文字</label></td>
-                            <td><input type="text" id="vertical_slide_call_to_action" name="vertical_slide_call_to_action" value="{{ vertical_slide_call_to_action or '立即了解' }}">
-                                <div class="help-text">CTA按鈕文字，預設為「立即了解」</div>
+                            <td><label for="vertical_slide_call_to_action">Call to Action Button Text</label></td>
+                            <td><input type="text" id="vertical_slide_call_to_action" name="vertical_slide_call_to_action" value="{{ vertical_slide_call_to_action or 'Learn More' }}">
+                                <div class="help-text">CTAButtontexttext，predictsetto「Learn More」</div>
                             </td>
                         </tr>
                     </table>
                 </div>
 
                 <div class="field-group">
-                    <h3>廣告素材 <span class="required">*</span></h3>
-                    <p>所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。</p>
+                    <h3>AdMaterials <span class="required">*</span></h3>
+                    <p>All images are required. Provide complete local file paths or use the upload function.</p>
                     
                     <div class="form-row">
-                        <label for="vertical_slide_image_path_m">圖片 1200x628 <span class="required">*</span></label>
+                        <label for="vertical_slide_image_path_m">Image 1200x628 <span class="required">*</span></label>
                         <div class="file-upload-container">
                             <input type="text" id="vertical_slide_image_path_m" name="vertical_slide_image_path_m" placeholder="/path/to/your/image_1200x628.jpg" value="{{ vertical_slide_image_path_m or '' }}" required>
-                            <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                            <div class="help-text">Large banner image, 1200x628 pixels</div>
                             <div class="preview-container">
                                 <label class="custom-file-upload">
-                                    上傳圖片
+                                    Upload Image
                                     <input type="file" class="file-input" data-target="vertical_slide_image_path_m" accept="image/*">
                                 </label>
                                 <img id="preview_vertical_slide_m" class="upload-preview" style="display: none;">
@@ -798,13 +798,13 @@ l   文案：
                     </div>
                     
                     <div class="form-row">
-                        <label for="vertical_slide_image_path_s">圖片 300x300 <span class="required">*</span></label>
+                        <label for="vertical_slide_image_path_s">Image 300x300 <span class="required">*</span></label>
                         <div class="file-upload-container">
                             <input type="text" id="vertical_slide_image_path_s" name="vertical_slide_image_path_s" placeholder="/path/to/your/image_300x300.jpg" value="{{ vertical_slide_image_path_s or '' }}" required>
-                            <div class="help-text">方形圖片，尺寸300x300像素</div>
+                            <div class="help-text">Square image, 300x300 pixels</div>
                             <div class="preview-container">
                                 <label class="custom-file-upload">
-                                    上傳圖片
+                                    Upload Image
                                     <input type="file" class="file-input" data-target="vertical_slide_image_path_s" accept="image/*">
                                 </label>
                                 <img id="preview_vertical_slide_s" class="upload-preview" style="display: none;">
@@ -813,35 +813,35 @@ l   文案：
                     </div>
 
                     <div class="form-row">
-                        <label for="vertical_slide_background_image">遊戲套件預設背景 <span class="required">*</span></label>
-                        <input type="text" id="vertical_slide_background_image" name="vertical_slide_background_image" placeholder="請輸入背景圖片網址" value="{{ vertical_slide_background_image or '' }}" required>
-                        <div class="help-text">遊戲套件預設背景圖片網址</div>
+                        <label for="vertical_slide_background_image">gameplaysetitempredictsetBackground <span class="required">*</span></label>
+                        <input type="text" id="vertical_slide_background_image" name="vertical_slide_background_image" placeholder="Please enterBackground Image URL" value="{{ vertical_slide_background_image or '' }}" required>
+                        <div class="help-text">gameplaysetitempredictsetBackground Image URL</div>
                     </div>
                 </div>
 
                 <div class="field-group">
-                    <h3>滑動廣告設定 <span class="required">*</span></h3>
+                    <h3>slidemoveAd Settings <span class="required">*</span></h3>
                     <div id="vertical-slide-items-container">
-                        <!-- 默認顯示一個滑動項目 -->
+                        <!-- silentknowclearshowaaslidemoveitemeye -->
                         <div class="vertical-slide-item" data-index="0">
-                            <h4>滑動項目 #1</h4>
+                            <h4>slidemoveitemeye #1</h4>
                             <div class="form-row">
-                                <label for="vertical_slide_image_url_0">圖片網址 <span class="required">*</span></label>
+                                <label for="vertical_slide_image_url_0">Image URL <span class="required">*</span></label>
                                 <input type="url" id="vertical_slide_image_url_0" name="vertical_slide_image_url_0" class="vertical-slide-image-url" 
                                        placeholder="https://example.com/image1.jpg" value="" required>
-                                <div class="help-text">滑動廣告圖片的URL，必填</div>
+                                <div class="help-text">slidemoveAd ImagesofURL，required</div>
                             </div>
                             <div class="form-row">
-                                <label for="vertical_slide_target_url_0">目標網址 <span class="required">*</span></label>
+                                <label for="vertical_slide_target_url_0">eyelabelURL <span class="required">*</span></label>
                                 <input type="url" id="vertical_slide_target_url_0" name="vertical_slide_target_url_0" class="vertical-slide-target-url"
                                        placeholder="https://example.com/page1" value="" required>
-                                <div class="help-text">點擊圖片後跳轉的目標網址，必填</div>
+                                <div class="help-text">ClickImageafterjumpconvertofeyelabelURL，required</div>
                             </div>
                         </div>
                     </div>
                     <div class="slide-controls">
-                        <button type="button" id="add-vertical-slide-item" class="button nav-button">新增滑動項目</button>
-                        <button type="button" id="remove-vertical-slide-item" class="button" style="background-color: #d9534f;">移除最後一個項目</button>
+                        <button type="button" id="add-vertical-slide-item" class="button nav-button">Addslidemoveitemeye</button>
+                        <button type="button" id="remove-vertical-slide-item" class="button" style="background-color: #d9534f;">moveremovemostafteraaitemeye</button>
                     </div>
                     <input type="hidden" id="vertical_slide_payload_game_widget" name="vertical_slide_payload_game_widget">
                 </div>
@@ -849,69 +849,69 @@ l   文案：
 
             <div id="vertical-cube-slide-ad" class="tab-content {% if active_tab == 'vertical-cube-slide-ad' %}active{% endif %}">
                 <div class="field-group">
-                    <h3>廣告資訊</h3>
+                    <h3>Ad Information</h3>
                     <table>
                         <tr>
-                            <th width="30%">欄位名稱</th>
-                            <th>內容</th>
+                            <th width="30%">Field Name</th>
+                            <th>Content</th>
                         </tr>
                         <tr>
                             <td><label for="vertical_cube_slide_adset_id">Adset ID <span class="required">*</span></label></td>
                             <td><input type="text" id="vertical_cube_slide_adset_id" name="vertical_cube_slide_adset_id" value="{{ vertical_cube_slide_adset_id or '' }}" required>
-                                <div class="help-text">廣告組ID，必填，例如：EXAMPLE_ADSET_ID</div>
+                                <div class="help-text">Ad group ID, required，e.g., EXAMPLE_ADSET_ID</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="vertical_cube_slide_display_name">廣告單元顯示名稱</label></td>
+                            <td><label for="vertical_cube_slide_display_name">Ad Unit Display Name</label></td>
                             <td><input type="text" id="vertical_cube_slide_display_name" name="vertical_cube_slide_display_name" value="{{ vertical_cube_slide_display_name or '' }}">
-                                <div class="help-text">僅顯示於後台，可選</div>
+                                <div class="help-text">Displayed in backend only, optional</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="vertical_cube_slide_advertiser">廣告商 <span class="required">*</span></label></td>
+                            <td><label for="vertical_cube_slide_advertiser">Advertiser <span class="required">*</span></label></td>
                             <td><input type="text" id="vertical_cube_slide_advertiser" name="vertical_cube_slide_advertiser" value="{{ vertical_cube_slide_advertiser or '' }}" required>
-                                <div class="help-text">廣告主名稱，必填</div>
+                                <div class="help-text">Advertiser name，required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="vertical_cube_slide_main_title">主標題 <span class="required">*</span></label></td>
+                            <td><label for="vertical_cube_slide_main_title">Main Title <span class="required">*</span></label></td>
                             <td><input type="text" id="vertical_cube_slide_main_title" name="vertical_cube_slide_main_title" value="{{ vertical_cube_slide_main_title or '' }}" required>
-                                <div class="help-text">廣告主標題，必填</div>
+                                <div class="help-text">Ad Main Title，required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="vertical_cube_slide_subtitle">副標題</label></td>
+                            <td><label for="vertical_cube_slide_subtitle">Subtitle</label></td>
                             <td><input type="text" id="vertical_cube_slide_subtitle" name="vertical_cube_slide_subtitle" value="{{ vertical_cube_slide_subtitle or '' }}">
-                                <div class="help-text">廣告副標題，可選</div>
+                                <div class="help-text">Ad subtitle, optional</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="vertical_cube_slide_landing_page">到達頁面網址 <span class="required">*</span></label></td>
+                            <td><label for="vertical_cube_slide_landing_page">Landing Page URL <span class="required">*</span></label></td>
                             <td><input type="url" id="vertical_cube_slide_landing_page" name="vertical_cube_slide_landing_page" placeholder="https://example.com" value="{{ vertical_cube_slide_landing_page or '' }}" required>
-                                <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                                <div class="help-text">URL to navigate to when ad is clicked, required</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><label for="vertical_cube_slide_call_to_action">行動呼籲按鈕文字</label></td>
-                            <td><input type="text" id="vertical_cube_slide_call_to_action" name="vertical_cube_slide_call_to_action" value="{{ vertical_cube_slide_call_to_action or '立即了解' }}">
-                                <div class="help-text">CTA按鈕文字，預設為「立即了解」</div>
+                            <td><label for="vertical_cube_slide_call_to_action">Call to Action Button Text</label></td>
+                            <td><input type="text" id="vertical_cube_slide_call_to_action" name="vertical_cube_slide_call_to_action" value="{{ vertical_cube_slide_call_to_action or 'Learn More' }}">
+                                <div class="help-text">CTAButtontexttext，predictsetto「Learn More」</div>
                             </td>
                         </tr>
                     </table>
                 </div>
 
                 <div class="field-group">
-                    <h3>廣告素材 <span class="required">*</span></h3>
-                    <p>所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。</p>
+                    <h3>AdMaterials <span class="required">*</span></h3>
+                    <p>All images are required. Provide complete local file paths or use the upload function.</p>
                     
                     <div class="form-row">
-                        <label for="vertical_cube_slide_image_path_m">圖片 1200x628 <span class="required">*</span></label>
+                        <label for="vertical_cube_slide_image_path_m">Image 1200x628 <span class="required">*</span></label>
                         <div class="file-upload-container">
                             <input type="text" id="vertical_cube_slide_image_path_m" name="vertical_cube_slide_image_path_m" placeholder="/path/to/your/image_1200x628.jpg" value="{{ vertical_cube_slide_image_path_m or '' }}" required>
-                            <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                            <div class="help-text">Large banner image, 1200x628 pixels</div>
                             <div class="preview-container">
                                 <label class="custom-file-upload">
-                                    上傳圖片
+                                    Upload Image
                                     <input type="file" class="file-input" data-target="vertical_cube_slide_image_path_m" accept="image/*">
                                 </label>
                                 <img id="preview_vertical_cube_slide_m" class="upload-preview" style="display: none;">
@@ -920,13 +920,13 @@ l   文案：
                     </div>
                     
                     <div class="form-row">
-                        <label for="vertical_cube_slide_image_path_s">圖片 300x300 <span class="required">*</span></label>
+                        <label for="vertical_cube_slide_image_path_s">Image 300x300 <span class="required">*</span></label>
                         <div class="file-upload-container">
                             <input type="text" id="vertical_cube_slide_image_path_s" name="vertical_cube_slide_image_path_s" placeholder="/path/to/your/image_300x300.jpg" value="{{ vertical_cube_slide_image_path_s or '' }}" required>
-                            <div class="help-text">方形圖片，尺寸300x300像素</div>
+                            <div class="help-text">Square image, 300x300 pixels</div>
                             <div class="preview-container">
                                 <label class="custom-file-upload">
-                                    上傳圖片
+                                    Upload Image
                                     <input type="file" class="file-input" data-target="vertical_cube_slide_image_path_s" accept="image/*">
                                 </label>
                                 <img id="preview_vertical_cube_slide_s" class="upload-preview" style="display: none;">
@@ -935,68 +935,68 @@ l   文案：
                     </div>
 
                     <div class="form-row">
-                        <label for="vertical_cube_slide_background_image">遊戲套件預設背景 <span class="required">*</span></label>
-                        <input type="text" id="vertical_cube_slide_background_image" name="vertical_cube_slide_background_image" placeholder="請輸入背景圖片網址" value="{{ vertical_cube_slide_background_image or '' }}" required>
-                        <div class="help-text">遊戲套件預設背景圖片網址</div>
+                        <label for="vertical_cube_slide_background_image">gameplaysetitempredictsetBackground <span class="required">*</span></label>
+                        <input type="text" id="vertical_cube_slide_background_image" name="vertical_cube_slide_background_image" placeholder="Please enterBackground Image URL" value="{{ vertical_cube_slide_background_image or '' }}" required>
+                        <div class="help-text">gameplaysetitempredictsetBackground Image URL</div>
                     </div>
                 </div>
 
                 <div class="field-group">
-                    <h3>滑動廣告設定 <span class="required">*</span></h3>
+                    <h3>slidemoveAd Settings <span class="required">*</span></h3>
                     <div id="vertical-cube-slide-items-container">
-                        <!-- 滑動項目將由 JavaScript 動態生成 -->
+                        <!-- slidemoveitemeyewillby JavaScript movestatelifebecome -->
                     </div>
                     <div class="slide-controls">
-                        <button type="button" id="add-vertical-cube-slide-item" class="button nav-button">新增滑動項目</button>
-                        <button type="button" id="remove-vertical-cube-slide-item" class="button" style="background-color: #d9534f;">移除最後一個項目</button>
+                        <button type="button" id="add-vertical-cube-slide-item" class="button nav-button">Addslidemoveitemeye</button>
+                        <button type="button" id="remove-vertical-cube-slide-item" class="button" style="background-color: #d9534f;">moveremovemostafteraaitemeye</button>
                     </div>
                     <input type="hidden" id="vertical_cube_slide_payload_game_widget" name="vertical_cube_slide_payload_game_widget" value="{{ vertical_cube_slide_payload_game_widget or '' }}">
                 </div>
 
-                <!-- 使用 data 屬性儲存已保存的垂直 cube 滑動項目數據 -->
+                <!-- makeuse data belongsexSavehaveSaveofverticaldirect cube slidemoveitemeyenumberaccording -->
                 {% if vertical_cube_slide_items %}
                 <div id="vertical-cube-slide-items-data" style="display: none;" 
                      data-items='{{ vertical_cube_slide_items|tojson|safe }}'></div>
                 {% endif %}
             </div>
             
-            <input type="submit" value="建立廣告">
+            <input type="submit" value="Create Ad">
         </form>
     </div>
 
     <script>
-        // Tab 切換功能
+        // Tab cutchangefunctioncan
         document.addEventListener('DOMContentLoaded', function() {
             const tabs = document.querySelectorAll('.tab');
             const tabContents = document.querySelectorAll('.tab-content');
             
             tabs.forEach(tab => {
                 tab.addEventListener('click', function() {
-                    // 移除所有 tab 的 active 類
+                    // moveremoveplacehave tab of active kind
                     tabs.forEach(t => t.classList.remove('active'));
-                    // 移除所有內容的 active 類
+                    // moveremoveplacehaveContentof active kind
                     tabContents.forEach(content => content.classList.remove('active'));
                     
-                    // 添加當前 tab 的 active 類
+                    // addaddwhenfront tab of active kind
                     this.classList.add('active');
                     
-                    // 獲取對應的內容並添加 active 類
+                    // gaintaketargetanswerofContentandaddadd active kind
                     const tabId = this.getAttribute('data-tab');
                     document.getElementById(tabId).classList.add('active');
                     
-                    // 更新隱藏的 input 值
+                    // Updatehiddenhideof input value
                     document.getElementById('active_tab_input').value = tabId;
                     
-                    // 切換必填欄位
+                    // cutchangerequiredcolumnposition
                     toggleRequiredFields(tabId);
                 });
             });
         });
 
-        // 全局變數
+        // wholebureauchangenumber
         let verticalSlideItemCount = 0;
         
-        // 水平滑動廣告相關函數
+        // waterflatSlide Adeachclosefunctionnumber
         const slideAd = {
             itemCount: 0,
             
@@ -1023,18 +1023,18 @@ l   文案：
                 newItem.setAttribute('data-index', this.itemCount - 1);
                 
                 const index = this.itemCount - 1;
-                newItem.innerHTML = '<h4>滑動項目 #' + this.itemCount + '</h4>' +
+                newItem.innerHTML = '<h4>slidemoveitemeye #' + this.itemCount + '</h4>' +
                     '<div class="form-row">' +
-                    '<label for="slide_image_url_' + index + '">圖片網址 <span class="required">*</span></label>' +
+                    '<label for="slide_image_url_' + index + '">Image URL <span class="required">*</span></label>' +
                     '<input type="url" id="slide_image_url_' + index + '" name="slide_image_url_' + index + '" class="slide-image-url" ' +
                     'placeholder="https://example.com/image' + this.itemCount + '.jpg" value="" required>' +
-                    '<div class="help-text">滑動廣告圖片的URL，必填</div>' +
+                    '<div class="help-text">slidemoveAd ImagesofURL，required</div>' +
                     '</div>' +
                     '<div class="form-row">' +
-                    '<label for="slide_target_url_' + index + '">目標網址 <span class="required">*</span></label>' +
+                    '<label for="slide_target_url_' + index + '">eyelabelURL <span class="required">*</span></label>' +
                     '<input type="url" id="slide_target_url_' + index + '" name="slide_target_url_' + index + '" class="slide-target-url"' +
                     'placeholder="https://example.com/page' + this.itemCount + '" value="" required>' +
-                    '<div class="help-text">點擊圖片後跳轉的目標網址，必填</div>' +
+                    '<div class="help-text">ClickImageafterjumpconvertofeyelabelURL，required</div>' +
                     '</div>';
                 
                 container.appendChild(newItem);
@@ -1093,7 +1093,7 @@ l   文案：
             }
         };
         
-        // 垂直滑動廣告相關函數
+        // Vertical Slide Adeachclosefunctionnumber
         const verticalSlideAd = {
             itemCount: 0,
             
@@ -1101,7 +1101,7 @@ l   文案：
                 const container = document.getElementById('vertical-slide-items-container');
                 if (!container) return;
                 
-                container.innerHTML = ''; // 清空容器，以便重新填充
+                container.innerHTML = ''; // clearemptycontaindevice，withconvenientweightnewfillfull
                 this.itemCount = 0;
 
                 const dataElement = document.getElementById('vertical-slide-items-data');
@@ -1110,7 +1110,7 @@ l   文案：
                     try {
                         restoredItems = JSON.parse(dataElement.dataset.items);
                     } catch (e) {
-                        console.error('無法解析 vertical_slide_items JSON:', e);
+                        console.error('nomethodresolveanalyze vertical_slide_items JSON:', e);
                         restoredItems = [];
                     }
                 }
@@ -1134,34 +1134,34 @@ l   文案：
                 newItem.setAttribute('data-index', itemIndex);
                 
                 newItem.innerHTML = `
-                    <h4>滑動項目 #${this.itemCount}</h4>
+                    <h4>slidemoveitemeye #${this.itemCount}</h4>
                     <div class="form-row">
-                        <label for="vertical_slide_image_url_${itemIndex}">圖片網址 <span class="required">*</span></label>
+                        <label for="vertical_slide_image_url_${itemIndex}">Image URL <span class="required">*</span></label>
                         <input type="url" id="vertical_slide_image_url_${itemIndex}" 
                                name="vertical_slide_image_url_${itemIndex}" 
                                class="vertical-slide-image-url" 
                                placeholder="https://example.com/image${this.itemCount}.jpg" 
                                value="${imageUrl}" required>
-                        <div class="help-text">滑動廣告圖片的URL，必填</div>
+                        <div class="help-text">slidemoveAd ImagesofURL，required</div>
                     </div>
                     <div class="form-row">
-                        <label for="vertical_slide_target_url_${itemIndex}">目標網址 <span class="required">*</span></label>
+                        <label for="vertical_slide_target_url_${itemIndex}">eyelabelURL <span class="required">*</span></label>
                         <input type="url" id="vertical_slide_target_url_${itemIndex}" 
                                name="vertical_slide_target_url_${itemIndex}" 
                                class="vertical-slide-target-url"
                                placeholder="https://example.com/page${this.itemCount}" 
                                value="${targetUrl}" required>
-                        <div class="help-text">點擊圖片後跳轉的目標網址，必填</div>
+                        <div class="help-text">ClickImageafterjumpconvertofeyelabelURL，required</div>
                     </div>
                 `;
                 
                 container.appendChild(newItem);
 
-                // 為新添加的輸入欄位綁定 change 事件以更新 payload
+                // tonewaddaddofinputentercolumnpositionbindset change EventwithUpdate payload
                 newItem.querySelectorAll('.vertical-slide-image-url, .vertical-slide-target-url').forEach(input => {
-                    input.addEventListener('change', () => this.updatePayload()); // 使用箭頭函數確保 this 指向 verticalSlideAd
+                    input.addEventListener('change', () => this.updatePayload()); // makeusearrowheadfunctionnumbersureprotect this pointdirection verticalSlideAd
                 });
-                this.updatePayload(); // 每次添加/初始化項目後立即更新 payload
+                this.updatePayload(); // eachtimeaddadd/initialbeginchangeitemeyeaftersetimmediatelyUpdate payload
             },
             
             removeItem: function() {
@@ -1173,10 +1173,10 @@ l   文案：
                     this.itemCount--;
                     }
                 }
-                if (this.itemCount === 0 && container.children.length === 0) { // 確保在容器真正為空時才添加新項目
+                if (this.itemCount === 0 && container.children.length === 0) { // sureprotectexistcontaindevicetruerighttoemptytimeabilityaddaddnewitemeye
                     this.addItem();
                 } else {
-                    this.updatePayload(); // 如果沒有添加新項目，則僅更新 payload
+                    this.updatePayload(); // iffruitnothaveaddaddnewitemeye，ruleonlyUpdate payload
                 }
             },
             
@@ -1233,7 +1233,7 @@ l   文案：
                     }
                 };
                 
-        // 垂直 Cube 滑動廣告相關函數
+        // verticaldirect Cube Slide Adeachclosefunctionnumber
         const verticalCubeSlideAd = {
             itemCount: 0,
             
@@ -1241,7 +1241,7 @@ l   文案：
                 const container = document.getElementById('vertical-cube-slide-items-container');
                 if (!container) return;
                 
-                container.innerHTML = ''; // 清空容器，以便重新填充
+                container.innerHTML = ''; // clearemptycontaindevice，withconvenientweightnewfillfull
                 this.itemCount = 0;
                 
                 const dataElement = document.getElementById('vertical-cube-slide-items-data');
@@ -1250,7 +1250,7 @@ l   文案：
                     try {
                         restoredItems = JSON.parse(dataElement.dataset.items);
                     } catch (e) {
-                        console.error('無法解析 vertical_cube_slide_items JSON:', e);
+                        console.error('nomethodresolveanalyze vertical_cube_slide_items JSON:', e);
                         restoredItems = [];
                     }
                 }
@@ -1260,10 +1260,10 @@ l   文案：
                         this.addItem(item.image_url, item.target_url);
                     });
                 } else {
-                    // 如果沒有已保存的項目，或者解析失敗，則添加一個空項目
+                    // iffruitnothavehaveSaveofitemeye，orpersonresolveanalyzeFailed，ruleaddaddaaemptyitemeye
                     this.addItem(); 
                 }
-                this.updatePayload(); // 確保在初始化後更新payload
+                this.updatePayload(); // sureprotectexistinitialbeginchangeafterUpdatepayload
             },
             
             addItem: function(imageUrl = '', targetUrl = '') {
@@ -1271,63 +1271,63 @@ l   文案：
                 const container = document.getElementById('vertical-cube-slide-items-container');
                 const newItem = document.createElement('div');
                 newItem.className = 'vertical-cube-slide-item';
-                const itemIndex = this.itemCount - 1; // 項目索引從0開始
+                const itemIndex = this.itemCount - 1; // itemeyesearchguidefrom0openbegin
                 newItem.setAttribute('data-index', itemIndex);
                 
                 newItem.innerHTML = `
-                    <h4>滑動項目 #${this.itemCount}</h4>
+                    <h4>slidemoveitemeye #${this.itemCount}</h4>
                     <div class="form-row">
-                        <label for="vertical_cube_slide_image_url_${itemIndex}">圖片網址 <span class="required">*</span></label>
+                        <label for="vertical_cube_slide_image_url_${itemIndex}">Image URL <span class="required">*</span></label>
                         <input type="url" id="vertical_cube_slide_image_url_${itemIndex}" 
                                name="vertical_cube_slide_image_url_${itemIndex}" 
                                class="vertical-cube-slide-image-url" 
                                placeholder="https://example.com/image${this.itemCount}.jpg" 
                                value="${imageUrl}" required>
-                        <div class="help-text">滑動廣告圖片的URL，必填</div>
+                        <div class="help-text">slidemoveAd ImagesofURL，required</div>
                     </div>
                     <div class="form-row">
-                        <label for="vertical_cube_slide_target_url_${itemIndex}">目標網址 <span class="required">*</span></label>
+                        <label for="vertical_cube_slide_target_url_${itemIndex}">eyelabelURL <span class="required">*</span></label>
                         <input type="url" id="vertical_cube_slide_target_url_${itemIndex}" 
                                name="vertical_cube_slide_target_url_${itemIndex}" 
                                class="vertical-cube-slide-target-url"
                                placeholder="https://example.com/page${this.itemCount}" 
                                value="${targetUrl}" required>
-                        <div class="help-text">點擊圖片後跳轉的目標網址，必填</div>
+                        <div class="help-text">ClickImageafterjumpconvertofeyelabelURL，required</div>
                     </div>
                 `;
                 
                 container.appendChild(newItem);
-                // 為新添加的輸入欄位綁定 change 事件以更新 payload
+                // tonewaddaddofinputentercolumnpositionbindset change EventwithUpdate payload
                 newItem.querySelectorAll('.vertical-cube-slide-image-url, .vertical-cube-slide-target-url').forEach(input => {
                     input.addEventListener('change', () => this.updatePayload());
                 });
-                this.updatePayload(); // 每次添加後都更新 payload
+                this.updatePayload(); // eachtimeaddaddafterallUpdate payload
             },
             
             removeItem: function() {
                 const container = document.getElementById('vertical-cube-slide-items-container');
-                if (this.itemCount > 0) { // 允許移除最後一個項目，但至少保留0個的狀態
+                if (this.itemCount > 0) { // allowallowmoveremovemostafteraaitemeye，buttolessprotectkeep0aofstatusstate
                     const lastItem = container.lastChild;
                     if (lastItem) {
                         container.removeChild(lastItem);
                         this.itemCount--;
                     }
                 }
-                 if (this.itemCount === 0) { // 如果移除了所有項目，添加一個新的空項目
+                 if (this.itemCount === 0) { // iffruitmoveremovefinishplacehaveitemeye，addaddaanewofemptyitemeye
                     this.addItem();
                 }
-                this.updatePayload(); // 每次移除後都更新 payload
+                this.updatePayload(); // eachtimemoveremoveafterallUpdate payload
             },
             
             updatePayload: function() {
                 const imageUrls = Array.from(document.querySelectorAll('.vertical-cube-slide-image-url')).map(input => input.value);
                 const targetUrls = Array.from(document.querySelectorAll('.vertical-cube-slide-target-url')).map(input => input.value);
                 
-                const slides = imageUrls.filter(url => url.trim() !== ''); // 只包括非空圖片 URL
+                const slides = imageUrls.filter(url => url.trim() !== ''); // onlypackageincludenotemptyImage URL
                 const invokes = [];
                 
                 for (let i = 0; i < slides.length; i++) {
-                    // 只有當圖片 URL 和對應的目標 URL 都存在時，才添加到 invokes
+                    // onlyhavewhenImage URL harmonytargetanswerofeyelabel URL allsaveexisttime，abilityaddaddarrive invokes
                     if (targetUrls[i] && targetUrls[i].trim() !== '') {
                         invokes.push({
                             action: "OPEN_EXTERNAL_BROWSER",
@@ -1344,13 +1344,13 @@ l   文案：
                         options: {
                             effect: "cube",
                             direction: "vertical",
-                            loop: "true", // 注意：模板中是字符串 "true"
-                            loopedSlides: slides.length > 0 ? slides.length : 1, // 根據 slides 陣列的長度動態設置，至少為1
+                            loop: "true", // notemeaning：modeboardmiddleistextmatchstring "true"
+                            loopedSlides: slides.length > 0 ? slides.length : 1, // rootaccording slides arrayarrangeoflongdegreemovestatesetplace，tolessto1
                             autoplay: {
                                 delay: 2000
                             }
                         },
-                        slides: slides // 使用過濾後的圖片 URL 陣列
+                        slides: slides // makeusepassfilterafterofImage URL arrayarrange
                     },
                     invokes: invokes
                 };
@@ -1362,11 +1362,11 @@ l   文案：
             }
         };
 
-        // 切換必填欄位的函數
+        // cutchangerequiredcolumnpositionoffunctionnumber
         function toggleRequiredFields(activeTabId) {
-            console.log('切換必填欄位，當前標籤:', activeTabId);
+            console.log('cutchangerequiredcolumnposition，whenfrontlabelsignature:', activeTabId);
             
-            // 定義所有可能需要 'required' 屬性的基本欄位ID (靜態欄位)
+            // setmeaningplacehavecancanneedneed 'required' belongsexoffoundationthiscolumnpositionID (staticstatecolumnposition)
             const allPossibleBaseRequiredFieldIds = [
                 'adset_id', 'advertiser', 'main_title', 'landing_page', 'image_path_m', 'image_path_o', 'image_path_p', 'image_path_s',
                 'gif_adset_id', 'gif_advertiser', 'gif_main_title', 'gif_landing_page', 'gif_image_path_m', 'gif_image_path_s', 'gif_background_image', 'gif_background_url', 'gif_target_url',
@@ -1375,7 +1375,7 @@ l   文案：
                 'vertical_cube_slide_adset_id', 'vertical_cube_slide_advertiser', 'vertical_cube_slide_main_title', 'vertical_cube_slide_landing_page', 'vertical_cube_slide_image_path_m', 'vertical_cube_slide_image_path_s', 'vertical_cube_slide_background_image'
             ];
 
-            // 1. 從所有這些基本欄位中移除 'required' 屬性
+            // 1. fromplacehavethissomefoundationthiscolumnpositionmiddlemoveremove 'required' belongsex
             allPossibleBaseRequiredFieldIds.forEach(id => {
                 const input = document.getElementById(id);
                 if (input) {
@@ -1383,14 +1383,14 @@ l   文案：
                 }
             });
             
-            // 2. 從所有類型的動態滑動項目輸入中移除 'required' 屬性
-            // 這是一個通用清除步驟，確保所有非活動標籤的動態字段都被清除
+            // 2. fromplacehavekindtypeofmovestateslidemoveitemeyeinputentermiddlemoveremove 'required' belongsex
+            // thisisaapassuseClearstepsudden，sureprotectplacehavenotactivemovelabelsignatureofmovestatetextsegmentallbyClear
             document.querySelectorAll('.slide-image-url, .slide-target-url, .vertical-slide-image-url, .vertical-slide-target-url, .vertical-cube-slide-image-url, .vertical-cube-slide-target-url').forEach(input => {
                 input.removeAttribute('required');
             });
 
-            // 3. 根據活動頁籤定義需要設為 'required' 的欄位
-            const fieldsToMakeRequired = []; // 用於靜態欄位ID
+            // 3. rootaccordingactivemovepagesignaturesetmeaningneedneedsetto 'required' ofcolumnposition
+            const fieldsToMakeRequired = []; // useinstaticstatecolumnpositionID
 
             if (activeTabId === 'native-ad') {
                 fieldsToMakeRequired.push('adset_id', 'advertiser', 'main_title', 'landing_page', 'image_path_m', 'image_path_o', 'image_path_p', 'image_path_s');
@@ -1398,25 +1398,25 @@ l   文案：
                 fieldsToMakeRequired.push('gif_adset_id', 'gif_advertiser', 'gif_main_title', 'gif_landing_page', 'gif_image_path_m', 'gif_image_path_s', 'gif_background_image', 'gif_background_url', 'gif_target_url');
             } else if (activeTabId === 'slide-ad') {
                 fieldsToMakeRequired.push('slide_adset_id', 'slide_advertiser', 'slide_main_title', 'slide_landing_page', 'slide_image_path_m', 'slide_image_path_s', 'slide_background_image');
-                // 為當前活動的 slide-ad 的動態項目添加 required
+                // towhenfrontactivemoveof slide-ad ofmovestateitemeyeaddadd required
                 document.querySelectorAll('#slide-items-container .slide-item input.slide-image-url, #slide-items-container .slide-item input.slide-target-url').forEach(input => {
                     if (input.type !== 'hidden') input.setAttribute('required', '');
                 });
             } else if (activeTabId === 'vertical-slide-ad') {
                 fieldsToMakeRequired.push('vertical_slide_adset_id', 'vertical_slide_advertiser', 'vertical_slide_main_title', 'vertical_slide_landing_page', 'vertical_slide_image_path_m', 'vertical_slide_image_path_s', 'vertical_slide_background_image');
-                // 為當前活動的 vertical-slide-ad 的動態項目添加 required
+                // towhenfrontactivemoveof vertical-slide-ad ofmovestateitemeyeaddadd required
                 document.querySelectorAll('#vertical-slide-items-container .vertical-slide-item input.vertical-slide-image-url, #vertical-slide-items-container .vertical-slide-item input.vertical-slide-target-url').forEach(input => {
                     if (input.type !== 'hidden') input.setAttribute('required', '');
                 });
             } else if (activeTabId === 'vertical-cube-slide-ad') {
                 fieldsToMakeRequired.push('vertical_cube_slide_adset_id', 'vertical_cube_slide_advertiser', 'vertical_cube_slide_main_title', 'vertical_cube_slide_landing_page', 'vertical_cube_slide_image_path_m', 'vertical_cube_slide_image_path_s', 'vertical_cube_slide_background_image');
-                // 為當前活動的 vertical-cube-slide-ad 的動態項目添加 required
+                // towhenfrontactivemoveof vertical-cube-slide-ad ofmovestateitemeyeaddadd required
                 document.querySelectorAll('#vertical-cube-slide-items-container .vertical-cube-slide-item input.vertical-cube-slide-image-url, #vertical-cube-slide-items-container .vertical-cube-slide-item input.vertical-cube-slide-target-url').forEach(input => {
                     if (input.type !== 'hidden') input.setAttribute('required', '');
                 });
             }
 
-            // 4. 為活動頁籤的靜態欄位應用 'required' 屬性
+            // 4. toactivemovepagesignatureofstaticstatecolumnpositionansweruse 'required' belongsex
             fieldsToMakeRequired.forEach(id => {
                 const input = document.getElementById(id);
                 if (input) {
@@ -1425,18 +1425,18 @@ l   文案：
             });
         }
 
-        // 初始化水平滑動項目函數
+        // initialbeginchangewaterflatslidemoveitemeyefunctionnumber
         function initializeSlideItems() {
-            // 初始化水平滑動項目
+            // initialbeginchangewaterflatslidemoveitemeye
             slideAd.initialize();
             
-            // 初始化垂直滑動項目
+            // initialbeginchangeverticaldirectslidemoveitemeye
             verticalSlideAd.initialize();
             
-            // 初始化垂直 Cube 滑動項目
+            // initialbeginchangeverticaldirect Cube slidemoveitemeye
             verticalCubeSlideAd.initialize();
             
-            // 綁定水平滑動項目按鈕事件
+            // bindsetwaterflatslidemoveitemeyeButtonEvent
             document.getElementById('add-slide-item').addEventListener('click', function() {
                 slideAd.addItem();
             });
@@ -1445,7 +1445,7 @@ l   文案：
                 slideAd.removeItem();
             });
             
-            // 綁定垂直滑動項目按鈕事件
+            // bindsetverticaldirectslidemoveitemeyeButtonEvent
             document.getElementById('add-vertical-slide-item').addEventListener('click', function() {
                 verticalSlideAd.addItem();
             });
@@ -1454,7 +1454,7 @@ l   文案：
                 verticalSlideAd.removeItem();
             });
             
-            // 綁定垂直 Cube 滑動項目按鈕事件
+            // bindsetverticaldirect Cube slidemoveitemeyeButtonEvent
             document.getElementById('add-vertical-cube-slide-item').addEventListener('click', function() {
                 verticalCubeSlideAd.addItem();
             });
@@ -1463,7 +1463,7 @@ l   文案：
                 verticalCubeSlideAd.removeItem();
             });
             
-            // 為輸入框添加事件監聽，更新payload
+            // toinputenterframeaddaddEventmonitorlisten，Updatepayload
             document.querySelectorAll('.slide-image-url, .slide-target-url').forEach(input => {
                 input.addEventListener('change', function() {
                     slideAd.updatePayload();
@@ -1484,14 +1484,14 @@ l   文案：
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // 初始化當前標籤的必填欄位
+            // initialbeginchangewhenfrontlabelsignatureofrequiredcolumnposition
             const initialActiveTab = '{{ active_tab }}';
             toggleRequiredFields(initialActiveTab);
             
-            // 初始化水平滑動項目
+            // initialbeginchangewaterflatslidemoveitemeye
             initializeSlideItems();
             
-            // 處理圖片上傳功能
+            // placereasonImageUploadfunctioncan
             document.querySelectorAll('.file-input').forEach(function(input) {
                 input.addEventListener('change', function(e) {
                     const targetField = this.dataset.target;
@@ -1499,7 +1499,7 @@ l   文案：
                     const previewId = 'preview_' + targetField.split('_').pop();
                     let previewImg;
                     
-                    // 特別處理不同標籤頁的預覽圖
+                    // specialdifferentplacereasonnosamelabelsignaturepageofPreviewmap
                     if (targetField.startsWith('gif_')) {
                         previewImg = document.getElementById('preview_gif_' + targetField.split('_').pop());
                     } else if (targetField.startsWith('slide_')) {
@@ -1517,10 +1517,10 @@ l   文案：
                         const formData = new FormData();
                         formData.append('file', file);
                         
-                        // 顯示上傳中的提示
-                        if (targetInput) targetInput.value = '上傳中...';
+                        // clearshowUploadmiddleofHint
+                        if (targetInput) targetInput.value = 'Uploadmiddle...';
                         
-                        // 發送上傳請求
+                        // sendsendUploadpleaserequest
                         fetch('/upload', {
                             method: 'POST',
                             body: formData
@@ -1528,22 +1528,22 @@ l   文案：
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                // 更新輸入框的值為文件路徑
+                                // Updateinputenterframeofvaluetotextitemroadpath
                                 if (targetInput) targetInput.value = data.file_path;
                                 
-                                // 顯示圖片預覽
+                                // clearshowImagePreview
                                 if (previewImg) {
                                     previewImg.src = URL.createObjectURL(file);
                                     previewImg.style.display = 'block';
                                 }
                             } else {
-                                alert('上傳失敗: ' + data.error);
+                                alert('UploadFailed: ' + data.error);
                                 if (targetInput) targetInput.value = '';
                             }
                         })
                         .catch(error => {
-                            console.error('上傳錯誤:', error);
-                            alert('上傳過程中發生錯誤');
+                            console.error('UploadError:', error);
+                            alert('UploadpassprogrammiddlesendlifeError');
                             if (targetInput) targetInput.value = '';
                         });
                     }

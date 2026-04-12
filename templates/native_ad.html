@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}原生廣告建立{% endblock %}
+{% block title %}Native Ad Creation{% endblock %}
 
-{% block page_title %}建立原生廣告{% endblock %}
+{% block page_title %}Create Native Ad{% endblock %}
 
 {% block additional_styles %}
 <style>
@@ -22,89 +22,89 @@
 {% endblock %}
 
 {% block content %}
-<button type="button" id="clear-form-button" class="clear-form-btn">清除所有內容</button>
+<button type="button" id="clear-form-button" class="clear-form-btn">Clear All</button>
 
     <form action="{{ url_for('native_ad.create_native_ad') }}" method="post" id="ad-form">
     <div class="field-group">
-        <h3>📋 基本廣告資訊</h3>
+        <h3>📋 Basic Ad Information</h3>
         
         <div class="form-grid-2">
             <div class="form-row">
                 <label for="adset_id">Adset ID <span class="required">*</span></label>
                 <input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required
-                       placeholder="例如：EXAMPLE_ADSET_ID">
-                <div class="help-text">廣告組ID，必填</div>
+                       placeholder="e.g., EXAMPLE_ADSET_ID">
+                <div class="help-text">Ad group ID, required</div>
             </div>
-            
+
             <div class="form-row">
-                <label for="display_name">廣告單元顯示名稱</label>
+                <label for="display_name">Ad Unit Display Name</label>
                 <input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}"
-                       placeholder="僅供後台顯示使用">
-                <div class="help-text">僅顯示於後台，可選</div>
+                       placeholder="For backend display only">
+                <div class="help-text">Displayed in backend only, optional</div>
             </div>
         </div>
         
         <div class="form-grid-2">
             <div class="form-row">
-                <label for="advertiser">廣告商 <span class="required">*</span></label>
+                <label for="advertiser">Advertiser <span class="required">*</span></label>
                 <input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required
-                       placeholder="廣告主名稱">
-                <div class="help-text">廣告主名稱，必填</div>
+                       placeholder="Advertiser name">
+                <div class="help-text">Advertiser name, required</div>
             </div>
-            
+
             <div class="form-row">
-                <label for="main_title">主標題 <span class="required">*</span></label>
+                <label for="main_title">Main Title <span class="required">*</span></label>
                 <input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required
-                       placeholder="廣告主標題">
-                <div class="help-text">廣告主標題，必填</div>
+                       placeholder="Ad main title">
+                <div class="help-text">Ad main title, required</div>
             </div>
         </div>
         
         <div class="form-grid-2">
             <div class="form-row">
-                <label for="subtitle">文字敘述</label>
+                <label for="subtitle">Description</label>
                 <input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}"
-                       placeholder="廣告副標題（可選）">
-                <div class="help-text">廣告副標題，可選</div>
+                       placeholder="Ad subtitle (optional)">
+                <div class="help-text">Ad subtitle, optional</div>
             </div>
-            
+
             <div class="form-row">
-                <label for="call_to_action">行動呼籲按鈕文字</label>
-                <input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '瞭解詳情' }}"
-                       placeholder="瞭解詳情">
-                <div class="help-text">CTA按鈕文字，預設為「瞭解詳情」</div>
+                <label for="call_to_action">Call to Action Button Text</label>
+                <input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or 'Learn More' }}"
+                       placeholder="Learn More">
+                <div class="help-text">CTA button text, default is "Learn More"</div>
             </div>
         </div>
         
         <div class="form-grid-2">
             <div class="form-row">
-                <label for="landing_page">到達頁面網址 <span class="required">*</span></label>
-                <input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" 
+                <label for="landing_page">Landing Page URL <span class="required">*</span></label>
+                <input type="url" id="landing_page" name="landing_page" placeholder="https://example.com"
                        value="{{ landing_page or '' }}" required>
-                <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                <div class="help-text">URL to navigate to when ad is clicked, required</div>
             </div>
-            
+
             <div class="form-row">
-                <label for="tracking_url">追蹤 URL</label>
-                <input type="url" id="tracking_url" name="tracking_url" placeholder="https://tracker.example.com?id=123" 
+                <label for="tracking_url">Tracking URL</label>
+                <input type="url" id="tracking_url" name="tracking_url" placeholder="https://tracker.example.com?id=123"
                        value="{{ tracking_url or '' }}">
-                <div class="help-text">用於追蹤點擊的URL，可選</div>
+                <div class="help-text">URL for tracking clicks, optional</div>
             </div>
         </div>
     </div>
 
     <div class="field-group">
-        <h3>廣告圖片 <span class="required">*</span></h3>
-        <p>所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。</p>
+        <h3>Ad Images <span class="required">*</span></h3>
+        <p>All images are required. Provide complete local file paths or use the upload function.</p>
         
         <div class="form-row">
-            <label for="image_path_m">圖片 1200x628 <span class="required">*</span></label>
+            <label for="image_path_m">Image 1200x628 <span class="required">*</span></label>
             <div class="file-upload-container">
                 <input type="text" id="image_path_m" name="image_path_m" placeholder="/path/to/your/image_1200x628.jpg" value="{{ image_path_m or '' }}" required>
-                <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                <div class="help-text">Large banner image, 1200x628 pixels</div>
                 <div class="preview-container">
                     <label class="custom-file-upload">
-                        上傳圖片
+                        Upload Image
                         <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
                     </label>
                     <img id="preview_m" class="upload-preview" style="display: none;">
@@ -113,13 +113,13 @@
         </div>
         
         <div class="form-row">
-            <label for="image_path_p">圖片 336x280/300x250 <span class="required">*</span></label>
+            <label for="image_path_p">Image 336x280/300x250 <span class="required">*</span></label>
             <div class="file-upload-container">
                 <input type="text" id="image_path_p" name="image_path_p" placeholder="/path/to/your/image_336x280.jpg" value="{{ image_path_p or '' }}" required>
-                <div class="help-text">中型橫幅圖片，尺寸336x280像素或300x250像素</div>
+                <div class="help-text">Medium banner image, 336x280 or 300x250 pixels</div>
                 <div class="preview-container">
                     <label class="custom-file-upload">
-                        上傳圖片
+                        Upload Image
                         <input type="file" class="file-input" data-target="image_path_p" accept="image/*">
                     </label>
                     <img id="preview_p" class="upload-preview" style="display: none;">
@@ -128,13 +128,13 @@
         </div>
         
         <div class="form-row">
-            <label for="image_path_o">圖片 640x100 <span class="required">*</span></label>
+            <label for="image_path_o">Image 640x100 <span class="required">*</span></label>
             <div class="file-upload-container">
                 <input type="text" id="image_path_o" name="image_path_o" placeholder="/path/to/your/image_640x100.jpg" value="{{ image_path_o or '' }}" required>
-                <div class="help-text">窄橫幅圖片，尺寸640x100像素</div>
+                <div class="help-text">Narrow banner image, 640x100 pixels</div>
                 <div class="preview-container">
                     <label class="custom-file-upload">
-                        上傳圖片
+                        Upload Image
                         <input type="file" class="file-input" data-target="image_path_o" accept="image/*">
                     </label>
                     <img id="preview_o" class="upload-preview" style="display: none;">
@@ -143,13 +143,13 @@
         </div>
         
         <div class="form-row">
-            <label for="image_path_s">圖片 300x300 <span class="required">*</span></label>
+            <label for="image_path_s">Image 300x300 <span class="required">*</span></label>
             <div class="file-upload-container">
                 <input type="text" id="image_path_s" name="image_path_s" placeholder="/path/to/your/image_300x300.jpg" value="{{ image_path_s or '' }}" required>
-                <div class="help-text">方形圖片，尺寸300x300像素</div>
+                <div class="help-text">Square image, 300x300 pixels</div>
                 <div class="preview-container">
                     <label class="custom-file-upload">
-                        上傳圖片
+                        Upload Image
                         <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
                     </label>
                     <img id="preview_s" class="upload-preview" style="display: none;">
@@ -157,14 +157,14 @@
             </div>
         </div>
     </div>
-    
-    <input type="submit" value="建立原生廣告">
+
+    <input type="submit" value="Create Native Ad">
 </form>
 {% endblock %}
 
 {% block additional_scripts %}
 <script>
-    // Debounce 函數，防止事件過於頻繁觸發
+    // Debounce function to prevent frequent event triggering
     function debounce(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -177,12 +177,12 @@
         };
     }
 
-    // 自動儲存表單狀態到後端 session
+    // Auto-save form state to backend session
     const autoSaveForm = debounce(() => {
         const form = document.getElementById('ad-form');
         const formData = new FormData(form);
-        
-        // 使用 fetch API 將表單數據發送到後端
+
+        // Use fetch API to send form data to backend
         fetch("{{ url_for('main.save_form_data') }}", {
             method: 'POST',
             body: formData
@@ -198,22 +198,22 @@
         .catch(error => {
             console.error('Error in auto-save request:', error);
         });
-    }, 500); // 在用戶停止輸入 500 毫秒後觸發
+    }, 500); // Trigger 500ms after user stops typing
 
     document.addEventListener('DOMContentLoaded', function() {
-        // 為表單添加輸入事件監聽器以觸發自動儲存
+        // Add input event listener to form for auto-save
         const adForm = document.getElementById('ad-form');
         if (adForm) {
             adForm.addEventListener('input', autoSaveForm);
         }
-        
-        // 檔案上傳預覽
+
+        // File upload preview
         const fileInputs = document.querySelectorAll('.file-input');
         fileInputs.forEach(input => {
             const target = input.getAttribute('data-target');
             const preview = document.getElementById(`preview_${target}`);
             const uploadLabel = document.querySelector(`.custom-file-upload[for="${target}"]`);
-            
+
             input.addEventListener('change', function() {
                 const file = this.files[0];
                 if (file) {
@@ -225,55 +225,55 @@
                     reader.readAsDataURL(file);
                 }
             });
-            
+
             uploadLabel.addEventListener('click', function() {
                 input.click();
             });
         });
 
-        // 添加清除表單按鈕的事件監聽器
+        // Add clear form button event listener
         document.getElementById('clear-form-button').addEventListener('click', function() {
-            if(confirm('確定要清除所有填寫的內容嗎？')) {
+            if(confirm('Are you sure you want to clear all content?')) {
                 clearFormInputs();
             }
         });
     });
-    
-    // 清除表單所有輸入欄位的函數
+
+    // Clear form input fields function
     function clearFormInputs() {
-        // 清除文本輸入、URL、數字輸入
+        // Clear text, URL, number inputs
         document.querySelectorAll('input[type="text"], input[type="url"], input[type="number"]').forEach(input => {
             input.value = '';
         });
-        
-        // 清除預覽圖片
+
+        // Clear preview images
         document.querySelectorAll('.upload-preview').forEach(img => {
             img.style.display = 'none';
             img.src = '';
         });
     }
 
-    // 原生廣告特有的 JavaScript 函數
+    // Native ad specific JavaScript function
     function parseInfoText(inputText) {
-        // 解析廣告主
-        let advertiserMatch = inputText.match(/-廣告主：(.*?)($|\n)/);
+        // Parse advertiser
+        let advertiserMatch = inputText.match(/-Advertiser：(.*?)($|\n)/);
         if (advertiserMatch && advertiserMatch[1]) {
             document.getElementById('advertiser').value = advertiserMatch[1].trim();
         }
-        
-        // 解析標題
-        let titleMatch = inputText.match(/-\s*標題：(.*?)($|\n)/);
+
+        // Parse title
+        let titleMatch = inputText.match(/-\s*Title：(.*?)($|\n)/);
         if (titleMatch && titleMatch[1]) {
             document.getElementById('main_title').value = titleMatch[1].trim();
         }
-        
-        // 解析導連
-        let landingMatch = inputText.match(/導連：(https?:\/\/[^\s]+)/);
+
+        // Parse landing URL
+        let landingMatch = inputText.match(/Landing URL：(https?:\/\/[^\s]+)/);
         if (landingMatch && landingMatch[1]) {
             document.getElementById('landing_page').value = landingMatch[1].trim();
         }
-        
-        // 解析 CTA
+
+        // Parse CTA
         let ctaMatch = inputText.match(/-\s*CTA：(.*?)($|\n)/);
         if (ctaMatch && ctaMatch[1]) {
             document.getElementById('call_to_action').value = ctaMatch[1].trim();

@@ -1,12 +1,12 @@
-# 專案設定指南
+# Setup Guide
 
-## 1. 建立本機設定
+## 1. Create Local Configuration
 
 ```bash
 cp .env.example .env
 ```
 
-建議至少設定以下欄位：
+At minimum, configure the following fields:
 
 ```bash
 SECRET_KEY=change-me
@@ -22,55 +22,55 @@ PREVIEW_COOKIE=
 PLATFORM_ORG_LABEL=Example Organization
 ```
 
-## 2. 安裝依賴
+## 2. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 playwright install
 ```
 
-## 3. 啟動服務
+## 3. Start the Application
 
 ```bash
 python run.py
 ```
 
-應用預設啟動於 `http://localhost:5002`。
+The application starts by default at `http://localhost:5002`.
 
-## 4. 作品集模式的建議設定
+## 4. Configuration Recommendations for Portfolio Use
 
-- 不要填入真實客戶資料、真實 Cookie 或正式環境帳號
-- 只保留足以展示流程的測試資料與匿名化設定
-- 如果要 Demo 截圖或報表頁，請準備自己的測試資料來源
+- Do not enter real customer data, actual cookies, or production account credentials
+- Retain only test data and anonymized configuration sufficient to demonstrate the workflow
+- If demonstrating screenshot or report pages, prepare your own test data source
 
-## 安全性注意事項
+## Security Notes
 
-- `.env` 不應提交到版本控制
-- 真實 Cookie、API key、service account 檔案不應放在 repo 中
-- 公開展示時，建議使用專門的示範帳號與示範資料庫
+- `.env` should not be committed to version control
+- Real cookies, API keys, and service account files should not be stored in the repository
+- When presenting publicly, use dedicated demo accounts and a demo database
 
-## 常見問題
+## Troubleshooting
 
-### MongoDB 連線失敗
+### MongoDB Connection Failure
 
-1. 確認 MongoDB 正在執行
-2. 檢查 `.env` 內的連線字串與資料庫名稱
-3. 若只想展示 UI，可以先略過需要資料庫的頁面
+1. Verify that MongoDB is running
+2. Check the connection string and database name in `.env`
+3. If you only want to showcase the UI, you can skip pages that require a database
 
-### Playwright 啟動失敗
+### Playwright Installation Fails
 
 ```bash
 playwright install --with-deps
 ```
 
-### 截圖或報表沒有載入
+### Screenshots or Reports Not Loading
 
-- 這個公開版不再內建任何正式環境 Cookie
-- 若要示範這些頁面，請在 `.env` 內自行填入測試環境 Cookie
+- This public version does not include any production environment cookies
+- To demonstrate these pages, add test environment cookies to your `.env` file
 
-## 開發提示
+## Development Notes
 
-- `app/routes/` 放主要流程路由
-- `templates/` 放各種內容格式頁面
-- `app/services/url_builder.py` 與 `app/routes/screenshot.py` 可以展示截圖流程的工程設計
-- `app/routes/main.py` 可以展示資料查詢與報表整合邏輯
+- `app/routes/` contains the main workflow routes
+- `templates/` contains pages for various content formats
+- `app/services/url_builder.py` and `app/routes/screenshot.py` demonstrate the engineering design of the screenshot workflow
+- `app/routes/main.py` demonstrates data query and report integration logic

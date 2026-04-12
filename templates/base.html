@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}建立廣告{% endblock %}</title>
+    <title>{% block title %}Create Ad{% endblock %}</title>
     <style>
         * {
             box-sizing: border-box;
@@ -276,7 +276,7 @@
             }
         }
         
-        /* 新增的 Grid 布局樣式 */
+        /* Grid layout styles */
         .form-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -432,7 +432,7 @@
             transform: rotate(-90deg);
         }
         
-        /* 清除按鈕樣式 */
+        /* Clear button styles */
         .clear-form-btn {
             background-color: #e74c3c;
             color: white;
@@ -449,7 +449,7 @@
             background-color: #c0392b;
         }
         
-        /* 顏色選擇器樣式 */
+        /* Color picker styles */
         .color-input-group {
             display: flex;
             align-items: center;
@@ -465,7 +465,7 @@
             flex: 1;
         }
         
-        /* 動態項目容器 */
+        /* Dynamic items container */
         .dynamic-items-container {
             border: 1px solid #e0e6ed;
             border-radius: 8px;
@@ -522,7 +522,7 @@
             background-color: #229954;
         }
         
-        /* 提交按鈕特殊樣式 */
+        /* Submit button special styles */
         input[type="submit"] {
             background-color: #27ae60;
             font-size: 16px;
@@ -541,59 +541,59 @@
     <div class="container">
         <div class="nav-buttons">
             <div class="nav-container">
-                <!-- 使用者資訊 -->
+                <!-- User information -->
                 <div class="nav-group">
-                    <span class="nav-user-info">👤 {{ session.user_email or '未登入' }}</span>
-                    <a href="{{ url_for('auth.logout') }}" class="nav-button logout">登出</a>
+                    <span class="nav-user-info">👤 {{ session.user_email or 'Not logged in' }}</span>
+                    <a href="{{ url_for('auth.logout') }}" class="nav-button logout">Logout</a>
                 </div>
-                
+
                 <div class="nav-divider"></div>
-                
-                <!-- 主要功能 -->
+
+                <!-- Main features -->
                 <div class="nav-group">
-                    <a href="{{ url_for('main.batch') }}" class="nav-button secondary">批量廣告創建</a>
-                    <a href="{{ url_for('main.report') }}" class="nav-button secondary">報表</a>
+                    <a href="{{ url_for('main.batch') }}" class="nav-button secondary">Bulk Ad Creation</a>
+                    <a href="{{ url_for('main.report') }}" class="nav-button secondary">Report</a>
                 </div>
-                
+
                 <div class="nav-divider"></div>
-                
-                <!-- 原生廣告 -->
+
+                <!-- Native ads -->
                 <div class="nav-group">
-                    <a href="{{ url_for('native_ad.native_ad') }}" class="nav-button">原生廣告</a>
+                    <a href="{{ url_for('native_ad.native_ad') }}" class="nav-button">Native Ad</a>
                 </div>
-                
+
                 <div class="nav-divider"></div>
-                
-                <!-- 彈跳影音類 -->
+
+                <!-- Popup video ads -->
                 <div class="nav-group">
-                    <a href="{{ url_for('main.popup_video_ad') }}" class="nav-button">彈跳影音</a>
-                    <a href="{{ url_for('main.popup_video_slide_ad') }}" class="nav-button">彈跳影音slide</a>
+                    <a href="{{ url_for('main.popup_video_ad') }}" class="nav-button">Popup Video</a>
+                    <a href="{{ url_for('main.popup_video_slide_ad') }}" class="nav-button">Popup Video Slide</a>
                 </div>
-                
+
                 <div class="nav-divider"></div>
-                
-                <!-- 動態與互動廣告類 -->
+
+                <!-- Dynamic and interactive ads -->
                 <div class="nav-group">
-                    <a href="{{ url_for('main.gif_ad') }}" class="nav-button">GIF廣告</a>
-                    <a href="{{ url_for('main.treasure_box_ad') }}" class="nav-button">寶箱廣告</a>
-                    <a href="{{ url_for('main.slide_ad') }}" class="nav-button">水平Slide</a>
-                    <a href="{{ url_for('main.vertical_slide_ad') }}" class="nav-button">垂直Slide</a>
-                    <a href="{{ url_for('main.vertical_cube_slide_ad') }}" class="nav-button">垂直Cube</a>
-                    <a href="{{ url_for('main.vote_ad') }}" class="nav-button">投票廣告</a>
-                    <a href="{{ url_for('main.countdown_ad') }}" class="nav-button">倒數廣告</a>
+                    <a href="{{ url_for('main.gif_ad') }}" class="nav-button">GIF Ad</a>
+                    <a href="{{ url_for('main.treasure_box_ad') }}" class="nav-button">Treasure Box Ad</a>
+                    <a href="{{ url_for('main.slide_ad') }}" class="nav-button">Horizontal Slide</a>
+                    <a href="{{ url_for('main.vertical_slide_ad') }}" class="nav-button">Vertical Slide</a>
+                    <a href="{{ url_for('main.vertical_cube_slide_ad') }}" class="nav-button">Vertical Cube</a>
+                    <a href="{{ url_for('main.vote_ad') }}" class="nav-button">Vote Ad</a>
+                    <a href="{{ url_for('main.countdown_ad') }}" class="nav-button">Countdown Ad</a>
                 </div>
-                
+
                 <div class="nav-divider"></div>
-                
-                <!-- 工具類 -->
+
+                <!-- Tools -->
                 <div class="nav-group">
-                    <a href="{{ url_for('screenshot.auto_screenshot') }}" class="nav-button secondary">SuprAd截圖</a>
-                    <a href="{{ url_for('screenshot.native_ad_screenshot') }}" class="nav-button secondary">Native截圖</a>
+                    <a href="{{ url_for('screenshot.auto_screenshot') }}" class="nav-button secondary">SuprAd Screenshot</a>
+                    <a href="{{ url_for('screenshot.native_ad_screenshot') }}" class="nav-button secondary">Native Screenshot</a>
                 </div>
             </div>
         </div>
         
-        <h1>{% block page_title %}建立廣告{% endblock %}</h1>
+        <h1>{% block page_title %}Create Ad{% endblock %}</h1>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -605,59 +605,59 @@
             {% endif %}
         {% endwith %}
 
-        <!-- 快速輸入區塊 -->
+        <!-- Quick input section -->
         <div class="quick-input-toggle collapsed">
-            <span>快速資訊輸入</span>
+            <span>Quick Info Input</span>
         </div>
         <div class="quick-input-section">
-            <p style="margin-bottom: 15px; color: #666;">將格式化文案貼到下方文字區，然後點擊「解析資訊」按鈕自動填入表單</p>
-            <textarea id="bulk-info-input" placeholder="請貼上格式化的廣告資訊，例如：
-廣告資訊
--廣告主：示範品牌股份有限公司
--代理商：示範媒體代理商
--活動名稱：Spring_Product_Launch_Campaign
--活動走期：2025/5/21 ~ 2025/6/3
--投放版位：原生影音版位
--總預算：NT$150,000(未稅) 
--計價方式：CPV $0.4
+            <p style="margin-bottom: 15px; color: #666;">Paste formatted ad information below, then click "Parse Info" button to auto-fill the form</p>
+            <textarea id="bulk-info-input" placeholder="Please paste formatted ad information, for example:
+Ad Information
+-Advertiser: Example Brand Inc.
+-Agency: Example Media Agency
+-Campaign Name: Spring_Product_Launch_Campaign
+-Campaign Period: 2025/5/21 ~ 2025/6/3
+-Placement: Native Video Placement
+-Total Budget: NT$150,000 (Untaxed)
+-Pricing: CPV $0.4
 
-廣告素材
-l   素材：https://assets.example.com/campaign/demo-creative
+Ad Creative
+l   Creative: https://assets.example.com/campaign/demo-creative
 
-l   導連：https://www.mcdonalds.com/tw/zh-tw/whats-hot/0521meatyangus.html?utm_source=ptt&utm_medium=paid-video&utm_campaign=cp~np-meaty-angus_sd~2025-05-21&utm_content=at~pnta_cv~tvc20s-5s-acg　
+l   Landing URL: https://www.example.com/tw/zh-tw/product-page
 
-l   文案：
+l   Copy:
 
--  標題：傳說中的辣個美味！電動追番必吃「辣味四盎司牛肉堡」
+-  Title: Exciting New Product Launch!
 
--   CTA：吃飽再戰"></textarea>
-            <button type="button" id="parse-info" class="nav-button" style="margin-top: 15px;">📋 解析資訊</button>
+-   CTA: Learn More"></textarea>
+            <button type="button" id="parse-info" class="nav-button" style="margin-top: 15px;">📋 Parse Info</button>
         </div>
 
         {% block content %}{% endblock %}
     </div>
 
-    <!-- 共用的 JavaScript -->
+    <!-- Shared JavaScript -->
     <script>
-        // 圖片上傳功能
+        // Image upload functionality
         document.addEventListener('DOMContentLoaded', function() {
-            // 處理快速資訊輸入區塊的收合功能
+            // Handle quick info input toggle
             const quickInputToggle = document.querySelector('.quick-input-toggle');
             const quickInputSection = document.querySelector('.quick-input-section');
-            
+
             quickInputToggle.addEventListener('click', function() {
                 this.classList.toggle('collapsed');
                 quickInputSection.classList.toggle('expanded');
             });
 
-            // 處理圖片上傳功能
+            // Handle image upload functionality
             function setupFileUploads() {
                 document.querySelectorAll('.file-input').forEach(function(input) {
                     input.addEventListener('change', function(e) {
                         const targetField = this.dataset.target;
                         const targetInput = document.getElementById(targetField);
-                        
-                        // 找到對應的預覽圖元素
+
+                        // Find corresponding preview image element
                         let previewImgId = 'preview_' + targetField.split('_').pop();
                         if (targetField.includes('_')) {
                             const parts = targetField.split('_');
@@ -666,16 +666,16 @@ l   文案：
                             previewImgId = 'preview_' + prefix + '_' + suffix;
                         }
                         const previewImg = document.getElementById(previewImgId);
-                        
+
                         if (this.files && this.files[0]) {
                             const file = this.files[0];
                             const formData = new FormData();
                             formData.append('file', file);
-                            
-                            // 顯示上傳中的提示
-                            if (targetInput) targetInput.value = '上傳中...';
-                            
-                            // 發送上傳請求
+
+                            // Show uploading indicator
+                            if (targetInput) targetInput.value = 'Uploading...';
+
+                            // Send upload request
                             fetch('/upload', {
                                 method: 'POST',
                                 body: formData
@@ -683,40 +683,40 @@ l   文案：
                             .then(response => response.json())
                             .then(data => {
                                 if (data.success) {
-                                    // 更新輸入框的值為文件路徑
+                                    // Update input field with file path
                                     if (targetInput) targetInput.value = data.file_path;
-                                    
-                                    // 顯示圖片預覽
+
+                                    // Display image preview
                                     if (previewImg) {
                                         previewImg.src = URL.createObjectURL(file);
                                         previewImg.style.display = 'block';
                                     }
                                 } else {
-                                    alert('上傳失敗: ' + data.error);
+                                    alert('Upload failed: ' + data.error);
                                     if (targetInput) targetInput.value = '';
                                 }
                             })
                             .catch(error => {
-                                console.error('上傳錯誤:', error);
-                                alert('上傳過程中發生錯誤');
+                                console.error('Upload error:', error);
+                                alert('An error occurred during upload');
                                 if (targetInput) targetInput.value = '';
                             });
                         }
                     });
                 });
             }
-            
-            // 初始化文件上傳
+
+            // Initialize file upload
             setupFileUploads();
-            
-            // 快速填充功能
+
+            // Quick fill functionality
             document.getElementById('parse-info').addEventListener('click', function() {
                 const inputText = document.getElementById('bulk-info-input').value;
-                // 此函數需要由每個特定廣告類型的頁面實現
+                // This function needs to be implemented by specific ad type pages
                 if (typeof parseInfoText === 'function') {
                     parseInfoText(inputText);
                 } else {
-                    console.warn('parseInfoText 函數未定義');
+                    console.warn('parseInfoText function not defined');
                 }
             });
         });

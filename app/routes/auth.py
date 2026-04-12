@@ -5,35 +5,35 @@ auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """登入頁面"""
+    """Login page"""
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '').strip()
-        
+
         if not email or not password:
-            flash('請輸入電子郵件和密碼', 'error')
+            flash('Please enter email and password', 'error')
             return render_template('login.html')
-        
-        # 檢查電子郵件是否在允許清單中
+
+        # Check if email is in allowed list
         if not is_email_allowed(email):
-            flash('您沒有權限使用此系統', 'error')
+            flash('You do not have permission to use this system', 'error')
             return render_template('login.html')
-        
-        # 儲存使用者資訊到 session
+
+        # Save user info to session
         session['user_email'] = email
-        session['user_password'] = password  # 新增：儲存密碼供自動化腳本使用
-        flash(f'歡迎回來, {email}!', 'success')
-        
-        # 重定向到原本想要訪問的頁面
+        session['user_password'] = password  # Added: Save password for automation script use
+        flash(f'Welcome back, {email}!', 'success')
+
+        # Redirect to originally requested page
         next_page = request.args.get('next')
         return redirect(next_page) if next_page else redirect(url_for('main.index'))
-    
+
     return render_template('login.html')
 
 @auth_bp.route('/logout')
 def logout():
-    """登出"""
+    """Logout"""
     session.pop('user_email', None)
-    session.pop('user_password', None)  # 新增：清除密碼
-    flash('您已成功登出', 'info')
-    return redirect(url_for('auth.login')) 
+    session.pop('user_password', None)  # Added: Clear password
+    flash('You have successfully logged out', 'info')
+    return redirect(url_for('auth.login'))

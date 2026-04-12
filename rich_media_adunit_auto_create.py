@@ -1,13 +1,13 @@
 import os
 import time
-import random  # 新增 random 模組
-import json  # 增加 json 模組
+import random  # Added random module
+import json  # Added json module
 from playwright.sync_api import Page, Playwright
 import logging
-import config # 增加導入 config
+import config # Added config import
 import re
 
-# 配置日誌
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -19,327 +19,338 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def log_message(message: str):
-    """記錄訊息到日誌"""
+    """Log message to logger"""
     logger.info(message)
 
 def slow_down(page: Page, min_delay: float = 0.3, max_delay: float = 0.8):
-    """隨機延遲，模擬人類操作
-    減少延遲時間以降低超時風險，但仍保持一定的間隔
+    """Random delay to simulate human operation
+    Reduced delay time to lower timeout risk, but still maintain certain interval
     """
     delay = min_delay + (max_delay - min_delay) * random.random()
     time.sleep(delay)
 
 def extract_last_36_chars_from_url(page: Page) -> str:
-    """從當前頁面 URL 中提取最後 36 個字符"""
+    """Extract last 36 characters from current page URL"""
     current_url = page.url
     return current_url[-36:]
 
 def run(playwright: Playwright, ad_data: dict, ad_type: str = 'gif') -> bool:
     """
-    執行廣告創建流程，支援多種互動廣告類型
-    
+    Execute ad creation flow, support multiple interactive ad types
+
     Args:
-        playwright: Playwright 實例
-        ad_data: 包含廣告數據的字典
-        ad_type: 廣告類型 (gif, slide, countdown等)
-    
+        playwright: Playwright instance
+        ad_data: Dictionary containing ad data
+        ad_type: Ad type (gif, slide, countdown, etc.)
+
     Returns:
-        bool: 操作是否成功
+        bool: Whether operation is successful
     """
-    # 強制使用傳入的 ad_type 參數，確保不會被覆蓋
+    # Force use passed ad_type parameter, ensure it won't be overwritten
     actual_ad_type = ad_type
-    # 將 ad_type 存入 ad_data 中，以便後續使用
+    # Store ad_type in ad_data for subsequent use
     ad_data['ad_type'] = actual_ad_type
-        
-    log_message(f"開始創建 {actual_ad_type} 類型廣告 - 接收到資料: {str(ad_data)}")
-    
+
+    log_message(f"Start creating {actual_ad_type} type ad - Received data: {str(ad_data)}")
+
     try:
-        log_message("啟動 arm64 原生 Chrome 穩定版瀏覽器")
-        # 使用 arm64 原生 Chrome 穩定版
+        log_message("Launching arm64 native Chrome stable browser")
+        # Use arm64 native Chrome stable version
         browser = playwright.chromium.launch(
-            executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",  # 指定 arm64 原生 Chrome 路徑
-            headless=False,  # 改為非 headless 模式以便觀察
-            slow_mo=250,  # 添加 slow_mo 參數，每個操作延遲 250 毫秒
+            executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",  # Specify arm64 native Chrome path
+            headless=False,  # Changed to non-headless mode for observation
+            slow_mo=250,  # Added slow_mo parameter, each operation delayed by 250 milliseconds
             args=[
-                '--disable-dev-shm-usage',  # 禁用 /dev/shm 使用，在某些系統上更穩定
-                '--no-sandbox',  # 禁用沙箱模式
-                '--disable-setuid-sandbox',  # 禁用 setuid 沙箱
-                '--disable-gpu',  # 禁用 GPU 加速
-                '--disable-software-rasterizer',  # 禁用軟件光柵化
-                '--disable-background-timer-throttling',  # 防止背景定時器被限制
-                '--disable-backgrounding-occluded-windows',  # 防止背景視窗被限制
-                '--disable-renderer-backgrounding',  # 防止渲染器背景化
-                '--disable-features=TranslateUI',  # 禁用翻譯功能
-                '--disable-extensions',  # 禁用擴充功能
-                '--disable-plugins',    # 禁用插件
+                '--disable-dev-shm-usage',  # Disable /dev/shm usage, more stable on some systems
+                '--no-sandbox',  # Disable sandbox mode
+                '--disable-setuid-sandbox',  # Disable setuid sandbox
+                '--disable-gpu',  # Disable GPU acceleration
+                '--disable-software-rasterizer',  # Disable software rasterization
+                '--disable-background-timer-throttling',  # Prevent background timer throttling
+                '--disable-backgrounding-occluded-windows',  # Prevent background window limiting
+                '--disable-renderer-backgrounding',  # Prevent renderer backgrounding
+                '--disable-features=TranslateUI',  # Disable translation UI
+                '--disable-extensions',  # Disable extensions
+                '--disable-plugins',    # Disable plugins
             ]
         )
-        # 增加超時時間並忽略 HTTPS 錯誤
+        # Increase timeout and ignore HTTPS errors
         context = browser.new_context(
             ignore_https_errors=True,
             viewport={'width': 1280, 'height': 800}
         )
-        log_message("瀏覽器上下文創建成功")
+        log_message("Browser context created successfully")
         page = context.new_page()
-        log_message("新頁面創建成功")
-        
-        # 登入流程
-        log_message("導航到登入頁面")
+        log_message("New page created successfully")
+
+        # Login flow
+        log_message("Navigating to login page")
         try:
-            # 增加超時設置，確保頁面完全加載
-            page.goto("https://account.example.com/login?r=https%3A%2F%2Fadplatform.example.com%2Fme", 
-                      timeout=60000,  # 60秒超時
-                      wait_until="networkidle")  # 等待網絡空閒
-            log_message("登入頁面加載完成")
+            # Increase timeout setting to ensure page fully loads
+            page.goto("https://account.example.com/login?r=https%3A%2F%2Fadplatform.example.com%2Fme",
+                      timeout=60000,  # 60 second timeout
+                      wait_until="networkidle")  # Wait for network idle
+            log_message("Login page loaded")
         except Exception as nav_error:
-            log_message(f"頁面導航錯誤: {str(nav_error)}")
+            log_message(f"Page navigation error: {str(nav_error)}")
             return False
 
-        # 確保表單元素存在
+        # Ensure form elements exist
         try:
-            log_message("等待登入表單出現")
-            page.wait_for_selector('input[placeholder="Email 帳號"]', state="visible", timeout=20000)
-            log_message("登入表單已出現")
+            log_message("Waiting for login form to appear")
+            page.wait_for_selector('input[placeholder="Email"]', state="visible", timeout=20000)
+            log_message("Login form appeared")
         except Exception as wait_error:
-            log_message(f"等待表單元素錯誤: {str(wait_error)}")
+            log_message(f"Error waiting for form elements: {str(wait_error)}")
             return False
-            
-        # 嘗試填寫表單
+
+        # Try filling form
         try:
-            log_message("填寫登入表單")
-            # 動態獲取帳號密碼（優先使用函數）
+            log_message("Fill login form")
+            # Dynamically get account and password (Prioritize function)
             email = config.get_email()
             password = config.get_password()
-            
+
             if not email or not password:
-                # 如果函數沒有返回值，嘗試使用環境變數
+                # If function returns nothing, try environment variables
                 email = config.EMAIL
                 password = config.PASSWORD
-                
+
             if not email or not password:
-                raise Exception("無法獲取平台登入資訊，請確認已在 .env 中設定或已登入示範系統")
-            
-            page.get_by_placeholder("Email 帳號").fill(email)
-            log_message(f"已填寫郵箱: {email}")
-            page.get_by_placeholder("密碼").fill(password)
-            log_message("已填寫密碼")
-            
-            # 點擊登入按鈕而不是按 Enter 鍵，更穩定
-            page.get_by_role("button", name="登入").click()
-            log_message("已點擊登入按鈕")
-            
-            # 等待登入成功
+                raise Exception("Unable to get platform login info, please verify .env settings or login to demo system")
+
+            # Playwright selector targeting external platform UI - keep as-is
+            page.get_by_placeholder("Email").fill(email)
+            log_message(f"Email filled: {email}")
+            # Playwright selector targeting external platform UI - keep as-is
+            page.get_by_placeholder("Password").fill(password)
+            log_message("Password filled")
+
+            # Click login button instead of pressing Enter, more stable
+            page.get_by_role("button", name="Login").click()
+            log_message("Clicked login button")
+
+            # Wait for login to complete
             page.wait_for_load_state("networkidle", timeout=30000)
-            log_message("登入流程完成")
+            log_message("Login complete")
         except Exception as login_error:
-            log_message(f"登入過程錯誤: {str(login_error)}")
+            log_message(f"Login error: {str(login_error)}")
             return False
-        
-        # 導航到特殊格式建立頁面
+
+        # Navigate to special format creation page
         page.get_by_role("button", name="user_account").click()
         slow_down(page)
         page.get_by_role("link", name="Example Organization").click()
         slow_down(page)
-        log_message(f"導航到廣告組頁面，adset_id: {ad_data['adset_id']}")
+        log_message(f"Navigate to ad set page, adset_id: {ad_data['adset_id']}")
         page.goto(f"https://adplatform.example.com/advertiser/show/adset?setId={ad_data['adset_id']}")
-        log_message("成功到達廣告組頁面")
+        log_message("Successfully reached ad set page")
 
-        log_message("點擊「建立互動廣告單元」按鈕")
-        page.get_by_role("link", name="+  建立互動廣告單元").click()
-        log_message("已點擊建立按鈕")
+        log_message("Click 'Create Interactive Ad Unit' button")
+        # Playwright selector targeting external platform UI - keep as-is
+        page.get_by_role("link", name="+  Create Interactive Ad Unit").click()
+        log_message("Clicked create button")
 
-        log_message("等待頁面載入")
+        log_message("Waiting for page to load")
         page.wait_for_load_state("domcontentloaded")
         page.wait_for_load_state("networkidle")
-        log_message("頁面已完全載入")
-        
-        # 廣告單元-廣告商
-        log_message("開始填寫廣告單元資訊")
-        log_message(f"填寫廣告商名稱: {ad_data['advertiser']}")
+        log_message("Page fully loaded")
+
+        # Ad Unit - Advertiser
+        log_message("Start filling ad unit information")
+        log_message(f"Fill advertiser name: {ad_data['advertiser']}")
         page.locator("input[name=\"advertiserName\"]").fill(ad_data['advertiser'])
         slow_down(page)
         page.locator("input[name=\"title\"]").click()
-        
-        # 廣告單元-主標題
-        log_message(f"填寫廣告主標題: {ad_data['main_title']}")
+
+        # Ad Unit - Main title
+        log_message(f"Fill ad main title: {ad_data['main_title']}")
         page.locator("input[name=\"title\"]").fill(ad_data['main_title'])
         slow_down(page)
+        # Playwright selector targeting external platform UI - keep as-is
         page.get_by_placeholder("Mobile loading page for Ad").click()
-        
-        # 選擇 1200x628 圖片
-        log_message("準備上傳 1200x628 圖片")
+
+        # Select 1200x628 image
+        log_message("Preparing to upload 1200x628 image")
         absolute_image_path_1 = ad_data['image_path_m']
-        log_message(f"1200x628 圖片路徑: {absolute_image_path_1}")
-        
+        log_message(f"1200x628 image path: {absolute_image_path_1}")
+
         if not os.path.exists(absolute_image_path_1):
-            log_message(f"錯誤: 1200x628 圖片文件不存在: {absolute_image_path_1}")
+            log_message(f"Error: 1200x628 image file does not exist: {absolute_image_path_1}")
             return False
-        
-        log_message("檢查圖片路徑存在，開始上傳")
-        
+
+        log_message("Image path verified to exist, starting upload")
+
         page.set_input_files('input[type="file"]', absolute_image_path_1)
         slow_down(page)
         page.wait_for_timeout(2000)
-        
-        # 等待上傳按鈕出現並點擊
-        log_message("等待圖片上傳完成...")
+
+        # Wait for upload button to appear and click
+        log_message("Waiting for image upload to complete...")
         try:
-            page.get_by_text("上傳選取的區域").wait_for(state="visible", timeout=60000)
+            page.get_by_text("Upload selected area").wait_for(state="visible", timeout=60000)
             page.wait_for_timeout(1500)
-            page.get_by_text("上傳選取的區域").click()
-            log_message("成功點擊上傳按鈕")
+            page.get_by_text("Upload selected area").click()
+            log_message("Successfully clicked upload button")
         except Exception as e:
-            log_message(f"警告：上傳按鈕點擊失敗: {str(e)}")
+            log_message(f"Warning: Upload button click failed: {str(e)}")
             try:
-                page.get_by_role("button", name="上傳選取的區域").click()
-                log_message("使用替代方式點擊上傳按鈕")
+                # Playwright selector targeting external platform UI - keep as-is
+                page.get_by_role("button", name="Upload Selected Area").click()
+                log_message("Use alternative method to click upload button")
             except Exception as e2:
-                log_message(f"警告：無法點擊上傳按鈕: {str(e2)}")
+                log_message(f"Warning: Unable to click upload button: {str(e2)}")
                 return False
-        
+
         page.wait_for_timeout(3000)
         page.wait_for_load_state('networkidle', timeout=60000)
         slow_down(page)
 
-        # 選擇 300x300 圖片
+        # Select 300x300 image
         log_message("Selecting 300x300 image button")
         absolute_image_path_2 = ad_data['image_path_s']
         log_message(f"Setting input file for second image: {absolute_image_path_2}")
-        
+
         if not os.path.exists(absolute_image_path_2):
-            log_message(f"警告：300x300圖片文件不存在: {absolute_image_path_2}")
+            log_message(f"Warning: 300x300 image file does not exist: {absolute_image_path_2}")
             return False
-            
+
         page.locator('input[type="file"]').nth(1).set_input_files(absolute_image_path_2)
         slow_down(page)
         page.wait_for_timeout(2000)
-        
-        # 等待上傳按鈕出現並點擊
-        log_message("等待 300x300 圖片上傳完成...")
+
+        # Wait for upload button to appear and click
+        log_message("Waiting for 300x300 image upload...")
         try:
-            page.get_by_text("上傳選取的區域").wait_for(state="visible", timeout=60000)
+            page.get_by_text("Upload selected area").wait_for(state="visible", timeout=60000)
             page.wait_for_timeout(1500)
-            page.get_by_text("上傳選取的區域").click()
-            log_message("成功點擊 300x300 上傳按鈕")
+            page.get_by_text("Upload selected area").click()
+            log_message("Successfully clicked 300x300 upload button")
         except Exception as e:
-            log_message(f"警告：300x300 上傳按鈕點擊失敗: {str(e)}")
+            log_message(f"Warning: 300x300 upload button click failed: {str(e)}")
             try:
-                page.get_by_role("button", name="上傳選取的區域").click()
-                log_message("使用替代方式點擊 300x300 上傳按鈕")
+                # Playwright selector targeting external platform UI - keep as-is
+                page.get_by_role("button", name="Upload Selected Area").click()
+                log_message("Use alternative method to click 300x300 upload button")
             except Exception as e2:
-                log_message(f"警告：無法點擊 300x300 上傳按鈕: {str(e2)}")
+                log_message(f"Warning: Unable to click 300x300 upload button: {str(e2)}")
                 return False
-        
+
         page.wait_for_timeout(3000)
         page.wait_for_load_state('networkidle', timeout=60000)
         slow_down(page)
 
-        # 網址
+        # URL
+        # Playwright selector targeting external platform UI - keep as-is
         page.get_by_placeholder("Mobile loading page for Ad").fill(ad_data['landing_page'])
         slow_down(page)
-        
-        # 文字敘述
-        log_message("填入文字敘述...")
+
+        # Text description
+        log_message("Filling text description...")
         page.locator("input[name=\"text\"]").fill(ad_data['subtitle'])
-        log_message("已填入文字敘述")
+        log_message("Text description filled")
         slow_down(page)
-        
-        # call to action
-        log_message("設定 Call to Action...")
+
+        # Call to action
+        log_message("Set call to action...")
         cta_input = page.locator('input[name="callToAction"]')
         cta_input.fill(ad_data['call_to_action'])
-        log_message(f"已填入「{ad_data['call_to_action']}」")
+        log_message(f"Filled 「{ad_data['call_to_action']}」")
         slow_down(page)
-        
-        # 遊戲套件預設背景
+
+        # Game kit default background
+        # Playwright selector targeting external platform UI - keep as-is
         page.get_by_placeholder("bg_placeholder: background").fill(ad_data['background_url'])
         slow_down(page)
         page.once("dialog", lambda dialog: dialog.dismiss())
-        
-        # 跳出視窗網址
+
+        # Popup URL
         LandingPageurl = "https://cdn.example.com/popup/"
+        # Playwright selector targeting external platform UI - keep as-is
         page.get_by_placeholder("urlInteractivePopup: url to").fill(LandingPageurl)
         slow_down(page)
-        
+
         # urlInteractivePopups
-        log_message("填入 urlInteractivePopups...")
+        log_message("Filling urlInteractivePopups...")
         page.locator("textarea[name=\"urlInteractivePopups\"]").fill('[]')
         slow_down(page)
 
-        # 跳出視窗寬與高，根據廣告類型設定
+        # Popup width and height, set based on ad type
         if ad_data.get('ad_type') == 'native_video':
-            log_message("偵測到 native_video 廣告類型，設定彈窗寬高")
+            log_message("Detected native_video ad type, set popup width and height")
             page.locator("input[name=\"popupWidth\"]").fill("1200")
             slow_down(page)
             page.locator("input[name=\"popupHeight\"]").fill("2050")
             slow_down(page)
         else:
-            log_message("非 native_video 廣告類型，不設定彈窗寬高")
+            log_message("Not native_video ad type, do not set popup dimensions")
 
         # payload_gameWidget
         page.locator("textarea[name=\"payload_gameWidgetJson\"]").fill(ad_data['payload_game_widget'])
 
         # payload_popupJson
-        log_message("填入 payload_popupJson...")
+        log_message("Filling payload_popupJson...")
         page.locator("textarea[name=\"payload_popupJson\"]").fill(ad_data.get('payload_popupJson') or '[]')
 
 
         slow_down(page)
         page.wait_for_timeout(2000)
 
-        log_message("點擊「新增」按鈕")
-        page.get_by_text("新增").click()
-        log_message("已點擊「新增」按鈕")
+        log_message("Click Add button")
+        page.get_by_text("Add New").click()
+        log_message("Clicked Add button")
         slow_down(page)
-        
-        log_message("等待確認對話框出現")
+
+        log_message("Waiting for confirmation dialog")
+        # Playwright selector targeting external platform UI - keep as-is
         page.get_by_role("button", name="OK").wait_for(state="visible")
         page.wait_for_timeout(2000)
-        log_message("點擊「OK」按鈕確認")
+        log_message("Click 「OK」button to confirm")
         page.get_by_role("button", name="OK").click()
-        log_message("已點擊「OK」按鈕")
+        log_message("Clicked 「OK」button")
         slow_down(page)
 
-        log_message("等待互動廣告編輯連結出現")
+        log_message("Waiting for interactive ad edit link")
         page.wait_for_timeout(2000)
-        page.get_by_role("link", name="  互動廣告編輯").wait_for(state="visible", timeout=60000)
-        log_message("點擊「互動廣告編輯」連結")
-        page.get_by_role("link", name="  互動廣告編輯").click()
-        log_message("已點擊「互動廣告編輯」連結")
+        # Playwright selector targeting external platform UI - keep as-is
+        page.get_by_role("link", name="  Interactive Ad Editor").wait_for(state="visible", timeout=60000)
+        log_message("Click interactive ad edit link")
+        page.get_by_role("link", name="  Interactive Ad Editor").click()
+        log_message("Clicked interactive ad edit link")
         slow_down(page)
 
-        log_message("等待頁面載入完成")
+        log_message("Waiting for page to load")
         page.wait_for_load_state('networkidle')
         slow_down(page)
-            
-        log_message("從 URL 提取 ID")
-        last_36_chars = extract_last_36_chars_from_url(page)
-        log_message(f"提取到的 ID: {last_36_chars}")
 
-        # 獲取並更新 popup URL
-        log_message("更新 popup URL")
+        log_message("Extract ID from URL")
+        last_36_chars = extract_last_36_chars_from_url(page)
+        log_message(f"Extracted ID: {last_36_chars}")
+
+        # Get and update popup URL
+        log_message("Update popup URL")
         target_placeholder = page.get_by_placeholder("urlInteractivePopup: url to")
         current_value = target_placeholder.input_value()
         new_value = current_value + last_36_chars
-        log_message(f"更新後的 URL: {new_value}")
+        log_message(f"Updated URL: {new_value}")
         target_placeholder.fill(new_value)
-        log_message("已填入更新後的 URL")
+        log_message("Filled updated URL")
         slow_down(page)
 
-        # 更新 urlInteractivePopups
-        log_message("更新 urlInteractivePopups")
+        # Update urlInteractivePopups
+        log_message("Update urlInteractivePopups")
         try:
-            # 這些廣告類型不需要填入 urlInteractivePopups，因為它們的互動邏輯在 payload_game_widget 中
+            # These ad types do not need to fill urlInteractivePopups, because their interaction logic is in payload_game_widget
             skip_popup_ad_types = ['slide', 'vertical_slide', 'vertical_cube_slide', 'vote', 'countdown']
             if ad_data.get('ad_type') in skip_popup_ad_types:
-                log_message(f"偵測到 {ad_data.get('ad_type')} 廣告類型，不需要更新 urlInteractivePopups")
+                log_message(f"Detected {ad_data.get('ad_type')} ad type, do not need to update urlInteractivePopups")
             else:
                 url_interactive_popups_textarea = page.locator("textarea[name=\"urlInteractivePopups\"]")
-                
-                # 根據廣告類型決定 urlInteractivePopups 的格式
+
+                # Determine urlInteractivePopups format based on ad type
                 if ad_data.get('ad_type') == 'treasure_box':
-                    log_message("偵測到 treasure_box 廣告類型，使用特殊的 urlInteractivePopups 格式")
-                    # 寶箱廣告使用 a、b、c 三個 key，每個都有對應的 query parameter
+                    log_message("Detected treasure_box ad type, use special urlInteractivePopups format")
+                    # Treasure box ad uses a, b, c three keys, each with corresponding query parameter
                     popups_list = [
                         {
                             "key": "a",
@@ -355,80 +366,81 @@ def run(playwright: Playwright, ad_data: dict, ad_type: str = 'gif') -> bool:
                         }
                     ]
                 else:
-                    # 其他廣告類型使用原本的格式
-                    log_message("使用標準的 urlInteractivePopups 格式")
+                    # Other ad types use original format
+                    log_message("Use standard urlInteractivePopups format")
                     popups_list = [
                         {
                             "key": "a",
                             "url": new_value
                         },
                         {
-                            "key": "a", 
+                            "key": "a",
                             "url": new_value
                         }
                     ]
-                
-                updated_popups_json = json.dumps(popups_list, indent=2)
-                log_message(f"更新後的 urlInteractivePopups: {updated_popups_json}")
-                
-                url_interactive_popups_textarea.fill(updated_popups_json)
-                log_message("已填入更新後的 urlInteractivePopups")
-                slow_down(page)
-            
-        except Exception as e:
-            log_message(f"更新 urlInteractivePopups 時發生錯誤: {str(e)}")
-            # 根據需求看是否要返回 False 或繼續
 
-        log_message("等待「修改」按鈕出現")
-        page.get_by_role("button", name="修改").wait_for(state="visible", timeout=60000)
-        log_message("點擊「修改」按鈕")
-        page.get_by_role("button", name="修改").click()
-        log_message("已點擊「修改」按鈕")
+                updated_popups_json = json.dumps(popups_list, indent=2)
+                log_message(f"Updated urlInteractivePopups: {updated_popups_json}")
+
+                url_interactive_popups_textarea.fill(updated_popups_json)
+                log_message("Filled updated urlInteractivePopups")
+                slow_down(page)
+
+        except Exception as e:
+            log_message(f"Error updating urlInteractivePopups: {str(e)}")
+            # Check if should return False or continue
+
+        log_message("Waiting for 「Modify」button to appear")
+        # Playwright selector targeting external platform UI - keep as-is
+        page.get_by_role("button", name="Edit").wait_for(state="visible", timeout=60000)
+        log_message("Click 「Modify」button")
+        page.get_by_role("button", name="Edit").click()
+        log_message("Clicked 「Modify」button")
         slow_down(page)
 
-        log_message("等待頁面載入完成")
+        log_message("Waiting for page to load")
         page.wait_for_load_state('networkidle')
-        
-        # 使用函數參數中指定的廣告類型，這才是準確的
-        log_message(f"成功創建 {ad_type} 廣告，顯示名稱: {ad_data.get('display_name', '無名稱')}")
+
+        # Use ad_type parameter from function to specify, this is accurate
+        log_message(f"Successfully created {ad_type} ad, display name: {ad_data.get('display_name', 'untitled')}")
         return True
 
     except Exception as e:
-        log_message(f"創建 {ad_type} 廣告時發生錯誤: {str(e)}")
-        # 記錄堆疊跟踪以獲取更多信息
+        log_message(f"Error creating {ad_type} ad: {str(e)}")
+        # Log stack trace for more info
         import traceback
-        log_message(f"錯誤詳情：\n{traceback.format_exc()}")
+        log_message(f"Error details: \n{traceback.format_exc()}")
         return False
     finally:
-        log_message("執行結束，準備關閉資源")
+        log_message("Execution complete, preparing to close resources")
         try:
-            # 先關閉頁面
+            # Close page first
             if 'page' in locals() and page:
                 try:
-                    log_message("關閉頁面")
+                    log_message("Close page")
                     page.close(run_before_unload=False)
-                    log_message("頁面關閉成功")
+                    log_message("Page closed successfully")
                 except Exception as page_close_error:
-                    log_message(f"關閉頁面時出錯 (忽略): {str(page_close_error)}")
-            
-            # 再關閉上下文
+                    log_message(f"Error closing page (ignored): {str(page_close_error)}")
+
+            # Then close context
             if 'context' in locals() and context:
                 try:
-                    log_message("關閉瀏覽器上下文")
+                    log_message("Close browser context")
                     context.close()
-                    log_message("瀏覽器上下文關閉成功")
+                    log_message("Browser context closed successfully")
                 except Exception as context_close_error:
-                    log_message(f"關閉上下文時出錯 (忽略): {str(context_close_error)}")
-            
-            # 最後關閉瀏覽器
+                    log_message(f"Error closing context (ignored): {str(context_close_error)}")
+
+            # Finally close browser
             if 'browser' in locals() and browser:
                 try:
-                    log_message("關閉瀏覽器")
+                    log_message("Close browser")
                     browser.close()
-                    log_message("瀏覽器關閉成功")
+                    log_message("Browser closed successfully")
                 except Exception as browser_close_error:
-                    log_message(f"關閉瀏覽器時出錯 (忽略): {str(browser_close_error)}")
-            
-            log_message("所有資源已關閉")
+                    log_message(f"Error closing browser (ignored): {str(browser_close_error)}")
+
+            log_message("All resources closed")
         except Exception as final_error:
-            log_message(f"最終資源清理過程中發生錯誤 (忽略): {str(final_error)}") 
+            log_message(f"Error during final resource cleanup (ignored): {str(final_error)}")

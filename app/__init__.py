@@ -3,12 +3,12 @@ from dotenv import load_dotenv
 import logging
 import os
 
-# 載入環境變數
+# Load environment variables
 load_dotenv()
 
 def create_app():
-    """應用工廠函數"""
-    # 設置正確的模板和靜態檔案路徑
+    """Application factory function"""
+    # Set correct template and static file paths
     template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
     static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static'))
 
@@ -16,18 +16,18 @@ def create_app():
                 template_folder=template_dir,
                 static_folder=static_dir)
     app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-    
-    # 配置上傳文件夾
+
+    # Configure upload folder
     UPLOAD_FOLDER = 'uploads'
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 限制上傳大小為 16MB
-    
-    # 配置日誌
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Limit upload size to 16MB
+
+    # Configure logging
     if not os.path.exists('logs'):
         os.makedirs('logs')
-        
+
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
@@ -36,12 +36,12 @@ def create_app():
             logging.StreamHandler()
         ]
     )
-    
-    # 關閉 Werkzeug HTTP 請求日誌
+
+    # Disable Werkzeug HTTP request logging
     logging.getLogger('werkzeug').setLevel(logging.WARNING)
-    
-    # 註冊藍圖
+
+    # Register blueprints
     from app.routes import register_blueprints
     register_blueprints(app)
-    
-    return app 
+
+    return app

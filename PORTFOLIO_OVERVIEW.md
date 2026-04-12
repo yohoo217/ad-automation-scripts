@@ -1,33 +1,50 @@
-# Portfolio Overview
+# Ad Workflow Automation Dashboard - Portfolio Overview
 
-## 一句話版本
+## Project Summary
 
-這個專案展示我如何把高重複、跨系統、容易出錯的人工流程，重構成可視化的 Web 工作台與可重複執行的瀏覽器自動化系統。
+This project demonstrates how to refactor high-repetition, cross-system, error-prone manual workflows into a visualization-rich web platform with reusable browser automation. The Ad Workflow Automation Dashboard transforms manual advertising operations into a scalable, repeatable system.
 
-## 可以強調的技術能力
+## Technical Highlights
 
-- 我不是只寫單一腳本，而是把流程包成 Flask 應用與可維護的模組
-- 我把不同內容格式拆成可重用的模板、路由與欄位結構
-- 我處理了批次流程、檔案上傳、例外處理、日誌與報表整合
-- 我把需要保密的憑證、Cookie 與組織資訊改成環境變數與匿名化設定
+**Architecture & Modularity**
+- Built as a full Flask web application rather than standalone scripts
+- Organized by responsibility with clear separation of routes, templates, services, and utilities
+- Reusable components across multiple workflow variants
 
-## 面試或口頭介紹時可用的順序
+**Multi-Format Content Handling**
+- Different content formats implemented through shared Jinja2 templates
+- Consistent field structures across single-item and batch processing flows
+- Flexible routing system for variant workflows
 
-1. 先從首頁或登入頁說明這是「流程工作台」而不是一次性腳本
-2. 展示單筆建立頁與批次頁，說明同一套欄位如何被不同流程重用
-3. 指出 Playwright 自動化負責把表單資料送進外部平台
-4. 再展示截圖或報表模組，說明資料整合與後處理能力
-5. 最後補充公開版已抽掉敏感資訊，保留的是工程設計與實作能力
+**Automation & Integration**
+- Playwright-powered browser automation handles complex form submission and multi-step task execution
+- Batch processing capabilities with file upload, validation, and error reporting
+- Integrated reporting and screenshot generation with database lookups
 
-## 建議不要展開的細節
+**Production-Ready Design**
+- Comprehensive error handling and logging throughout the application
+- Secure credential management through environment variables (no hardcoded secrets)
+- Data sanitization for safe public sharing while preserving engineering patterns
 
-- 真實組織名稱
-- 正式環境網址
-- 真實 Cookie、帳密與 service account
-- 可回推出商業內部流程的欄位命名
+## Portfolio Presentation Strategy
 
-## 作品集角度的關鍵句
+**When Discussing the Project:**
 
-- 我做的是 workflow automation，不只是 UI automation。
-- 我把一次性的操作流程產品化成可重複執行的系統。
-- 我有處理公開展示需要的安全邊界，而不是直接把工作專案原封不動公開。
+1. Start with the dashboard overview - explain this is a "workflow platform" not a one-off script
+2. Show single-item creation flows and batch processing pages - demonstrate how the same field structures serve multiple workflow types
+3. Walk through Playwright automation - show how form data is submitted to external platforms
+4. Highlight the reporting and screenshot modules - demonstrate data integration and post-processing capabilities
+5. Conclude with: "The public version removes sensitive information while preserving the engineering approach and implementation patterns"
+
+**Key Points to Emphasize**
+
+- This is workflow automation, not just UI automation
+- A repeatable system productized from manual operations
+- Proper security boundaries for public sharing without exposing operational details
+
+**What Not to Discuss**
+
+- Real organization names or URLs
+- Production credentials or service accounts
+- Business-logic-revealing field names
+- Specific client information or proprietary processes

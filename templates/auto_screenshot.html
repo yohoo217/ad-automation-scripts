@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}SuprAd 自動截圖{% endblock %}
+{% block title %}SuprAd Auto Screenshot{% endblock %}
 
-{% block page_title %}SuprAd 自動截圖工具{% endblock %}
+{% block page_title %}SuprAd Auto Screenshot Tool{% endblock %}
 
 {% block additional_styles %}
 <style>
@@ -126,92 +126,92 @@
 <div class="screenshot-form">
     <div class="info-box">
         <span class="icon">ℹ️</span>
-        此工具會根據您提供的 UUID，從資料庫查詢 AdUnit 資料並自動建構截圖網址，然後截取手機版本的螢幕畫面。
+        This tool queries AdUnit data from the database based on the UUID you provide, automatically constructs a screenshot URL, and takes a mobile version screenshot.
     </div>
-    
+
     <form action="{{ url_for('screenshot.create_screenshot') }}" method="post">
-        <label for="uuid">輸入 UUID：</label>
-        <input type="text" 
-               id="uuid" 
-               name="uuid" 
-               class="uuid-input" 
-               placeholder="例如：84ab2622-dc2b-402d-b42b-b3ea54f9faeb" 
+        <label for="uuid">Enter UUID:</label>
+        <input type="text"
+               id="uuid"
+               name="uuid"
+               class="uuid-input"
+               placeholder="e.g., 84ab2622-dc2b-402d-b42b-b3ea54f9faeb"
                required>
-        
+
         <div style="margin-bottom: 15px;">
-            <label for="device">選擇裝置類型：</label>
+            <label for="device">Select Device Type:</label>
             <select id="device" name="device" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                 <option value="iphone_x">iPhone X (375x812)</option>
                 <option value="iphone_se">iPhone SE (375x667)</option>
                 <option value="iphone_plus">iPhone Plus (414x736)</option>
-                <option value="android">Android 標準 (360x640)</option>
-                <option value="tablet">平板電腦 (768x1024)</option>
+                <option value="android">Android Standard (360x640)</option>
+                <option value="tablet">Tablet (768x1024)</option>
             </select>
         </div>
-        
+
         <div style="margin-bottom: 15px;">
             <label>
-                <input type="checkbox" name="full_page" value="true"> 
-                完整頁面截圖（而非僅可視區域）
+                <input type="checkbox" name="full_page" value="true">
+                Full page screenshot (not just viewport)
             </label>
         </div>
-    
+
         <div style="margin-bottom: 15px;">
-            <label for="scroll_distance">向下滾動距離（像素）：</label>
-            <input type="number" 
-                   id="scroll_distance" 
-                   name="scroll_distance" 
-                   value="4800" 
-                   min="0" 
-                   max="5000" 
+            <label for="scroll_distance">Scroll Distance (pixels):</label>
+            <input type="number"
+                   id="scroll_distance"
+                   name="scroll_distance"
+                   value="4800"
+                   min="0"
+                   max="5000"
                    step="50"
                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
         </div>
-        
+
         <div style="margin-bottom: 15px;">
-            <label for="wait_time">等待時間（秒）：</label>
-            <input type="number" 
-                   id="wait_time" 
-                   name="wait_time" 
-                   value="3" 
-                   min="1" 
-                   max="30" 
+            <label for="wait_time">Wait Time (seconds):</label>
+            <input type="number"
+                   id="wait_time"
+                   name="wait_time"
+                   value="3"
+                   min="1"
+                   max="30"
                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
         </div>
-        
-        <button type="submit" class="screenshot-btn">開始截圖</button>
+
+        <button type="submit" class="screenshot-btn">Start Screenshot</button>
     </form>
     
     {% if session.last_screenshot %}
     <div class="preview-container">
-        <h3>最新截圖結果</h3>
-        
+        <h3>Latest Screenshot Result</h3>
+
         {% if session.last_screenshot_adunit_title %}
         <div class="adunit-info">
-            <strong>AdUnit 標題：</strong>{{ session.last_screenshot_adunit_title }}<br>
-            <strong>UUID：</strong>{{ session.last_screenshot_uuid }}
+            <strong>AdUnit Title:</strong> {{ session.last_screenshot_adunit_title }}<br>
+            <strong>UUID:</strong> {{ session.last_screenshot_uuid }}
         </div>
         {% endif %}
-        
+
         <div class="file-path">
-            <strong>檔案位置：</strong>{{ session.last_screenshot }}
+            <strong>File Location:</strong> {{ session.last_screenshot }}
         </div>
-        
+
         {% set relative_path = session.last_screenshot.replace(config.get('UPLOAD_FOLDER', 'uploads'), '') %}
         {% if relative_path.startswith('/') %}
             {% set relative_path = relative_path[1:] %}
         {% endif %}
-        
+
         {% if relative_path.endswith(('.png', '.jpg', '.jpeg', '.gif')) %}
-        <img src="{{ url_for('screenshot.screenshot_base64', filename=relative_path) }}" 
-             alt="截圖預覽" 
+        <img src="{{ url_for('screenshot.screenshot_base64', filename=relative_path) }}"
+             alt="Screenshot preview"
              class="screenshot-preview"
              onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
         <div style="display: none; color: #999; margin-top: 10px;">
-            無法載入圖片預覽
+            Unable to load image preview
         </div>
         {% endif %}
-        
+
     </div>
     {% endif %}
 </div>
@@ -220,14 +220,14 @@
 
 {% block additional_scripts %}
 <script>
-    // 表單提交時顯示載入狀態
+    // Show loading state on form submit
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.querySelector('form');
         const submitBtn = document.querySelector('.screenshot-btn');
         const originalText = submitBtn.textContent;
-        
+
         form.addEventListener('submit', function() {
-            submitBtn.textContent = '截圖中，請稍候...';
+            submitBtn.textContent = 'Screenshotting, please wait...';
             submitBtn.disabled = true;
             submitBtn.style.backgroundColor = '#ccc';
         });

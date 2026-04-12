@@ -7,29 +7,29 @@ upload_bp = Blueprint('upload', __name__)
 
 @upload_bp.route('/upload', methods=['POST'])
 def upload_file():
-    """檔案上傳處理"""
+    """File upload processing"""
     if 'file' not in request.files:
-        return jsonify({'error': '沒有檔案被上傳'}), 400
-    
+        return jsonify({'error': 'No file uploaded'}), 400
+
     file = request.files['file']
     if file.filename == '':
-        return jsonify({'error': '沒有選擇檔案'}), 400
-    
+        return jsonify({'error': 'No file selected'}), 400
+
     if file:
-        # 創建基於日期的子目錄
+        # Create subdirectory based on date
         today = datetime.now().strftime('%Y%m%d')
         upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], today)
-        
+
         if not os.path.exists(upload_dir):
             os.makedirs(upload_dir)
-        
-        # 保存文件
+
+        # Save file
         filename = secure_filename(file.filename)
         file_path = os.path.join(upload_dir, filename)
         file.save(file_path)
-        
-        # 返回文件路徑
+
+        # Return file path
         return jsonify({
             'success': True,
             'file_path': os.path.abspath(file_path)
-        }) 
+        })

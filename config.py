@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-# 載入環境變數
+# Load environment variables
 load_dotenv()
 
 ALLOWED_EMAILS = [
@@ -15,7 +15,7 @@ ALLOWED_EMAILS = [
 
 
 def get_platform_credentials():
-    """動態獲取平台登入帳號密碼。"""
+    """Dynamically retrieve platform login credentials."""
     env_email = os.getenv('PLATFORM_EMAIL')
     env_password = os.getenv('PLATFORM_PASSWORD')
 
@@ -35,13 +35,13 @@ def get_platform_credentials():
     return None, None
 
 def get_email():
-    """取得平台登入帳號。"""
+    """Retrieve platform login email."""
     email, _ = get_platform_credentials()
     return email
 
 
 def get_password():
-    """取得平台登入密碼。"""
+    """Retrieve platform login password."""
     _, password = get_platform_credentials()
     return password
 

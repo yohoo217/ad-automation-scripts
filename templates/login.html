@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workflow Automation Console - 登入</title>
+    <title>Workflow Automation Console - Login</title>
     <style>
         * {
             box-sizing: border-box;
@@ -183,7 +183,7 @@
         <div class="logo-section">
             <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Project Logo">
             <h1 class="system-title">Workflow Automation Console</h1>
-            <p class="system-subtitle">請登入以繼續使用</p>
+            <p class="system-subtitle">Please log in to continue</p>
         </div>
         
         <!-- Flash Messages -->
@@ -201,34 +201,34 @@
             <div class="form-group">
                 <label for="email" class="icon-label">
                     <i class="fas fa-envelope"></i>
-                    電子郵件
+                    Email
                 </label>
                 <input type="email" id="email" name="email" required>
             </div>
-            
+
             <div class="form-group">
                 <label for="password" class="icon-label">
                     <i class="fas fa-lock"></i>
-                    密碼
+                    Password
                 </label>
                 <input type="password" id="password" name="password" required>
             </div>
-            
+
             <button type="submit" class="btn-login">
-                <i class="fas fa-sign-in-alt"></i> 登入
+                <i class="fas fa-sign-in-alt"></i> Login
             </button>
         </form>
         
         <div class="allowed-users">
-            <h6><i class="fas fa-users"></i> 授權使用者</h6>
+            <h6><i class="fas fa-users"></i> Authorized Users</h6>
             <p class="user-list">
-                僅限已設定於白名單中的示範帳號使用<br>
-                <small>公開版請使用匿名化或測試環境帳號</small>
+                Only for whitelisted demo accounts<br>
+                <small>For public version, use anonymized or test environment accounts</small>
             </p>
         </div>
     </div>
     
-    <!-- 保留 Font Awesome 圖示庫 -->
+    <!-- protectkeep Font Awesome mapshowlibrary -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
 </body>
 </html> 

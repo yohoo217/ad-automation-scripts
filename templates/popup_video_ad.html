@@ -1,8 +1,8 @@
-影音播放設定{% extends "base.html" %}
+{% extends "base.html" %}
 
-{% block title %}原生彈跳影音廣告建立{% endblock %}
+{% block title %}Popup Video Ad Creation{% endblock %}
 
-{% block page_title %}建立原生彈跳影音廣告{% endblock %}
+{% block page_title %}Create Popup Video Ad{% endblock %}
 
 {% block additional_styles %}
 <style>
@@ -178,7 +178,7 @@
         margin: 0 auto;
         overflow: hidden;
         position: relative;
-        /* 影片區域 300x157 + 圖片區域 300x343 = 總高度 500px */
+        /* Videoregionarea 300x157 + Imageregionarea 300x343 = totalhighdegree 500px */
     }
     .popup-video-preview {
         background-color: #000;
@@ -260,165 +260,165 @@
 <div class="main-content-wrapper">
     <div class="form-column">
         <form action="{{ url_for('main.clear_popup_video_form') }}" method="post" style="display: inline;">
-            <button type="submit" class="clear-form-btn" onclick="return confirm('確定要清除所有填寫的內容嗎？')">清除所有內容</button>
+            <button type="submit" class="clear-form-btn" onclick="return confirm('Are you sure you want to clear all content?')">Clear All</button>
         </form>
 
         <form action="{{ url_for('main.create_popup_video_ad') }}" method="post" id="ad-form">
             <div class="field-group">
-                <h3>📋 基本廣告資訊</h3>
+                <h3>📋 Basic Ad Information</h3>
                 
                 <div class="form-grid-2">
                     <div class="form-row">
                         <label for="adset_id">Adset ID <span class="required">*</span></label>
                         <input type="text" id="adset_id" name="adset_id" value="{{ adset_id or '' }}" required
-                               placeholder="例如：EXAMPLE_ADSET_ID">
-                        <div class="help-text">廣告組ID，必填</div>
+                               placeholder="e.g., EXAMPLE_ADSET_ID">
+                        <div class="help-text">Ad group ID, required</div>
                     </div>
                     
                     <div class="form-row">
-                        <label for="display_name">廣告單元顯示名稱</label>
+                        <label for="display_name">Ad Unit Display Name</label>
                         <input type="text" id="display_name" name="display_name" value="{{ display_name or '' }}"
-                               placeholder="僅供後台顯示使用">
-                        <div class="help-text">僅顯示於後台，可選</div>
+                               placeholder="For backend display only">
+                        <div class="help-text">Displayed in backend only, optional</div>
                     </div>
                 </div>
                 
                 <div class="form-grid-2">
                     <div class="form-row">
-                        <label for="advertiser">廣告商 <span class="required">*</span></label>
+                        <label for="advertiser">Advertiser <span class="required">*</span></label>
                         <input type="text" id="advertiser" name="advertiser" value="{{ advertiser or '' }}" required
-                               placeholder="廣告主名稱">
-                        <div class="help-text">廣告主名稱，必填</div>
+                               placeholder="Advertiser name">
+                        <div class="help-text">Advertiser name，required</div>
                     </div>
                     
                     <div class="form-row">
-                        <label for="main_title">主標題 <span class="required">*</span></label>
+                        <label for="main_title">Main Title <span class="required">*</span></label>
                         <input type="text" id="main_title" name="main_title" value="{{ main_title or '' }}" required
-                               placeholder="廣告主標題">
-                        <div class="help-text">廣告主標題，必填</div>
+                               placeholder="Ad Main Title">
+                        <div class="help-text">Ad Main Title，required</div>
                     </div>
                 </div>
                 
                 <div class="form-grid-2">
                     <div class="form-row">
-                        <label for="subtitle">文字敘述</label>
+                        <label for="subtitle">Description</label>
                         <input type="text" id="subtitle" name="subtitle" value="{{ subtitle or '' }}"
-                               placeholder="廣告副標題（可選）">
-                        <div class="help-text">廣告副標題，可選</div>
+                               placeholder="Ad subtitle (optional)">
+                        <div class="help-text">Ad subtitle, optional</div>
                     </div>
                     
                     <div class="form-row">
-                        <label for="call_to_action">行動呼籲按鈕文字</label>
-                        <input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or '立即了解' }}"
-                               placeholder="立即了解">
-                        <div class="help-text">CTA按鈕文字，預設為「立即了解」</div>
+                        <label for="call_to_action">Call to Action Button Text</label>
+                        <input type="text" id="call_to_action" name="call_to_action" value="{{ call_to_action or 'Learn More' }}"
+                               placeholder="Learn More">
+                        <div class="help-text">CTAButtontexttext，predictsetto「Learn More」</div>
                     </div>
                 </div>
                 
                 <div class="form-row">
-                    <label for="landing_page">到達頁面網址 <span class="required">*</span></label>
+                    <label for="landing_page">Landing Page URL <span class="required">*</span></label>
                     <input type="url" id="landing_page" name="landing_page" placeholder="https://example.com" 
                            value="{{ landing_page or '' }}" required>
-                    <div class="help-text">用戶點擊廣告後跳轉的網址，必填</div>
+                    <div class="help-text">URL to navigate to when ad is clicked, required</div>
                 </div>
             </div>
 
             <div class="field-group">
-                <h3>📹 廣告素材</h3>
+                <h3>📹 AdMaterials</h3>
                 <p style="margin-bottom: 20px; color: #666; font-style: italic;">
-                    所有圖片均為必填。請提供本地完整檔案路徑，或使用上傳功能。
+                    All images are required. Provide complete local file paths or use the upload function.
                 </p>
                 
                 <div class="form-grid-2">
                     <div class="form-row">
-                        <label for="image_path_m">大尺寸圖片 1200x628 <span class="required">*</span></label>
+                        <label for="image_path_m">bigSizeImage 1200x628 <span class="required">*</span></label>
                         <div class="file-upload-container">
                             <input type="text" id="image_path_m" name="image_path_m" 
                                    placeholder="/path/to/your/image_1200x628.jpg" 
                                    value="{{ image_path_m or '' }}" required>
-                            <div class="help-text">大型橫幅圖片，尺寸1200x628像素</div>
+                            <div class="help-text">Large banner image, 1200x628 pixels</div>
                             <div class="preview-container">
                                 <label class="custom-file-upload">
-                                    📁 上傳圖片
+                                    📁 Upload Image
                                     <input type="file" class="file-input" data-target="image_path_m" accept="image/*">
                                 </label>
-                                <img id="preview_m" class="upload-preview" style="display: none;" alt="預覽圖">
+                                <img id="preview_m" class="upload-preview" style="display: none;" alt="Previewmap">
                             </div>
                         </div>
                     </div>
                     
                     <div class="form-row">
-                        <label for="image_path_s">小尺寸圖片 300x300 <span class="required">*</span></label>
+                        <label for="image_path_s">smallSizeImage 300x300 <span class="required">*</span></label>
                         <div class="file-upload-container">
                             <input type="text" id="image_path_s" name="image_path_s" 
                                    placeholder="/path/to/your/image_300x300.jpg" 
                                    value="{{ image_path_s or '' }}" required>
-                            <div class="help-text">方形圖片，尺寸300x300像素</div>
+                            <div class="help-text">Square image, 300x300 pixels</div>
                             <div class="preview-container">
                                 <label class="custom-file-upload">
-                                    📁 上傳圖片
+                                    📁 Upload Image
                                     <input type="file" class="file-input" data-target="image_path_s" accept="image/*">
                                 </label>
-                                <img id="preview_s" class="upload-preview" style="display: none;" alt="預覽圖">
+                                <img id="preview_s" class="upload-preview" style="display: none;" alt="Previewmap">
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="form-row">
-                    <label for="background_image">互動廣告墊檔背景 <span class="required">*</span></label>
+                    <label for="background_image">Interactive AdpadfileBackground <span class="required">*</span></label>
                     <input type="text" id="background_image" name="background_image" 
-                           placeholder="請輸入背景圖片網址" value="{{ background_image or '' }}" required>
-                    <div class="help-text">互動廣告墊檔背景圖片網址</div>
+                           placeholder="Please enterBackground Image URL" value="{{ background_image or '' }}" required>
+                    <div class="help-text">Interactive AdpadfileBackground Image URL</div>
                 </div>
             </div>
 
             <div class="field-group">
-                <h3>⚙️ 進階互動設定 & cut1 圖片設定</h3>
+                <h3>⚙️ advancerankInteractive Settings & cut1 ImageSettings</h3>
                 <p style="margin-bottom: 20px; color: #666; font-style: italic;">
-                    此區塊為進階設定，主要用於原生彈跳影音廣告的互動層。若不確定，可保留預設值。
+                    thisregionblocktoAdvanced Settings，mainneeduseinNative Popup Video AdofInteractive Layer。ifnoOK，canprotectkeeppredictsetvalue。
                 </p>
 
                 <input type="hidden" name="generate_popup_url" value="true">
 
                 <div class="form-row">
-                    <label for="img_background">cut1 背景圖片網址</label>
+                    <label for="img_background">cut1 Background Image URL</label>
                     <input type="url" id="img_background" name="img_background" 
                            placeholder="https://cdn.example.com/media/..." 
                            value="{{ popup_payload.img_background or '' }}">
-                    <div class="help-text">設定廣告的 cut1 背景圖片網址</div>
+                    <div class="help-text">Configure Adof cut1 Background Image URL</div>
                 </div>
 
                 <div class="form-row">
-                    <label>彈窗內容 (payload_popupJson)</label>
+                    <label>Popup Content (payload_popupJson)</label>
                     <div class="help-text" style="margin-bottom: 10px;">
-                        根據固定格式產生彈窗內容。第一段 HTML 會自動產生，請填寫以下影片與圖片資訊。
+                        rootaccordingsolidsetformatstyleproducelifePopup Content。numberasegment HTML willfrommoveproducelife，pleasefillwritewithdownVideowithImageresourcenews。
                     </div>
                     <div id="popup-list-container" class="dynamic-container">
                         <!-- Video Item -->
                         <div class="dynamic-item">
-                            <h5>彈窗內容 (2/3): 影片</h5>
+                            <h5>Popup Content (2/3): Video</h5>
                             <div class="form-row">
-                                <label for="popup_video_url">影片素材網址</label>
+                                <label for="popup_video_url">Video MaterialURL</label>
                                 <input type="url" id="popup_video_url" class="payload-popup-input" placeholder="https://.../video.mp4"
                                        value="{{ popup_payload.video_url or '' }}">
                             </div>
                             <div class="form-row">
-                                <label for="popup_video_landing_url">影片點擊網址</label>
+                                <label for="popup_video_landing_url">Video Click URL</label>
                                 <input type="url" id="popup_video_landing_url" class="payload-popup-input" placeholder="https://..."
                                        value="{{ popup_payload.video_landing_url or '' }}">
                             </div>
                         </div>
                         <!-- Image Link Item -->
                         <div class="dynamic-item">
-                            <h5>彈窗內容 (3/3): 圖片連結</h5>
+                            <h5>Popup Content (3/3): Image Link</h5>
                             <div class="form-row">
-                                <label for="popup_image_source_url">圖片素材網址</label>
+                                <label for="popup_image_source_url">Image MaterialURL</label>
                                 <input type="url" id="popup_image_source_url" class="payload-popup-input" placeholder="https://.../image.jpg"
                                        value="{{ popup_payload.image_source_url or '' }}">
                             </div>
                              <div class="form-row">
-                                <label for="popup_image_landing_url">圖片點擊網址</label>
+                                <label for="popup_image_landing_url">Image Click URL</label>
                                 <input type="url" id="popup_image_landing_url" class="payload-popup-input" placeholder="https://..."
                                        value="{{ popup_payload.image_landing_url or '' }}">
                             </div>
@@ -430,58 +430,58 @@
                 <input type="hidden" id="payload_game_widget" name="payload_game_widget" value="{{ payload_game_widget or '' }}">
             </div>
             
-            <!-- 隱藏的相容性欄位，確保 JavaScript 正常運作 -->
+            <!-- hiddenhideofeachcontainsexcolumnposition，sureprotect JavaScript rightoftenoperatework -->
             <input type="hidden" id="video_url" name="video_url" value="">
             <input type="hidden" id="poster_image" name="poster_image" value="">
             
-            <input type="submit" value="🎯 建立原生彈跳影音廣告">
+            <input type="submit" value="🎯 CreateNative Popup Video Ad">
         </form>
     </div>
 
     <div class="preview-column">
         <div class="preview-section">
-            <h3 style="color: #333; margin-bottom: 15px; font-size: 16px; font-weight: 600;">🖼️ 廣告即時預覽</h3>
+            <h3 style="color: #333; margin-bottom: 15px; font-size: 16px; font-weight: 600;">🖼️ Ad Live Preview</h3>
             <div class="ad-preview-container">
-                <div class="ad-preview-header">廣告</div>
+                <div class="ad-preview-header">Ad</div>
                 <div class="ad-preview-main">
                     <div id="preview-cut1-view">
-                        <img id="preview-cut1-bg" class="cut1-background-img" src="" alt="cut1 背景圖片" style="display: none;">
+                        <img id="preview-cut1-bg" class="cut1-background-img" src="" alt="cut1 Background Image" style="display: none;">
                         <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666; font-size: 14px;">
-                            尚未設定 cut1 背景圖片
+                            Not Set cut1 Background Image
                         </div>
                     </div>
                 </div>
-                <div id="preview-main-title" class="ad-preview-title">主標題</div>
-                <div id="preview-subtitle" class="ad-preview-subtitle">文字敘述</div>
+                <div id="preview-main-title" class="ad-preview-title">Main Title</div>
+                <div id="preview-subtitle" class="ad-preview-subtitle">Description</div>
                 <div class="ad-preview-footer">
-                    <div id="preview-advertiser" class="ad-preview-advertiser">廣告商</div>
-                    <div id="preview-call-to-action" class="ad-preview-cta">行動呼籲按鈕文字</div>
+                    <div id="preview-advertiser" class="ad-preview-advertiser">Advertiser</div>
+                    <div id="preview-call-to-action" class="ad-preview-cta">Call to Action Button Text</div>
                 </div>
             </div>
             
-            <h3 style="color: #333; margin: 20px 0 15px 0; font-size: 16px; font-weight: 600;">🎬 彈窗內容預覽</h3>
+            <h3 style="color: #333; margin: 20px 0 15px 0; font-size: 16px; font-weight: 600;">🎬 Popup Content Preview</h3>
                 <div class="popup-content-preview">
                     <div style="position: absolute; top: 5px; left: 5px; background: rgba(255,255,255,0.9); padding: 3px 6px; border-radius: 3px; font-size: 10px; font-weight: bold; z-index: 10;">
-                        彈窗內容預覽 (影片1200×628 + 圖片690×788)
+                        Popup Content Preview (Video1200×628 + Image690×788)
                     </div>
                     
-                    <!-- 影片區域：對應 1200x628，實際顯示 300x157 -->
+                    <!-- Videoregionarea：targetanswer 1200x628，realborderclearshow 300x157 -->
                     <div class="popup-video-preview" id="popup-video-preview" style="width: 300px; height: 157px; position: relative;">
                         <video id="popup-preview-video" style="display: none; width: 100%; height: 100%; object-fit: cover;" muted playsinline controls>
                             <source id="popup-preview-video-source" src="" type="video/mp4">
-                            您的瀏覽器不支援影音播放
+                            youofbrowsebrowsedevicenosupporthelpshadowsoundbroadcastplace
                         </video>
                         <button id="popup-play-btn" class="video-play-btn" style="display: none;">▶</button>
                         <div id="popup-video-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #ccc; font-size: 12px; text-align: center;">
-                            📹<br>影片素材<br>1200×628
+                            📹<br>Video Material<br>1200×628
                         </div>
                     </div>
                     
-                    <!-- 圖片區域：對應 690x788，實際顯示 300x343 -->
+                    <!-- Imageregionarea：targetanswer 690x788，realborderclearshow 300x343 -->
                     <div class="popup-image-preview" id="popup-image-preview" style="width: 300px; height: 343px; position: relative;">
-                        <img id="popup-preview-image" src="" alt="圖片素材" style="display: none; width: 100%; height: 100%; object-fit: contain; background-color: #f0f0f0;">
+                        <img id="popup-preview-image" src="" alt="Image Material" style="display: none; width: 100%; height: 100%; object-fit: contain; background-color: #f0f0f0;">
                         <div id="popup-image-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999; font-size: 12px; text-align: center;">
-                            🖼️<br>圖片素材<br>690×788
+                            🖼️<br>Image Material<br>690×788
                         </div>
                     </div>
                 </div>
@@ -492,7 +492,7 @@
 
 {% block additional_scripts %}
 <script>
-    // Debounce 函數，防止事件過於頻繁觸發
+    // Debounce functionnumber，preventstopEventpassinfrequencycomplextouchsend
     function debounce(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -505,12 +505,12 @@
         };
     }
 
-    // 自動儲存表單狀態到後端 session
+    // frommoveSaveformsinglestatusstatearriveafterend session
     const autoSaveForm = debounce(() => {
         const form = document.getElementById('ad-form');
         const formData = new FormData(form);
         
-        // 使用 fetch API 將表單數據發送到後端
+        // makeuse fetch API willformsinglenumberaccordingsendsendarriveafterend
         fetch("{{ url_for('main.save_form_data') }}", {
             method: 'POST',
             body: formData
@@ -526,26 +526,26 @@
         .catch(error => {
             console.error('Error in auto-save request:', error);
         });
-    }, 500); // 在用戶停止輸入 500 毫秒後觸發
+    }, 500); // existuseuserstopstopinputenter 500 millisecondaftertouchsend
 
-    // 原生彈跳影音廣告特有的 JavaScript
+    // Native Popup Video Adspecialhaveof JavaScript
     let previewVideo;
     let isVideoPlaying = false;
     
     document.addEventListener('DOMContentLoaded', function() {
-        // 為表單添加輸入事件監聽器以觸發自動儲存
+        // toformsingleaddaddinputenterEventListenerwithtouchsendfrommoveSave
         const adForm = document.getElementById('ad-form');
         if (adForm) {
             adForm.addEventListener('input', autoSaveForm);
         }
 
-        // 初始化影音預覽
+        // initialbeginchangeshadowsoundPreview
         previewVideo = document.getElementById('preview-video');
         
-        // 更新 payload
+        // Update payload
         updatePayload();
 
-        // 添加事件監聽器以更新預覽
+        // addaddEventListenerwithUpdatePreview
         const inputsToTrack = ['advertiser', 'main_title', 'subtitle', 'call_to_action', 
                               'img_background', 'popup_video_url', 'popup_image_source_url'];
         inputsToTrack.forEach(id => {
@@ -556,16 +556,16 @@
             }
         });
 
-        // 為彈窗預覽影片添加播放控制
+        // topopupwindowPreviewVideoaddaddbroadcastplacecontrolcontrol
         const popupPlayBtn = document.getElementById('popup-play-btn');
         if (popupPlayBtn) {
             popupPlayBtn.addEventListener('click', togglePopupVideoPlayback);
         }
 
-        // 初始化互動設定
+        // initialbeginchangeInteractive Settings
         initializeInteractiveSettings();
 
-        // 首次加載時更新預覽
+        // firsttimeaddloadtimeUpdatePreview
         updateVideoAdPreview();
     });
     
@@ -586,19 +586,19 @@
     }
 
     function updateVideoAdPreview() {
-        // 更新 payload
+        // Update payload
         updatePayload();
         
-        // 更新文字部分
-        document.getElementById('preview-main-title').textContent = document.getElementById('main_title').value || '主標題';
-        document.getElementById('preview-subtitle').textContent = document.getElementById('subtitle').value || '文字敘述';
-        document.getElementById('preview-advertiser').textContent = document.getElementById('advertiser').value || '廣告商';
-        document.getElementById('preview-call-to-action').textContent = document.getElementById('call_to_action').value || '行動呼籲按鈕文字';
+        // Updatetexttextdepartmentdivide
+        document.getElementById('preview-main-title').textContent = document.getElementById('main_title').value || 'Main Title';
+        document.getElementById('preview-subtitle').textContent = document.getElementById('subtitle').value || 'Description';
+        document.getElementById('preview-advertiser').textContent = document.getElementById('advertiser').value || 'Advertiser';
+        document.getElementById('preview-call-to-action').textContent = document.getElementById('call_to_action').value || 'Call to Action Button Text';
 
-        // 更新 cut1 背景圖片預覽
+        // Update cut1 Background ImagePreview
         updateCut1Preview();
         
-        // 更新彈窗內容預覽
+        // UpdatePopup Content Preview
         updatePopupContentPreview();
     }
 
@@ -618,7 +618,7 @@
     }
 
     function updatePopupContentPreview() {
-        // 更新影片預覽
+        // UpdateVideoPreview
         const videoUrl = document.getElementById('popup_video_url').value;
         const popupVideo = document.getElementById('popup-preview-video');
         const popupVideoSource = document.getElementById('popup-preview-video-source');
@@ -642,7 +642,7 @@
             }
         }
         
-        // 更新圖片預覽
+        // UpdateImagePreview
         const imageUrl = document.getElementById('popup_image_source_url').value;
         const popupImage = document.getElementById('popup-preview-image');
         const imagePlaceholder = document.getElementById('popup-image-placeholder');
@@ -748,45 +748,45 @@
         document.getElementById('payload_popup_json').value = JSON.stringify(finalPayload, null, 2);
     }
 
-    // 快速資訊解析函數
+    // fastspeedresourcenewsresolveanalyzefunctionnumber
     function parseInfoText(text) {
         try {
-            // 解析廣告主
-            const advertiserMatch = text.match(/[-·]\s*廣告主[:：]\s*(.+)/);
+            // resolveanalyzeAdvertiser
+            const advertiserMatch = text.match(/[-·]\s*Advertiser[:：]\s*(.+)/);
             if (advertiserMatch) {
                 document.getElementById('advertiser').value = advertiserMatch[1].trim();
             }
 
-            // 解析活動名稱作為主標題
-            const titleMatch = text.match(/[-·]\s*活動名稱[:：]\s*(.+)/);
+            // resolveanalyzeactivemovenamenameworktoMain Title
+            const titleMatch = text.match(/[-·]\s*activemovenamename[:：]\s*(.+)/);
             if (titleMatch) {
                 document.getElementById('main_title').value = titleMatch[1].trim();
             }
 
-            // 解析標題
-            const headlineMatch = text.match(/[-·]\s*標題[:：]\s*(.+)/);
+            // resolveanalyzeTitle
+            const headlineMatch = text.match(/[-·]\s*Title[:：]\s*(.+)/);
             if (headlineMatch) {
                 document.getElementById('subtitle').value = headlineMatch[1].trim();
             }
 
-            // 解析 CTA
+            // resolveanalyze CTA
             const ctaMatch = text.match(/[-·]\s*CTA[:：]\s*(.+)/);
             if (ctaMatch) {
                 document.getElementById('call_to_action').value = ctaMatch[1].trim();
             }
 
-            // 解析導連
-            const landingMatch = text.match(/(?:導連|到達頁面)[:：]\s*(https?:\/\/[^\s]+)/);
+            // resolveanalyzeguideconnect
+            const landingMatch = text.match(/(?:guideconnect|arrivereachpageface)[:：]\s*(https?:\/\/[^\s]+)/);
             if (landingMatch) {
                 document.getElementById('landing_page').value = landingMatch[1].trim();
             }
 
             updatePayload();
             updateVideoAdPreview();
-            alert('✅ 資訊解析完成！請檢查填入的內容是否正確。');
+            alert('✅ resourcenewsresolveanalyzeComplete！Please checkfillenterofinsidecontainisnoCorrect。');
         } catch (error) {
-            console.error('解析錯誤:', error);
-            alert('❌ 解析過程中發生錯誤，請檢查輸入格式。');
+            console.error('resolveanalyzeError:', error);
+            alert('❌ resolveanalyzepassprogrammiddlesendlifeError，Please checkInput format。');
         }
     }
 </script>

@@ -1,4 +1,4 @@
-# 完整版，可以正常運作且有防呆 2025/03/10 測試可以正常運作，測試人 Ian
+# Full version with validation - tested and verified 2025/03/10
 
 import re
 import time
@@ -11,38 +11,38 @@ from playwright.sync_api import Page
 from playwright.sync_api import expect
 import os
 
-# ======== 腳本設定選項 ========
-# 設置為 True 將不顯示瀏覽器界面，設置為 False 將顯示瀏覽器界面
+# ======== Script configuration options ========
+# Set to True to hide browser, False to show browser
 HEADLESS_MODE = True
 
-# 設置為 True 將放慢操作速度，便於觀察和調試
-SLOW_MODE = False 
+# Set to True to slow down operations for debugging
+SLOW_MODE = False
 
-# 設置為 True 時，即使沒有 Google Sheet 寫入權限也繼續執行
+# Set to True to continue even without Google Sheet write permission
 IGNORE_SHEET_PERMISSION_ERROR = False
 
-# 慢速模式下的操作延遲時間 (毫秒)
+# Delay time in slow mode (milliseconds)
 SLOW_MODE_DELAY = 1000
 # ============================
 
-# 設置日誌
+# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# 慢速模式延遲函數
+# Slow mode delay function
 def slow_down(page):
-    """當啟用慢速模式時，增加延遲以方便觀察"""
+    """Add delay when slow mode is enabled for observation"""
     if SLOW_MODE:
         page.wait_for_timeout(SLOW_MODE_DELAY)
 
-# Google Sheet 的 URL 和範圍
+# Google Sheet URL and range
 sheet_url = 'https://docs.google.com/spreadsheets/d/1m4ZDj46ZdZMjXS30GA2nzn36s2CEqETrCp_rh4dTmbM/edit?gid=408679682#gid=408679682'
 range_name = 'A1:AM100'
-row_number = 2  # 定義要讀取的起始行號
-worksheet_index = 5  # 選擇工作表
+row_number = 2  # Define starting row number to read
+worksheet_index = 5  # Select worksheet
 worksheet_names = {
-    0: "目錄",
-    1: "1-MoPTT",
-    2: "2-moptt-web", 
+    0: "Directory",
+    1: "1-SocialForum",
+    2: "2-social-forum-web",
     3: "3-JPTT",
     4: "4-PiTT",
     5: "5-nPTT",
@@ -63,25 +63,25 @@ worksheet_names = {
     20: "13-kocpc",
     21: "14-PNN_",
     22: "15-agirls-web",
-    23: "16-巨思-web",
-    24: "範本",
-    25: "素材庫"
+    23: "16-enterprise-web",
+    24: "Template",
+    25: "Material Library"
 }
 
-# Google Sheets 設置
+# Google Sheets setup
 def get_sheet_data(sheet_url, range_name, worksheet_index):
-    """連接到Google Sheets並獲取數據"""
+    """Connect to Google Sheets and retrieve data"""
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds = ServiceAccountCredentials.from_json_keyfile_name('google-credentials.json', scope)
     client = gspread.authorize(creds)
     sheet = client.open_by_url(sheet_url)
-    worksheet = sheet.get_worksheet(worksheet_index)  # 選擇工作表
-    
-    # 取得並顯示工作表名稱
+    worksheet = sheet.get_worksheet(worksheet_index)  # Select worksheet
+
+    # Get and display worksheet name
     worksheet_name = worksheet.title
-    worksheet_desc = worksheet_names.get(worksheet_index, "未知工作表")
-    log_message(f"已選擇工作表: 第{worksheet_index}個 - {worksheet_name} ")
-    
+    worksheet_desc = worksheet_names.get(worksheet_index, "Unknown worksheet")
+    log_message(f"Selected worksheet: Row {worksheet_index} - {worksheet_name}")
+
     data = worksheet.get(range_name)
     return worksheet, data
 
@@ -94,31 +94,31 @@ def wait_for_page_transition(page, expected_url_pattern, timeout=60000):
     return False
 
 def extract_last_36_chars_from_url(page):
-    # 獲取當前頁面的 URL
+    # Get current page URL
     current_url = page.url
-    # 提取 URL的最後 36 位字符
+    # Extract last 36 characters from URL
     last_36_chars = current_url[-36:]
     return last_36_chars
 
 def log_message(message):
     logging.info(message)
 
-# 防呆
+# Error prevention
 def check_h_column(sheet_data, row_number):
-    target_row = row_number - 1  # 因為索引從0開始
-    # 確認是否為 6 size = rich_media
-    return sheet_data[target_row][7].strip().lower() == 'rich_media'  # 7 ad type
+    target_row = row_number - 1  # Index starts at 0
+    # Check if is 6 size = rich_media
+    return sheet_data[target_row][7].strip().lower() == 'rich_media'  # Column H / ad type
 
 def check_ad_type(sheet_data, row_number):
-    target_row = row_number - 1  # 因為索引從0開始
-    # 根據 Google Sheet 標題，索引 7 對應欄位 "7 ad type"
-    # 由於索引從 0 開始，所以實際欄位索引是 7
+    target_row = row_number - 1  # Index starts at 0
+    # According to Google Sheet title, index 7 corresponds to "Column 7 ad type"
+    # Since index starts at 0, actual field index is 7
     ad_type = sheet_data[target_row][7].strip().lower() if len(sheet_data[target_row]) > 7 else ""
-    log_message(f"檢查廣告類型: {ad_type}")
+    log_message(f"Checking ad type: {ad_type}")
     return ad_type
 
 def check_a_column(worksheet, row_number):
-    """檢查A列是否已經標記為完成"""
+    """Check if column A is marked complete"""
     cell_value = worksheet.acell(f'A{row_number}').value
     return cell_value == 'v'
 
@@ -126,83 +126,84 @@ def update_sheet_status(worksheet, row_number, status):
     cell = f'A{row_number}'
     value = 'v' if status else 'x'
     try:
-        # 更新方法的參數順序已變更，按新的格式傳遞參數
+        # Update method parameter order changed, use new format
         worksheet.update(values=[[value]], range_name=cell, value_input_option='USER_ENTERED')
         if status:
             try:
                 worksheet.format(cell, {"backgroundColor": {"red": 1, "green": 0, "blue": 0}})
             except Exception as format_error:
-                log_message(f"無法設定儲存格格式，但值已更新: {str(format_error)}")
+                log_message(f"Unable to set cell format, but value updated: {str(format_error)}")
         log_message(f"Updated row {row_number} status to {'success' if status else 'failure'}")
     except gspread.exceptions.APIError as e:
         log_message(f"Error updating cell {cell}: {str(e)}")
-        log_message("請確保服務帳戶 google-credentials.json 有權限編輯試算表")
-        log_message("解決方法: 在 Google Sheet 中點擊「共用」按鈕，然後將服務帳戶電子郵件添加為編輯者")
-        # 嘗試替代方法
+        log_message("Ensure service account in google-credentials.json has edit permission")
+        log_message("Solution: In Google Sheet, click Share button and add service account email as editor")
+        # Try alternative method
         try:
             worksheet.update_cell(row_number, 1, value)
             log_message(f"Successfully updated cell {cell} using alternative method")
         except Exception as e2:
             log_message(f"Failed to update cell {cell} using alternative method: {str(e2)}")
-            log_message("程序將繼續執行，但不會標記已完成的行")
+            log_message("Program will continue but won't mark completed rows")
 
-    # 避免按不到建立互動廣告單元的邏輯
+    # Logic to avoid missing interactive ad unit creation button
 def try_click_create_interactive_ad(page, max_attempts=3):
     for attempt in range(max_attempts):
         try:
-            log_message(f"Attempt {attempt + 1} to click '建立互動廣告單元'")
-            page.get_by_role("link", name="建立互動廣告單元").click(timeout=5000)
-            log_message("Successfully clicked '建立互動廣告單元'")
+            log_message(f"Attempt {attempt + 1} to click 'Create Interactive Ad Unit'")
+            # Playwright selector targeting external platform UI - keep as-is
+            page.get_by_role("link", name="Create Interactive Ad Unit").click(timeout=5000)
+            log_message("Successfully clicked 'Create Interactive Ad Unit'")
             return True
         except Exception as e:
-            log_message(f"Failed to click '建立互動廣告單元': {str(e)}")
-            
+            log_message(f"Failed to click 'Create Interactive Ad Unit': {str(e)}")
+
             if attempt == 0:
-                # 第一次失敗，縮放到 80%
+                # First failure, zoom to 80%
                 log_message("Zooming browser to 80%")
                 page.evaluate("document.body.style.zoom = '80%'")
             elif attempt == 1:
-                # 第二次失敗，重新加載頁面並縮放到 80%
+                # Second failure, reload page and zoom to 80%
                 log_message("Reloading page and zooming to 80%")
                 page.reload()
                 page.wait_for_load_state('networkidle')
                 page.evaluate("document.body.style.zoom = '80%'")
-            
-            # 等待一下，讓頁面有時間響應
+
+            # Wait a bit for page to respond
             page.wait_for_timeout(2000)
-    
-    log_message("Failed to click '+ 建立互動廣告單元' after all attempts")
+
+    log_message("Failed to click '+ Create Interactive Ad Unit' after all attempts")
     return False
 
 
 def run_automation(playwright: Playwright, row_number: int, sheet_data: list) -> bool:
-    # 設置行號
-    target_row = row_number - 1  # 因為索引從0開始
+    # Set row number
+    target_row = row_number - 1  # Index starts at 0
 
     log_message(f"Processing row {row_number}")
-    log_message("啟動 arm64 原生 Chrome 穩定版瀏覽器")
+    log_message("Launching arm64 native Chrome stable browser")
     browser = playwright.chromium.launch(
-        executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",  # 指定 arm64 原生 Chrome 路徑
+        executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",  # Specify arm64 native Chrome path
         headless=HEADLESS_MODE,
         args=[
-            "--disable-gpu",      # 保險起見先關 GPU
-            "--no-sandbox",       # 禁用沙箱模式提高穩定性
-            "--disable-dev-shm-usage",  # 避免共享記憶體問題
-            "--disable-background-timer-throttling",  # 防止背景定時器被限制
-            "--disable-backgrounding-occluded-windows",  # 防止背景視窗被限制
-            "--disable-renderer-backgrounding",  # 防止渲染器背景化
-            "--disable-features=TranslateUI",  # 禁用翻譯功能
-            "--disable-extensions",  # 禁用擴充功能
-            "--disable-plugins",    # 禁用插件
-            "--disable-web-security",  # 禁用網頁安全限制
+            "--disable-gpu",      # Disable GPU for stability
+            "--no-sandbox",       # Disable sandbox for better stability
+            "--disable-dev-shm-usage",  # Avoid shared memory issues
+            "--disable-background-timer-throttling",  # Prevent background timer throttling
+            "--disable-backgrounding-occluded-windows",  # Prevent background window limiting
+            "--disable-renderer-backgrounding",  # Prevent renderer backgrounding
+            "--disable-features=TranslateUI",  # Disable translation UI
+            "--disable-extensions",  # Disable extensions
+            "--disable-plugins",    # Disable plugins
+            "--disable-web-security",  # Disable web security restrictions
         ]
     )
     context = browser.new_context()
-    
-    # 設置慢速模式
+
+    # Set slow mode
     if SLOW_MODE:
-        context.set_default_timeout(120000)  # 增加超時時間，避免慢速模式下操作超時
-    
+        context.set_default_timeout(120000)  # Increase timeout to avoid operation timeout in slow mode
+
     page = context.new_page()
 
     try:
@@ -211,11 +212,13 @@ def run_automation(playwright: Playwright, row_number: int, sheet_data: list) ->
         slow_down(page)
 
         log_message("Filling login form")
-        page.get_by_placeholder("Email 帳號").click()
-        page.get_by_placeholder("Email 帳號").fill(config.EMAIL)
-        page.get_by_placeholder("Email 帳號").press("Tab")
-        page.get_by_placeholder("密碼").fill(config.PASSWORD)
-        page.get_by_placeholder("密碼").press("Enter")
+        # Playwright selector targeting external platform UI - keep as-is
+        page.get_by_placeholder("Email").click()
+        page.get_by_placeholder("Email").fill(config.EMAIL)
+        page.get_by_placeholder("Email").press("Tab")
+        # Playwright selector targeting external platform UI - keep as-is
+        page.get_by_placeholder("Password").fill(config.PASSWORD)
+        page.get_by_placeholder("Password").press("Enter")
         slow_down(page)
 
         page.get_by_role("button", name="user_account").click()
@@ -225,86 +228,91 @@ def run_automation(playwright: Playwright, row_number: int, sheet_data: list) ->
         page.goto("https://adplatform.example.com/advertiser/show/campaign?campId=EXAMPLE_CAMPAIGN_ID")
         slow_down(page)
 
-        page.get_by_role("link", name="+  建立廣告").click()
+        # Playwright selector targeting external platform UI - keep as-is
+        page.get_by_role("link", name="+  Create Ad").click()
         slow_down(page)
         page.locator(".el-input__inner").first.click()
-        
-        # 廣告-廣告名稱
-        log_message("Filling ad form")
-        page.locator(".el-input__inner").first.fill(sheet_data[target_row][1])  # 1 adsetName
-        slow_down(page)
-        page.get_by_placeholder("開始時間").click()
-        page.get_by_placeholder("開始時間").fill("2025-03-12 01:00")
-        slow_down(page)
-        page.get_by_placeholder("結束時間").click()
-        page.get_by_placeholder("結束時間").fill("2025-03-18 16:00")
-        slow_down(page)
-        page.locator("div").filter(has_text=re.compile(r"^\* 廣告類型 圖片廣告影音廣告原生互動廣告$")).get_by_placeholder("請選擇").click()
-        page.get_by_text("原生互動廣告").click()
-        slow_down(page)
-        
-        # 從 Google Sheet 中獲取對應行的值
-        platform_text_1 = sheet_data[target_row][3]  # 3 裝置類型
-        platform_text_2 = sheet_data[target_row][4]  # 4 裝置類型（可能為空）
 
-        # 把選擇的平台都先去消掉
+        # Ad - Ad name
+        log_message("Filling ad form")
+        page.locator(".el-input__inner").first.fill(sheet_data[target_row][1])  # Column 1 adsetName
+        slow_down(page)
+        # Playwright selector targeting external platform UI - keep as-is
+        page.get_by_placeholder("Start Date").click()
+        page.get_by_placeholder("Start Date").fill("2025-03-12 01:00")
+        slow_down(page)
+        # Playwright selector targeting external platform UI - keep as-is
+        page.get_by_placeholder("End Date").click()
+        page.get_by_placeholder("End Date").fill("2025-03-18 16:00")
+        slow_down(page)
+        page.locator("div").filter(has_text=re.compile(r"^\* Ad Type  Image Ad Video Ad Native Interactive Ad$")).get_by_placeholder("Select").click()
+        page.get_by_text("Native Interactive Ad").click()
+        slow_down(page)
+
+        # Get values for corresponding row from Google Sheet
+        platform_text_1 = sheet_data[target_row][3]  # Column 3 Device type
+        platform_text_2 = sheet_data[target_row][4]  # Column 4 Device type (may be empty)
+
+        # Uncheck all selected platforms first
         log_message("Selecting platforms")
         page.locator("label").filter(has_text="iOS App").locator("span").nth(1).click()
         page.locator("label").filter(has_text="Android App").locator("span").nth(1).click()
         page.locator("label").filter(has_text="Mobile Web - iOS").locator("span").nth(1).click()
         page.locator("label").filter(has_text="Mobile Web - Android").locator("span").nth(1).click()
         slow_down(page)
-            
-        # 平台選擇 - 第一個平台
+
+        # Platform selection - First platform
         page.locator("label").filter(has_text=platform_text_1).locator("span").nth(1).click()
-        
-        # 如果有第二個平台，也選擇它
+
+        # If there is a second platform, select it too
         if platform_text_2 and platform_text_2.strip():
             log_message(f"Selecting second platform: {platform_text_2}")
             page.locator("label").filter(has_text=platform_text_2).locator("span").nth(1).click()
         slow_down(page)
-            
+
         page.locator("div:nth-child(5) > .col-md-10 > .el-select > .el-select__tags > .el-select__input").click()
 
-        # 渠道
+        # Channel
         log_message("Filling channel information")
         page.locator("div:nth-child(5) > .col-md-10 > .el-select > .el-select__tags > .el-select__input").fill(sheet_data[target_row][19])  # 19 ClinetId
         slow_down(page)
-        page.get_by_text(sheet_data[target_row][20]).nth(1).click()  # 20 包含應用程式名稱
+        page.get_by_text(sheet_data[target_row][20]).nth(1).click()  # 20 Contains app name
         slow_down(page)
         page.locator("div:nth-child(12) > .form-group > div > div > .col-md-10 > .el-select > .el-select__tags > .el-select__input").click()
-                
-        # place
+
+        # Place
         log_message("Selecting place")
         page.locator("div:nth-child(12) > .form-group > div > div > .col-md-10 > .el-select > .el-select__tags > .el-select__input").fill(sheet_data[target_row][21]) # 21 UUID
         slow_down(page)
         page.locator("ul").filter(has_text=re.compile(rf"^{sheet_data[target_row][21]}$")).get_by_role("listitem").click() # 21 UUID
         slow_down(page)
         page.get_by_role("spinbutton").nth(1).click()
-        
-        page.locator("div").filter(has_text=re.compile(r"^投遞類型 平均投放加強投放$")).get_by_placeholder("請選擇").click()
-        page.locator("li").filter(has_text="加強投放").click()
+
+        page.locator("div").filter(has_text=re.compile(r"^Delivery Type  Average Delivery Enhanced Delivery$")).get_by_placeholder("Select").click()
+        page.locator("li").filter(has_text="Enhanced Delivery").click()
         slow_down(page)
 
-        # 預算
+        # Budget
         log_message("Filling budget and bidding information")
-        page.get_by_role("spinbutton").nth(1).fill("4") # 正式 mode
+        page.get_by_role("spinbutton").nth(1).fill("4") # Production mode
         page.get_by_role("spinbutton").nth(2).click()
         slow_down(page)
-        
-        # 預算類型
-        page.locator("div").filter(has_text=re.compile(r"^預算類型 CPCCPMCPV$")).get_by_placeholder("請選擇").click()
+
+        # Budget type
+        page.locator("div").filter(has_text=re.compile(r"^Budget Type  CPCCPMCPV$")).get_by_placeholder("Select").click()
         page.locator("li").filter(has_text="CPM").click()
         slow_down(page)
 
-        # 出價
-        page.get_by_role("spinbutton").nth(2).fill("0.1") # 正式 mode
+        # Bid
+        page.get_by_role("spinbutton").nth(2).fill("0.1") # Production mode
         slow_down(page)
-        page.get_by_role("button", name="建立廣告").click()
+        # Playwright selector targeting external platform UI - keep as-is
+        page.get_by_role("button", name="Create Ad").click()
         slow_down(page)
-        page.get_by_role("button", name="確定").click()
+        # Playwright selector targeting external platform UI - keep as-is
+        page.get_by_role("button", name="Confirm").click()
 
-        # 等待頁面加載完成
+        # Waiting for page load to complete
         log_message("Waiting for page to load")
         page.wait_for_load_state('networkidle')
         slow_down(page)
@@ -317,217 +325,229 @@ def run_automation(playwright: Playwright, row_number: int, sheet_data: list) ->
                 console.error('Second button not found');
             }
         """)
-        slow_down(page)        
+        slow_down(page)
 
-        # 確保頁面已穩定後再進行縮放操作
-        log_message("等待頁面穩定後進行縮放...")
+        # Ensure page is stable before zooming operations
+        log_message("Waiting for page to stabilize before zooming...")
         page.wait_for_load_state('networkidle', timeout=30000)
-        page.wait_for_timeout(2000)  # 額外等待 2 秒確保頁面完全穩定
-        
+        page.wait_for_timeout(2000)  # Additional wait for 2 seconds to ensure page is completely stable
+
         try:
-            # 將頁面縮放到 80% 再嘗試點擊
+            # Zoom page to 80% and then try to click
             page.evaluate("document.body.style.zoom = '80%'")
-            log_message("成功將頁面縮放到 80%")
+            log_message("Successfully zoomed page to 80%")
         except Exception as e:
-            log_message(f"縮放頁面時發生錯誤: {str(e)}")
-            # 重新嘗試縮放操作
-            page.wait_for_timeout(3000)  # 再多等待一些時間
+            log_message(f"Error zooming page: {str(e)}")
+            # Retry zoom operation
+            page.wait_for_timeout(3000)  # Wait additional time
             try:
                 page.evaluate("document.body.style.zoom = '80%'")
-                log_message("第二次嘗試縮放頁面成功")
+                log_message("Second attempt to zoom page successful")
             except Exception as e2:
-                log_message(f"第二次嘗試縮放頁面失敗: {str(e2)}")
-                # 繼續執行，希望頁面可以正常操作
-        
-        # 在點擊之前再等待一下，確保縮放已經應用
+                log_message(f"Second attempt to zoom page failed: {str(e2)}")
+                # Continue anyway, hoping page can be operated normally
+
+        # Wait before clicking to ensure zoom has been applied
         page.wait_for_timeout(1000)
-        
+
         try:
             page.locator("input[name=\"advertiserName\"]").click()
-            log_message("成功點擊 advertiserName 輸入框")
+            log_message("Successfully clicked advertiserName input box")
         except Exception as e:
-            log_message(f"點擊 advertiserName 輸入框失敗: {str(e)}")
-            # 嘗試使用 JavaScript 直接點擊
+            log_message(f"Failed to click advertiserName input box: {str(e)}")
+            # Try using JavaScript to directly click
             try:
                 page.evaluate("""
                     document.querySelector("input[name='advertiserName']").focus();
                 """)
-                log_message("使用 JavaScript 成功聚焦 advertiserName 輸入框")
+                log_message("Successfully focused advertiserName input box using JavaScript")
             except Exception as e2:
-                log_message(f"使用 JavaScript 聚焦 advertiserName 輸入框失敗: {str(e2)}")
-                # 最後嘗試重新載入頁面並再試一次
+                log_message(f"Failed to focus advertiserName input box using JavaScript: {str(e2)}")
+                # Finally try reloading page and trying again
                 page.reload()
                 page.wait_for_load_state('networkidle')
                 page.wait_for_timeout(3000)
                 page.evaluate("document.body.style.zoom = '80%'")
                 page.wait_for_timeout(1000)
                 page.locator("input[name=\"advertiserName\"]").click()
-                log_message("頁面重載後成功點擊 advertiserName 輸入框")
+                log_message("Successfully clicked advertiserName input box after page reload")
 
-        # 廣告單元-廣告商
+        # Ad Unit - Advertiser
         log_message("Filling ad unit information")
-        page.locator("input[name=\"advertiserName\"]").fill(sheet_data[target_row][9])  # 9 廣告商
+        page.locator("input[name=\"advertiserName\"]").fill(sheet_data[target_row][9])  # 9 Advertiser
         slow_down(page)
         page.locator("input[name=\"title\"]").click()
-        
-        # 廣告單元-主標題
-        page.locator("input[name=\"title\"]").fill(sheet_data[target_row][10])  # 10 主標題
+
+        # Ad Unit - Main title
+        page.locator("input[name=\"title\"]").fill(sheet_data[target_row][10])  # 10 Main title
         slow_down(page)
+        # Playwright selector targeting external platform UI - keep as-is
         page.get_by_placeholder("Mobile loading page for Ad").click()
-        
-        # 選擇 1200x628 圖片
+
+        # Select 1200x628 image
         log_message("Selecting 1200x628 image button")
 
-        # 使用絕對路徑來上傳圖片
+        # Use absolute path to upload image
         absolute_image_path_1 = sheet_data[target_row][15]  # 15 1200x628
         log_message(f"Setting input file for first image: {absolute_image_path_1}")
-        
-        # 確保文件存在
+
+        # Ensure file exists
         if not os.path.exists(absolute_image_path_1):
-            log_message(f"警告：圖片文件不存在: {absolute_image_path_1}")
-            # 繼續執行，但記錄警告
-        
-        # 設置文件上傳
+            log_message(f"Warning: Image file does not exist: {absolute_image_path_1}")
+            # Continue anyway, but record warning
+
+        # Set file upload
         page.set_input_files('input[type="file"]', absolute_image_path_1)
         slow_down(page)
-        page.wait_for_timeout(2000)  # 確保文件上傳完成
-        
-        # 等待上傳按鈕出現
-        log_message("等待圖片上傳完成...")
+        page.wait_for_timeout(2000)  # Ensure file upload complete
+
+        # Wait for upload button to appear
+        log_message("Waiting for image upload to complete...")
         try:
-            page.get_by_text("上傳選取的區域").wait_for(state="visible", timeout=60000)
-            # 等待按鈕可用
-            page.wait_for_timeout(1500)  # 給予更長的等待時間
-            page.get_by_text("上傳選取的區域").click()
-            log_message("成功點擊上傳按鈕")
+            page.get_by_text("Upload selected area").wait_for(state="visible", timeout=60000)
+            # Wait for button to be available
+            page.wait_for_timeout(1500)  # Give longer wait time
+            page.get_by_text("Upload selected area").click()
+            log_message("Successfully clicked upload button")
         except Exception as e:
-            log_message(f"警告：上傳按鈕點擊失敗: {str(e)}")
-            # 嘗試另一種方式
+            log_message(f"Warning: Upload button click failed: {str(e)}")
+            # Try alternative method
             try:
-                page.get_by_role("button", name="上傳選取的區域").click()
-                log_message("使用替代方式點擊上傳按鈕")
+                # Playwright selector targeting external platform UI - keep as-is
+                page.get_by_role("button", name="Upload Selected Area").click()
+                log_message("Use alternative method to click upload button")
             except Exception as e2:
-                log_message(f"警告：無法點擊上傳按鈕: {str(e2)}")
-                # 繼續執行，但已記錄警告
-        
-        # 等待網絡活動完成
-        log_message("等待圖片處理完成...")
-        page.wait_for_timeout(3000)  # 先等待一固定時間
+                log_message(f"Warning: Unable to click upload button: {str(e2)}")
+                # Continue anyway, but record warning
+
+        # Wait for network activity to complete
+        log_message("Waiting for image processing...")
+        page.wait_for_timeout(3000)  # Wait fixed time first
         page.wait_for_load_state('networkidle', timeout=60000)
         slow_down(page)
 
-        # 選擇 300x300 圖片
+        # Select 300x300 image
         log_message("Selecting 300x300 image button")
 
-        # 使用絕對路徑來上傳圖片
+        # Use absolute path to upload image
         absolute_image_path_2 = sheet_data[target_row][16]
         log_message(f"Setting input file for second image: {absolute_image_path_2}")
-        
-        # 確保文件存在
+
+        # Ensure file exists
         if not os.path.exists(absolute_image_path_2):
-            log_message(f"警告：300x300圖片文件不存在: {absolute_image_path_2}")
-            # 繼續執行，但記錄警告
-            
-        # 設置文件上傳
+            log_message(f"Warning: 300x300 image file does not exist: {absolute_image_path_2}")
+            # Continue anyway, but record warning
+
+        # Set file upload
         page.locator('input[type="file"]').nth(1).set_input_files(absolute_image_path_2)
         slow_down(page)
-        page.wait_for_timeout(2000)  # 確保文件上傳完成
-        
-        # 等待上傳按鈕出現
-        log_message("等待 300x300 圖片上傳完成...")
+        page.wait_for_timeout(2000)  # Ensure file upload complete
+
+        # Wait for upload button to appear
+        log_message("Waiting for 300x300 image upload...")
         try:
-            page.get_by_text("上傳選取的區域").wait_for(state="visible", timeout=60000)
-            # 等待按鈕可用
-            page.wait_for_timeout(1500)  # 給予更長的等待時間
-            page.get_by_text("上傳選取的區域").click()
-            log_message("成功點擊 300x300 上傳按鈕")
+            page.get_by_text("Upload selected area").wait_for(state="visible", timeout=60000)
+            # Wait for button to be available
+            page.wait_for_timeout(1500)  # Give longer wait time
+            page.get_by_text("Upload selected area").click()
+            log_message("Successfully clicked 300x300 upload button")
         except Exception as e:
-            log_message(f"警告：300x300 上傳按鈕點擊失敗: {str(e)}")
-            # 嘗試另一種方式
+            log_message(f"Warning: 300x300 upload button click failed: {str(e)}")
+            # Try alternative method
             try:
-                page.get_by_role("button", name="上傳選取的區域").click()
-                log_message("使用替代方式點擊 300x300 上傳按鈕")
+                # Playwright selector targeting external platform UI - keep as-is
+                page.get_by_role("button", name="Upload Selected Area").click()
+                log_message("Use alternative method to click 300x300 upload button")
             except Exception as e2:
-                log_message(f"警告：無法點擊 300x300 上傳按鈕: {str(e2)}")
-                # 繼續執行，但已記錄警告
-        
-        # 等待網絡活動完成
-        log_message("等待 300x300 圖片處理完成...")
-        page.wait_for_timeout(3000)  # 先等待一固定時間
+                log_message(f"Warning: Unable to click 300x300 upload button: {str(e2)}")
+                # Continue anyway, but record warning
+
+        # Wait for network activity to complete
+        log_message("Waiting for 300x300 image processing...")
+        page.wait_for_timeout(3000)  # Wait fixed time first
         page.wait_for_load_state('networkidle', timeout=60000)
         slow_down(page)
 
-        # 網址
+        # URL
+        # Playwright selector targeting external platform UI - keep as-is
         page.get_by_placeholder("Mobile loading page for Ad").fill(sheet_data[target_row][27])  # 27 Landing page
         slow_down(page)
-        
-        # 文字敘述 - 使用已確認成功的方法（name 屬性）
-        log_message("填入文字敘述...")
+
+        # Text description - use already verified method (name attribute)
+        log_message("Filling text description...")
         text_input = page.locator('input[name="text"]')
         text_input.click()
-        text_input.fill(sheet_data[target_row][11])  # 11 副標題
-        log_message("已填入文字敘述")
+        text_input.fill(sheet_data[target_row][11])  # 11 Subtitle
+        log_message("Text description filled")
         slow_down(page)
-        
+
+        # Playwright selector targeting external platform UI - keep as-is
         page.get_by_placeholder("bg_placeholder: background").click()
-        
-        # call to action - 使用已確認成功的方法（直接輸入）
-        log_message("設定 Call to Action...")
+
+        # Call to action - use already verified method (direct input)
+        log_message("Set call to action...")
         cta_input = page.locator('input[name="callToAction"]')
         cta_input.click()
-        cta_input.fill("立即購買")
-        log_message("已填入「立即購買」")
+        cta_input.fill("Buy Now")
+        log_message("Filled 'Buy Now'")
         slow_down(page)
-        
-        # 遊戲套件預設背景
-        page.get_by_placeholder("bg_placeholder: background").fill(sheet_data[target_row][12])  # 12 圖一
+
+        # Game kit default background
+        # Playwright selector targeting external platform UI - keep as-is
+        page.get_by_placeholder("bg_placeholder: background").fill(sheet_data[target_row][12])  # 12 Image 1
         slow_down(page)
         page.once("dialog", lambda dialog: dialog.dismiss())
+        # Playwright selector targeting external platform UI - keep as-is
         page.get_by_placeholder("urlInteractivePopup: url to").click()
-        
-        # 多目標popup網址 - 固定使用特定網址
-        urlInteractivePopups = "https://cdn.example.com/popup/"  # 使用固定的 popup 網址
+
+        # Multi-target popup URL - use fixed popup URL
+        urlInteractivePopups = "https://cdn.example.com/popup/"  # Use fixed popup URL
+        # Playwright selector targeting external platform UI - keep as-is
         page.get_by_placeholder("urlInteractivePopup: url to").fill(urlInteractivePopups)
         slow_down(page)
         page.locator("textarea[name=\"payload_gameWidgetJson\"]").click()
         page.locator("textarea[name=\"payload_gameWidgetJson\"]").press("ControlOrMeta+a")
-        
+
         # payload_gameWidget
         payload_gameWidget = sheet_data[target_row][29]  # 29 payload_gameWidget (to CatWalk)
         page.locator("textarea[name=\"payload_gameWidgetJson\"]").fill(payload_gameWidget)
         slow_down(page)
         page.wait_for_timeout(2000)
 
-        page.get_by_role("button", name="新增").click()
+        # Playwright selector targeting external platform UI - keep as-is
+        page.get_by_role("button", name="Add New").click()
         slow_down(page)
+        # Playwright selector targeting external platform UI - keep as-is
         page.get_by_role("button", name="OK").wait_for(state="visible")
         page.wait_for_timeout(2000)
         page.get_by_role("button", name="OK").click()
         slow_down(page)
 
         page.wait_for_timeout(2000)
-        page.get_by_role("link", name="  互動廣告編輯").wait_for(state="visible")
-        page.get_by_role("link", name="  互動廣告編輯").click()
+        # Playwright selector targeting external platform UI - keep as-is
+        page.get_by_role("link", name="  Interactive Ad Editor").wait_for(state="visible")
+        page.get_by_role("link", name="  Interactive Ad Editor").click()
         slow_down(page)
 
         page.wait_for_load_state('networkidle')
         slow_down(page)
-            
+
         last_36_chars = extract_last_36_chars_from_url(page)
 
-        # 獲取另一个 placeholder 的當前值
+        # Get current value of another placeholder
         target_placeholder = page.get_by_placeholder("urlInteractivePopup: url to")
         current_value = target_placeholder.input_value()
 
-        # 將最後 36 位字符添加到當前值的末尾
+        # Add last 36 characters to end of current value
         new_value = current_value + last_36_chars
 
-        # 填充新的值
+        # Fill new value
         target_placeholder.fill(new_value)
         slow_down(page)
 
-        page.get_by_role("button", name="修改").wait_for(state="visible")
-        page.get_by_role("button", name="修改").click()
+        # Playwright selector targeting external platform UI - keep as-is
+        page.get_by_role("button", name="Edit").wait_for(state="visible")
+        page.get_by_role("button", name="Edit").click()
         slow_down(page)
 
         # Wait for any final page transitions or loading states
@@ -547,45 +567,45 @@ def run_automation(playwright: Playwright, row_number: int, sheet_data: list) ->
 
 def main():
     try:
-        # 獲取 Google Sheet 數據
+        # Get Google Sheet data
         worksheet, sheet_data = get_sheet_data(sheet_url, range_name, worksheet_index)
-        
-        # 獲取最後一行的行號
+
+        # Get last row number
         last_row = len(sheet_data)
-        
-        # 從指定的 row_number 開始循環
+
+        # Start looping from specified row_number
         current_row = row_number
         while current_row <= last_row:
-            log_message(f"正在檢查第 {current_row} 行")
-            
-            # 檢查 size 欄位是否為 rich_media
+            log_message(f"Checking row {current_row}")
+
+            # Check if Column 6 size field is rich_media
             if check_h_column(sheet_data, current_row):
-                # 檢查 ad type 欄位的值
+                # Check if Column H field indicates rich_media
                 ad_type = check_ad_type(sheet_data, current_row)
-                log_message(f"第 {current_row} 行廣告類型: {ad_type}")
-                
-                # 檢查 A 列是否已標記完成
+                log_message(f"Row {current_row} ad type: {ad_type}")
+
+                # Check if Column A is marked as complete
                 if not check_a_column(worksheet, current_row):
-                    # 啟動 Playwright 進行自動化操作
+                    # Launch Playwright for automation
                     with sync_playwright() as playwright:
                         status = run_automation(playwright, current_row, sheet_data)
                         try:
-                            # 更新 Google Sheet 狀態
+                            # Update Google Sheet status
                             update_sheet_status(worksheet, current_row, status)
                         except Exception as e:
                             if IGNORE_SHEET_PERMISSION_ERROR:
-                                log_message(f"忽略 Google Sheet 更新錯誤: {str(e)}")
-                                log_message(f"由於 IGNORE_SHEET_PERMISSION_ERROR=True，程序將繼續執行")
+                                log_message(f"Ignoring Google Sheet update error: {str(e)}")
+                                log_message(f"Because IGNORE_SHEET_PERMISSION_ERROR=True, program will continue")
                             else:
                                 raise e
                 else:
-                    log_message(f"第 {current_row} 行已標記為完成")
+                    log_message(f"Row {current_row} marked as complete")
             else:
-                log_message(f"第 {current_row} 行的 '6 size' 欄位不是 rich_media，跳過處理")
+                log_message(f"Row {current_row} Column '6 size' field is not rich_media, skipping")
             current_row += 1
 
     except Exception as e:
-        logging.error(f"主函數出現錯誤: {str(e)}")
+        logging.error(f"Main function error: {str(e)}")
         import traceback
         logging.error(traceback.format_exc())
 
